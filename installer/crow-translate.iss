@@ -2,10 +2,13 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 
 ; Crow Translate インストーラー（Inno Setup 6）
-; Build-Installer.ps1 から ISCC に /DAppVersion= /DStagingDir= /DOutputDir= [/DIncludeVcRedist] を渡して使う。
+; Build-Installer.ps1 から ISCC に /DAppVersion= /DAppNumericVersion= /DStagingDir= /DOutputDir= [/DIncludeVcRedist] を渡して使う。
 
 #ifndef AppVersion
   #error AppVersion が未定義です。Build-Installer.ps1 経由でコンパイルしてください。
+#endif
+#ifndef AppNumericVersion
+  #error AppNumericVersion が未定義です。Build-Installer.ps1 経由でコンパイルしてください。
 #endif
 #ifndef StagingDir
   #error StagingDir が未定義です。Build-Installer.ps1 経由でコンパイルしてください。
@@ -16,21 +19,24 @@
 
 #define AppName "Crow Translate"
 #define AppExeName "crow.exe"
-#define AppPublisher "Crow Translate"
-#define AppUrl "https://apps.kde.org/crow-translate"
+#define AppPublisher "ringo7pie (unofficial fork)"
+#define AppUrl "https://github.com/ringo7pie/crow-translate"
 
 [Setup]
 ; アプリを一意に識別する GUID（変更するとアップグレードできなくなる）
 AppId={{6F3C2A64-9B0E-4C57-8D1B-5A7E2C9F4D10}
 AppName={#AppName}
 AppVersion={#AppVersion}
+AppVerName={#AppName} {#AppVersion} (Unofficial)
+VersionInfoVersion={#AppNumericVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}
-DefaultDirName={autopf}\{#AppName}
-DefaultGroupName={#AppName}
+DefaultDirName={autopf}\Crow Translate Unofficial
+DefaultGroupName={#AppName} (Unofficial)
 DisableProgramGroupPage=yes
 LicenseFile={#StagingDir}\LICENSE.txt
+InfoAfterFile={#StagingDir}\README-Windows.txt
 OutputDir={#OutputDir}
 OutputBaseFilename=crow-translate-{#AppVersion}-setup
 UninstallDisplayIcon={app}\{#AppExeName}
@@ -60,6 +66,7 @@ Source: "{#StagingDir}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafteri
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
+Name: "{group}\Readme"; Filename: "{app}\README-Windows.txt"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]

@@ -365,6 +365,15 @@ This project uses the following external libraries, which included as git submod
 
 ## Installation
 
+Windows x64 installers for this unofficial fork are available on the
+[GitHub Releases page](https://github.com/ringo7pie/crow-translate/releases/latest).
+Download the `crow-translate-*-setup.exe` asset. The installer includes Qt,
+Tesseract, English/Japanese OCR data, Visual C++ runtime DLLs and license notices.
+Indra OCR, Python, local translation models and Codex CLI are installed separately;
+see the included `README-Windows.txt` and the setup instructions above. Matching
+application and dependency source archives and SHA-256 checksums accompany each
+installer. These installers are unsigned.
+
 Downloads are available on the [KDE downloads](https://download.kde.org/stable/crow-translate) page. Also check out the [webpage](https://apps.kde.org/crowtranslate) for other installation methods.
 
 **Note:** On Linux to make the application look native on a non-KDE desktop environment, you need to configure Qt applications styling. This can be done by using [qt6ct](https://github.com/trialuser02/qt6ct) or [adwaita-qt6](https://github.com/FedoraQt/adwaita-qt). Please check the appropriate installation guide for your distribution.

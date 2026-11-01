@@ -21,6 +21,7 @@
         -QtBinDir D:\Qt\6.8.0\msvc2022_64\bin `
         -DependencyBinDir D:\vcpkg\installed\x64-windows\bin `
         -TessdataDir D:\tessdata_fast `
+        -LicenseBundleDir D:\release\license-bundle `
         -InnoSetupDir "C:\Program Files (x86)\Inno Setup 6"
 #>
 [CmdletBinding()]
@@ -44,6 +45,10 @@ param(
     # Inno Setup のインストール先（ISCC.exe があるフォルダ）
     [Parameter(Mandatory = $true)]
     [string]$InnoSetupDir,
+
+    # Prepare-ReleaseLicenses.py が生成した license-bundle フォルダー（追加のランタイムの通知も含める）
+    [Parameter(Mandatory = $true)]
+    [string]$LicenseBundleDir,
 
     # cmake.exe のパス（PATH に無い環境向け。既定は Visual Studio 同梱の CMake）
     [string]$CMakeExecutable = 'E:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe',
@@ -70,6 +75,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path  # このスクリプトのあるフォルダ（param の既定値では $PSScriptRoot が空になる環境があるため本体で求める）
 $repositoryRoot = Split-Path -Parent $scriptDirectory  # リポジトリのルート
 if ($OutputDir -eq '') { $OutputDir = Join-Path $scriptDirectory 'out' }
+$OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 $stagingDir = Join-Path $OutputDir 'staging'  # インストーラーに詰めるファイルの配置先
 $installPrefix = Join-Path $OutputDir 'install-prefix'  # cmake --install の一時配置先
 
@@ -97,6 +103,8 @@ Assert-PathExists (Join-Path $QtBinDir 'windeployqt6.exe') 'windeployqt6.exe'
 Assert-PathExists $DependencyBinDir '依存 DLL のフォルダ'
 Assert-PathExists $TessdataDir 'tessdata のフォルダ'
 Assert-PathExists (Join-Path $InnoSetupDir 'ISCC.exe') 'ISCC.exe'
+Assert-PathExists (Join-Path $LicenseBundleDir 'THIRD-PARTY-NOTICES.txt') '第三者ライセンスの通知'
+Assert-PathExists (Join-Path $LicenseBundleDir 'licenses/dependency-manifest.json') '依存ライブラリのマニフェスト'
 if ($VcRedistPath -ne '') { Assert-PathExists $VcRedistPath 'VC++ 再頒布可能パッケージ' }
 
 # バージョンを CMakeLists.txt から取得する
@@ -110,9 +118,18 @@ if ($Version -eq '') {
     }
 }
 Write-Output "バージョン: $Version"
+$numericVersion = [regex]::Match($Version, '^\d+(?:\.\d+){1,3}').Value
+if ($Version -match '^(\d+\.\d+\.\d+)-local\.(\d+)$') {
+    $numericVersion = "$($Matches[1]).$($Matches[2])"
+}
+if ($numericVersion -eq '') { throw "数値バージョンを取得できません: $Version" }
 
 # 1. ステージングを作り直す
 foreach ($directory in @($stagingDir, $installPrefix)) {
+    $resolvedDirectory = [System.IO.Path]::GetFullPath($directory)
+    if (-not $resolvedDirectory.StartsWith($OutputDir.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "作業フォルダーが出力先の外にあります: $resolvedDirectory"
+    }
     if (Test-Path -LiteralPath $directory) { Remove-Item -LiteralPath $directory -Recurse -Force }
     New-Item -ItemType Directory -Path $directory | Out-Null
 }
@@ -130,7 +147,11 @@ Copy-Item -Path (Join-Path $executableDirectory '*') -Destination $stagingDir -R
 $stagedExecutable = Join-Path $stagingDir 'crow.exe'  # ステージング上の crow.exe
 
 # 4. Qt の DLL とプラグインを配置する
-Invoke-Tool (Join-Path $QtBinDir 'windeployqt6.exe') @('--release', '--no-translations', '--no-compiler-runtime', $stagedExecutable)
+Invoke-Tool (Join-Path $QtBinDir 'windeployqt6.exe') @(
+    '--release', '--no-translations', '--no-compiler-runtime', '--no-opengl-sw',
+    '--no-system-d3d-compiler', '--no-system-dxc-compiler', '--no-ffmpeg',
+    '--exclude-plugins', 'ffmpegmediaplugin', $stagedExecutable
+)
 
 # 5. Tesseract / Leptonica と依存 DLL を配置する（Qt 本体の DLL は windeployqt が配置済みなので除く）
 $copiedDependencies = @()  # 追加で配置した DLL の名前一覧
@@ -176,6 +197,9 @@ Write-Output "翻訳を配置: $($translationFiles.Count) 言語"
 
 # 8. ライセンスと VC++ 再頒布可能パッケージ
 Copy-Item -LiteralPath (Join-Path (Join-Path $repositoryRoot 'LICENSES') 'GPL-3.0-or-later.txt') -Destination (Join-Path $stagingDir 'LICENSE.txt')
+Copy-Item -Path (Join-Path $LicenseBundleDir '*') -Destination $stagingDir -Recurse -Force
+$readmeText = Get-Content -LiteralPath (Join-Path $scriptDirectory 'README-Windows.txt') -Raw -Encoding utf8
+[System.IO.File]::WriteAllText((Join-Path $stagingDir 'README-Windows.txt'), $readmeText, [System.Text.UTF8Encoding]::new($true))
 if ($VcRedistPath -ne '') {
     Copy-Item -LiteralPath $VcRedistPath -Destination (Join-Path $stagingDir 'vc_redist.x64.exe')
 }
@@ -184,6 +208,7 @@ if ($VcRedistPath -ne '') {
 $scriptPath = Join-Path $scriptDirectory 'crow-translate.iss'  # Inno Setup スクリプト
 $isccArguments = @(
     "/DAppVersion=$Version",
+    "/DAppNumericVersion=$numericVersion",
     "/DStagingDir=$stagingDir",
     "/DOutputDir=$OutputDir"
 )  # ISCC へ渡す定義

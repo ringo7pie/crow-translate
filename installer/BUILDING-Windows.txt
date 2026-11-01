@@ -1,0 +1,63 @@
+Windows release build information: 4.1.0-local.2
+=============================================
+
+The application C++ sources are unchanged from commit
+f5c4725fbee45f92f95785323d8b0cfc0f7a69ef. The release tag also contains
+the installer, license collection scripts, and deployment documentation.
+
+Build environment
+-----------------
+Windows 11 x64, MSVC 19.51.36260, CMake + Ninja, Qt 6.8.3 MSVC x64.
+Release configuration, WITH_TTS=ON, WITH_PIPER_TTS=OFF,
+WITH_PORTABLE_MODE=ON, WITH_KICONTHEMES=OFF, WITH_KWAYLAND=OFF.
+
+The Qt binary packages are unmodified official Qt 6.8.3 packages. Their
+source and binary SBOMs record upstream configuration and commit IDs.
+The application was compiled with Tesseract 5.5.1 public headers and
+Leptonica 1.87.0 headers, linking to the ABI-compatible Tesseract 5.5.3
+and Leptonica 1.87.0 DLLs. Both Tesseract sources are supplied.
+
+Other library versions, upstream URLs and archive checksums appear in
+dependency-manifest.json. vcpkg source archives include the Windows build
+recipes and patches. Microsoft Visual C++ runtime DLLs come from the
+Visual Studio 2026 x64 redistributable directory (14.51.36231).
+
+Rebuilding
+----------
+1. Extract the application source ZIP, which includes pinned submodules.
+2. Build Tesseract and Leptonica using the matching vcpkg port recipes in
+   the attached dependency source archive, or an ABI-compatible release.
+3. Run installer/Build-App.ps1, specifying the installed Qt prefix,
+   vcpkg installed directory, Visual Studio vcvars64.bat and CMake/Ninja
+   directories. Build all translation targets as well as the executable.
+4. Prepare a directory containing only the Tesseract/Leptonica runtime
+   DLLs and their transitive dependencies. For the published build these
+   are libarchive, bzip2, giflib, libjpeg-turbo, libcurl, liblzma, libpng,
+   libwebp/libsharpyuv, lz4, OpenJPEG, libtiff, zlib and zstd. Add permitted
+   x64 Microsoft CRT DLLs from the Visual Studio Redist directory.
+5. Obtain eng, jpn and osd from tessdata_fast tag 4.1.0 using
+   installer/Get-Tessdata.ps1.
+6. Prepare notices and dependency sources with Python 3.14:
+
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.2
+
+   Add notices for any additional runtime files to license-bundle/licenses.
+   For the Microsoft CRT, include Microsoft's distribution terms/list:
+   https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution
+7. Run installer/Build-Installer.ps1 with BuildDir, QtBinDir,
+   DependencyBinDir, TessdataDir, InnoSetupDir, LicenseBundleDir,
+   CMakeExecutable, OutputDir and Version. Inno Setup 6.7.3 was used.
+
+Qt DLLs and plugins are deployed dynamically. The Windows multimedia
+backend is used. FFmpeg, Mesa software OpenGL, D3D compiler and DXC files
+are not deployed. Windows supplies its graphics/system libraries.
+No translation/Indra model weights, Python environment, user settings or
+credentials are included in the installer. Models and Indra OCR are installed
+separately as described in README-Windows.txt and the main README.
+
+Redistribution
+--------------
+Upload the installer, corresponding application and dependency source
+archives, and SHA256SUMS.txt together. Keep all license notices. The app
+and its code changes use GPL-3.0-or-later; dependencies keep their own
+licenses. This does not replace the licenses of separately fetched models.

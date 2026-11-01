@@ -7,6 +7,10 @@ Files: src/**.ui data/org.kde.CrowTranslate.desktop.in data/org.kde.CrowTranslat
 Copyright: Hennadii Chernyshchyk <genaloner@gmail.com>
 License: GPL-3.0-or-later
 
+Files: installer/README-Windows.txt installer/BUILDING-Windows.txt
+Copyright: 2026 ringo7pie
+License: GPL-3.0-or-later
+
 Files: data/icons/app/*-status-* data/icons/engines/*.svg data/icons/index.theme
 Copyright: Hennadii Chernyshchyk <genaloner@gmail.com>
 License: CC-BY-SA-4.0
