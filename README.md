@@ -3,11 +3,35 @@
 
 # ![Crow Translate logo](data/icons/app/48-apps-org.kde.CrowTranslate.png) Crow Translate
 
+## Unofficial fork / 非公式改変版
+
+This is an unofficial modified version of [Crow Translate](https://invent.kde.org/office/crow-translate),
+maintained by [ringo7pie](https://github.com/ringo7pie). It is not an official KDE release.
+The upstream authors' copyright notices and license texts are retained.
+
+Modified on **2026-11-01**: added local Indra OCR, PLaMo-2-translate,
+Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B translation presets, Codex CLI
+translation, translation progress and cancellation controls, Japanese localization,
+Windows build/installer support, and replacement application icons.
+
+The application code and these code additions are distributed under
+[GPL-3.0-or-later](LICENSES/GPL-3.0-or-later.txt). The replacement application
+icons and their JPEG sources are Copyright 2026 ringo7pie, licensed under
+[CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt). Other files retain their individual
+licenses, recorded in SPDX headers and [.reuse/dep5](.reuse/dep5).
+Model weights, downloaded runtimes, personal settings and build outputs are not
+included in this repository. Separately installed models and dependencies have
+their own licenses; this fork's GPL does not replace those terms.
+
+このリポジトリは非公式の改変版です。元の著作権表示とライセンスを維持し、
+上記機能を追加しています。モデル本体や個人設定は含みません。
+
 Application written in **C++ / Qt6** that allows you to translate and speak text using [Mozhi](https://codeberg.org/aryak/mozhi) with multiple TTS providers including high-quality neural text-to-speech.
 
 ## Content
 
 - [Screenshots](#screenshots)
+- [Validation](#validation)
 - [Features](#features)
 - [Default keyboard shortcuts](#default-keyboard-shortcuts)
 - [CLI commands](#cli-commands)
@@ -19,6 +43,26 @@ Application written in **C++ / Qt6** that allows you to translate and speak text
 - [Installation](#installation)
 - [Building](#building)
 - [Localization](#localization)
+
+## Validation
+
+On 2026-11-01, Windows 11 with Qt 6.8.3, a Ryzen 9 3900X and an RTX 3070
+(8 GB VRAM) was used to verify English/Japanese translation with all four local
+models, local source-language detection, and automatic destination switching in
+the GUI. An English test image was recognized by Indra OCR and translated by
+Index-Translate 2B through Crow's CLI. Dates, numbers and paragraph samples were
+also checked in both translation directions. These are smoke checks, not a
+translation-quality benchmark.
+
+Regression tests cover provider state and cancellation, timeouts, Windows child
+process cleanup, settings persistence, and model-specific prompt/token handling.
+The model setup scripts use pinned revisions and record checksums in a local
+manifest. Re-run the tests and installation checks on your own environment.
+
+Publication checks on the same date: 162 C++ test cases passed, with 5 skipped
+for live-service availability or unsupported mid-flight-abort scenarios; all
+10 Python worker tests passed. Windows installer/setup PowerShell files parsed
+without errors. The test run also verified that the user's settings were unchanged.
 
 ## Screenshots
 
@@ -45,12 +89,14 @@ Application written in **C++ / Qt6** that allows you to translate and speak text
 - **Provider System**: Modular translation and TTS providers with runtime switching
 - **Multiple Translation Engines**: [Multiple engines](https://codeberg.org/aryak/mozhi#supported-engines) provided by Mozhi (some instances can disable specific engines)*
 - **LocalAI Backend**: Translate through any OpenAI-compatible endpoint - Ollama, LM Studio, FastFlowLM, Anthropic or a custom server - with model discovery and configurable prompts
+- **Managed Local Translation**: Switch between PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B, with local English/Japanese detection and automatic model loading
+- **Codex CLI Backend**: Translate with your existing Codex CLI login, automatic source-language detection and editable translation instructions
 - **LibreTranslate**: Use a LibreTranslate instance through Mozhi or directly, with an optional API key
 - **Advanced TTS Options**:
   - **Piper Neural TTS**: High-quality offline neural text-to-speech with ONNX Runtime
   - **Qt TextToSpeech**: System TTS integration
   - **Mozhi TTS**: Online TTS via Mozhi proxy
-- **Modular OCR**: Two interchangeable engines - Tesseract, with an image inversion option, and any vision model reachable over an OpenAI-compatible endpoint
+- **Modular OCR**: Three interchangeable engines - Tesseract, local Indra OCR, and any vision model reachable over an OpenAI-compatible endpoint
 - **Image Input**: Open, drop or paste an image to recognize and translate the text in it
 - **Status Strip**: See what is currently running - capture, recognition, detection, translation or speech - and what failed
 - **Custom Language Support**: Register and persist custom languages beyond standard locales
@@ -94,6 +140,81 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 
 ## CLI commands
 
+### Translation with Codex
+
+Install a current [Codex CLI](https://learn.chatgpt.com/docs/cli) and run
+`codex login` first. In **Settings → Translation**, select **Codex** and, if
+needed, browse to the native Codex executable (`codex.exe` on Windows).
+The executable must be on PATH or specified by its full path; on Windows,
+select the native executable rather than an npm `.cmd` launcher.
+
+Codex uses its existing CLI authentication. Crow does not store an API key.
+The default model is `gpt-6-luna` with low reasoning effort, and the timeout
+is 300 seconds. In Translation settings, choose the model and reasoning effort
+(`low`, `medium`, `high`, `xhigh` or `max`) from the drop-down lists. The model
+field also accepts custom names. You can change the timeout and additional
+style or terminology instructions there. Model access depends on
+your Codex account; unavailable models produce an error without switching models.
+
+```sh
+crow --translation-provider codex --source en --translation ja "Hello, world!"
+crow --translation-provider codex --translation ja --json "Hello, world!"
+```
+
+Only the translation is displayed; CLI diagnostics are kept separate. Each
+request uses an ephemeral session in a temporary directory with a read-only
+sandbox, without loading the user Codex configuration. Your existing OCR
+engine can recognize an image and pass its text to the Codex translation provider.
+
+日本語: Codex CLI をインストールして `codex login` を実行した後、
+「設定 → 翻訳」で「Codex」を選択してください。モデルと思考レベルは
+コンボボックスから選択できます。モデル名は直接入力もできます。
+実行ファイル、タイムアウト、口調や用語などの追加指示も設定できます。
+
+### Managed local translation models (Windows)
+
+In **Settings → Translation**, select **Local translation models**. Choose
+PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B or Seed-X-PPO 7B there, or use
+the model selector in the main window. Models load on the first translation;
+switching models unloads the previous one. English and Japanese are supported,
+including local automatic source-language detection and text recognized by OCR.
+For automatic destination switching, set the first and second translation
+languages to English and Japanese in the same settings page.
+
+The application starts its own loopback-only llama.cpp server. Installation
+requires Python 3.14, Visual Studio C++ tools, PowerShell 7 and approximately
+80 GB of temporary disk space for PLaMo conversion. Run these steps from the
+repository root; models and runtime binaries stay under the ignored
+`third_party/local-translation` directory:
+
+```powershell
+python tools/setup_local_models.py --step dependencies
+python tools/setup_local_models.py --step runtime
+& ./third_party/local-translation/venv/Scripts/python.exe tools/setup_local_models.py --step models
+& ./third_party/local-translation/venv/Scripts/python.exe tools/setup_local_models.py --step convert
+& ./third_party/local-translation/venv/Scripts/python.exe tools/setup_local_models.py --step manifest
+```
+
+Select this directory in Translation settings. Subsequent translations run
+offline. The manifest pins upstream revisions and records model checksums.
+PLaMo uses official weights converted with the upstream `Q4_0-ssm-f16` recipe
+and a RoPE-corrected runtime; Index and Hy use official Q4_K_M GGUFs. Seed uses
+the community Q4_K_M conversion by mradermacher with its official tokenizer;
+prompt token IDs bypass incompatible GGUF tokenization. Original model licenses apply.
+
+```sh
+crow --tp local-models --local-model index-translate-2b -s auto -t ja "Hello, world!"
+crow --tp local-models --local-model plamo-2-translate -s en -t ja "Hello, world!"
+crow --tp local-models --local-model hy-mt2-7b -s ja -t en "こんにちは。"
+crow --tp local-models --local-model seed-x-ppo-7b -s en -t ja "Hello, world!"
+```
+
+日本語: 「設定 → 翻訳」で「ローカル翻訳モデル」を選びます。
+モデル名は設定画面とメイン画面から切り替えられます。初回翻訳時に読み込み、
+原文の英語・日本語はこのPC内で判定します。モデル取得後はオフラインで使えます。
+
+### General command-line usage
+
 The program also has a console interface.
 
 **Usage:** `crow [options] text`
@@ -107,7 +228,8 @@ The program also has a console interface.
 | `-t, --translation <code>` | Specify the translation language(s), split by '+' (by default, the system language is used)                          |
 | `-e, --engine <engine>`    | Specify the translator engine ('google', 'yandex', 'bing', 'libretranslate' or 'lingva'), Google is used by default  |
 | `-u, --url <URL>`          | Specify Mozhi instance URL. Instance URL from app settings will be used by default                                   |
-| `--tp, --translation-provider <provider>` | Specify translation provider ('copy' or 'mozhi'). Provider from app settings will be used by default  |
+| `--tp, --translation-provider <provider>` | Specify translation provider ('copy', 'mozhi', 'localai', 'codex' or 'local-models'). Provider from app settings will be used by default |
+| `--local-model <id>`       | Select a managed local translation model by its preset ID                                                            |
 | `--tts, --tts-provider <provider>` | Specify TTS provider ('none', 'mozhi', 'qt', or 'piper'). Provider from app settings will be used by default |
 | `-r, --speak-translation`  | Speak the translation                                                                                                |
 | `-o, --speak-source`       | Speak the source                                                                                                     |
@@ -182,6 +304,28 @@ qdbus org.kde.CrowTranslate /org/kde/CrowTranslate/MainWindow translateSelection
 You can set a hotkey for this command in GNOME system settings.
 
 ## OCR
+
+### Indra OCR
+
+Install the official [Indra OCR](https://github.com/datalab-to/indra) CLI with
+Python 3.10 or later: `python -m pip install indra-ocr`. In **Settings → OCR**,
+select **Indra OCR (local)**. If `indra-ocr` is not on PATH, browse to its
+executable (`indra-ocr.exe` in your Python environment's `Scripts` directory on
+Windows). A dedicated environment at `indra-venv` beside Crow's executable is
+detected automatically. The timeout defaults to 300 seconds.
+
+Images and screen captures are recognized locally, and the resulting text uses
+your selected translation provider. Languages are detected automatically;
+Tesseract language files are not required. The first recognition downloads
+about 76 MB of models from Hugging Face and caches them. You can select an
+existing model directory to run offline. Model weights have their own
+[license](https://huggingface.co/datalab-to/indra-ocr/blob/main/LICENSE).
+
+日本語: 「設定 → OCR」で「Indra OCR (local)」を選択してください。
+実行ファイルの場所とタイムアウトを設定できます。初回はモデルを自動取得し、
+以後はローカルで認識します。言語は自動判定されます。
+
+### Tesseract
 
 The application can translate text from the screen using [Tesseract](https://github.com/tesseract-ocr/tesseract). To recognize text, you need to additionally install trained models and select at least one model in the settings. Choose only the models for the languages you need. The more models there are, the worse the performance and quality of OCR.
 

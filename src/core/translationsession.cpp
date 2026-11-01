@@ -9,6 +9,7 @@
 #include "provideroptionsmanager.h"
 #include "core/usernotifier.h"
 #include "ocr/aocrprovider.h"
+#include "ocr/indraocr.h"
 #include "ocr/llmocr.h"
 #include "ocr/tesseractocr.h"
 #include "settings/appsettings.h"
@@ -27,11 +28,12 @@ TranslationSession::TranslationSession(QObject *parent)
     , m_status(new ModuleStatus(this))
     , m_tesseractOcr(new TesseractOcr(this))
     , m_llmOcr(new LlmOcr(this))
+    , m_indraOcr(new IndraOcr(this))
 {
-    // Both engines, not just the active one: the active one switches per
+    // All engines: the active one switches per
     // settings read, and a status model that only followed the current choice
     // would stop reporting the moment it changed.
-    m_status->bindOcr(m_tesseractOcr, m_llmOcr);
+    m_status->bindOcr(m_tesseractOcr, m_llmOcr, m_indraOcr);
 }
 
 ATranslationProvider *TranslationSession::translator() const
@@ -64,6 +66,9 @@ AOcrProvider *TranslationSession::ocr() const
     if (AppSettings().ocrEngine() == AppSettings::OcrEngine::Llm) {
         return m_llmOcr;
     }
+    if (AppSettings().ocrEngine() == AppSettings::OcrEngine::Indra) {
+        return m_indraOcr;
+    }
     return m_tesseractOcr;
 }
 
@@ -75,6 +80,11 @@ TesseractOcr *TranslationSession::tesseractOcr() const
 LlmOcr *TranslationSession::llmOcr() const
 {
     return m_llmOcr;
+}
+
+IndraOcr *TranslationSession::indraOcr() const
+{
+    return m_indraOcr;
 }
 
 ATranslationProvider::ProviderBackend TranslationSession::translationBackend() const
@@ -99,6 +109,7 @@ void TranslationSession::setTranslationBackend(ATranslationProvider::ProviderBac
     // the window's own signals, where each swap had to unpick and redo the
     // same four connections and could silently miss one.
     if (m_translator != nullptr) {
+        m_translator->abort();
         m_translator->deleteLater();
     }
 
@@ -338,6 +349,10 @@ void TranslationSession::configureLlmOcr()
 bool TranslationSession::prepareOcr()
 {
     configureLlmOcr();
+    const AppSettings settings;
+    m_indraOcr->setExecutable(settings.indraExecutable());
+    m_indraOcr->setModelDirectory(settings.indraModelDirectory());
+    m_indraOcr->setTimeout(settings.indraTimeout());
     if (ocr()->isConfigured()) {
         return true;
     }

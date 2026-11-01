@@ -101,12 +101,28 @@ private:
 
     Ui::SettingsDialog *ui;
 
-    // OCR engine selection (Tesseract / LLM) — dynamic widgets on the OCR page.
+    void buildCodexUi();
+    void buildLocalModelsUi();
+    void updateLocalModelsStatus();
+    QComboBox *m_localModelsModel = nullptr;
+    QLineEdit *m_localModelsRoot = nullptr;
+    QSpinBox *m_localModelsTimeout = nullptr;
+    QLabel *m_localModelsStatus = nullptr;
+    QLineEdit *m_codexExecutable = nullptr;
+    QComboBox *m_codexModel = nullptr;
+    QComboBox *m_codexReasoningEffort = nullptr;
+    QSpinBox *m_codexTimeout = nullptr;
+    QPlainTextEdit *m_codexInstructions = nullptr;
+
+    // OCR engine selection — dynamic widgets on the OCR page.
     // The LLM engine carries a complete endpoint of its own (URL, key, model
     // list); it shares nothing but the provider *kinds* with the LocalAI
     // translation backend.
     QComboBox *m_ocrEngineCombo = nullptr;
     QStackedWidget *m_ocrEngineStack = nullptr;
+    QLineEdit *m_indraExecutableEdit = nullptr;
+    QLineEdit *m_indraModelDirectoryEdit = nullptr;
+    QSpinBox *m_indraTimeoutSpin = nullptr;
     QComboBox *m_ocrLlmProviderCombo = nullptr;
     QLineEdit *m_ocrLlmUrlEdit = nullptr;
     QLineEdit *m_ocrLlmApiKeyEdit = nullptr;

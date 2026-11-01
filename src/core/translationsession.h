@@ -17,6 +17,7 @@
 #include <optional>
 
 class AOcrProvider;
+class IndraOcr;
 class LanguageResolution;
 class LlmOcr;
 class ModuleStatus;
@@ -55,12 +56,13 @@ public:
     LanguageResolution *languages() const;
     ModuleStatus *moduleStatus() const;
 
-    // Both recognition engines are long-lived; which one is *active* follows
+    // Recognition engines are long-lived; which one is *active* follows
     // the settings and can change between one recognition and the next, so
     // ocr() is read per use rather than kept.
     AOcrProvider *ocr() const;
     TesseractOcr *tesseractOcr() const;
     LlmOcr *llmOcr() const;
+    IndraOcr *indraOcr() const;
 
     // Only meaningful once a backend has been set; before that they answer
     // with the do-nothing backend, which is also what translator() == nullptr
@@ -188,6 +190,7 @@ private:
     ATTSProvider *m_tts = nullptr;
     TesseractOcr *m_tesseractOcr = nullptr;
     LlmOcr *m_llmOcr = nullptr;
+    IndraOcr *m_indraOcr = nullptr;
     // Deliberately not defaulted to a real backend: the setters are no-ops
     // when the backend already matches, and a default that happened to equal
     // the stored choice would skip building the provider entirely.

@@ -8,7 +8,9 @@
 #include "core/usernotifier.h"
 #include "settings/appsettings.h"
 #include "translator/copytranslationprovider.h"
+#include "translator/codextranslationprovider.h"
 #include "translator/localaitranslationprovider.h"
+#include "translator/localmodelstranslationprovider.h"
 #include "translator/mozhitranslationprovider.h"
 
 #include <QTimer>
@@ -28,6 +30,10 @@ ATranslationProvider *ATranslationProvider::createTranslationProvider(QObject *p
 
         case ProviderBackend::LocalAI:
             return new LocalAiTranslationProvider(parent);
+        case ProviderBackend::Codex:
+            return new CodexTranslationProvider(parent);
+        case ProviderBackend::LocalModels:
+            return new LocalModelsTranslationProvider(parent);
         }
     } catch (const std::exception &e) {
         qWarning() << "ATranslationProvider::createTranslationProvider - Exception creating provider" << static_cast<int>(chosenBackend) << ":" << e.what();

@@ -1,0 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Crow Translate contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#define IDI_ICON1 1
+IDI_ICON1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/data/icons/app/crow-translate.ico"

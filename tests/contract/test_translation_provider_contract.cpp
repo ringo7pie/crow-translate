@@ -26,6 +26,8 @@ std::unique_ptr<ProviderFixture> makeFixture(const QString &name)
 {
     if (name == QLatin1String("Copy"))
         return std::make_unique<CopyProviderFixture>();
+    if (name == QLatin1String("Codex"))
+        return std::make_unique<CodexProviderFixture>();
     if (name == QLatin1String("LocalAI"))
         return std::make_unique<LocalAiProviderFixture>();
     if (name == QLatin1String("Mozhi"))
@@ -320,6 +322,7 @@ private:
     {
         QTest::addColumn<QString>("backend");
         QTest::newRow("Copy") << QStringLiteral("Copy");
+        QTest::newRow("Codex") << QStringLiteral("Codex");
         QTest::newRow("LocalAI") << QStringLiteral("LocalAI");
         QTest::newRow("Mozhi") << QStringLiteral("Mozhi");
     }

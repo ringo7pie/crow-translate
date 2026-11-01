@@ -243,6 +243,26 @@ public:
     static constexpr qint64 maxSourceImageBytes = 20LL * 1024 * 1024;
     static constexpr int sourceImageJpegQuality = 85;
 
+    QString codexExecutable() const;
+    void setCodexExecutable(const QString &executable);
+    QString codexModel() const;
+    void setCodexModel(const QString &model);
+    static QString defaultCodexModel();
+    QString codexReasoningEffort() const;
+    void setCodexReasoningEffort(const QString &effort);
+    static QString defaultCodexReasoningEffort();
+    static QStringList codexReasoningEfforts();
+    int codexTimeout() const;
+    void setCodexTimeout(int seconds);
+    QString codexInstructions() const;
+    void setCodexInstructions(const QString &instructions);
+    QString localModelsRoot() const;
+    void setLocalModelsRoot(const QString &root);
+    QString localModelsModel() const;
+    void setLocalModelsModel(const QString &model);
+    int localModelsTimeout() const;
+    void setLocalModelsTimeout(int seconds);
+
     ATranslationProvider::ProviderBackend translationProviderBackend() const;
     void setTranslationProviderBackend(ATranslationProvider::ProviderBackend newBackend);
     ATTSProvider::ProviderBackend ttsProviderBackend() const;
@@ -360,11 +380,19 @@ public:
     // OCR settings
     enum class OcrEngine {
         Tesseract,
-        Llm
+        Llm,
+        Indra
     };
     OcrEngine ocrEngine() const;
     void setOcrEngine(OcrEngine engine);
     static OcrEngine defaultOcrEngine();
+
+    QString indraExecutable() const;
+    void setIndraExecutable(const QString &executable);
+    QString indraModelDirectory() const;
+    void setIndraModelDirectory(const QString &directory);
+    int indraTimeout() const;
+    void setIndraTimeout(int seconds);
 
     // Vision-model OCR engine. Its provider ids are the same kinds as the
     // LocalAI translation backend's (localProviderIds()), but every value

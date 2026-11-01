@@ -1,12 +1,20 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Crow Translate
 Upstream-Contact: Hennadii Chernyshchyk <genaloner@gmail.com>
-Source: https://invent.kde.org/shatur/crow-translate
+Source: https://invent.kde.org/office/crow-translate
 
 Files: src/**.ui data/org.kde.CrowTranslate.desktop.in data/org.kde.CrowTranslate.metainfo.xml
 Copyright: Hennadii Chernyshchyk <genaloner@gmail.com>
 License: GPL-3.0-or-later
 
-Files: data/icons/app/*.svg data/icons/app/*.png data/icons/engines/*.svg data/icons/index.theme
+Files: data/icons/app/*-status-* data/icons/engines/*.svg data/icons/index.theme
 Copyright: Hennadii Chernyshchyk <genaloner@gmail.com>
 License: CC-BY-SA-4.0
+
+Files: data/icons/app/*-apps-* data/icons/app/application-icon.jpg data/icons/app/new-icon.jpg data/icons/app/crow-translate.ico
+Copyright: 2026 ringo7pie
+License: CC-BY-SA-4.0
+
+Files: data/local-models/catalog.json
+Copyright: 2026 Crow Translate contributors
+License: GPL-3.0-or-later

@@ -11,6 +11,7 @@
 #include "languagebuttonswidget.h"
 #include "mainwindow.h"
 #include "translationedit.h"
+#include "gui/translationactivitywidget.h"
 
 #include <QAbstractItemModel>
 #include <QCloseEvent>
@@ -31,6 +32,11 @@ PopupWindow::PopupWindow(MainWindow *parent)
 {
     ui->setupUi(this);
     setAttribute(Qt::WA_DeleteOnClose);
+
+    auto *translationActivity = new TranslationActivityWidget;
+    ui->verticalLayout_2->insertWidget(1, translationActivity);
+    translationActivity->setModel(parent->moduleStatus());
+    connect(translationActivity, &TranslationActivityWidget::cancelRequested, parent, &MainWindow::cancelTranslation);
 
     // Everything the pop-up shows of the main window's controls is a MIRROR,
     // not a snapshot, and the difference has produced three separate bugs.

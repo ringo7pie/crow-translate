@@ -7,6 +7,9 @@ find_package(Qt6 REQUIRED COMPONENTS Test Widgets Network)
 
 # support/ holds header-only test helpers (testisolation.h) alongside the
 # compiled MockHttpServer - available to every target in this directory.
+# QtTest and CLI helpers require working stdout/stderr on Windows. The
+# application target uses the GUI subsystem, but test executables must not.
+set(CMAKE_WIN32_EXECUTABLE OFF)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support)
 
 # Helper GUI process for e2e/manual selection and OCR scenarios (crow-flake's
@@ -162,6 +165,17 @@ target_link_libraries(test_localai_provider PRIVATE
 )
 add_test(NAME LocalAiProviderTest COMMAND test_localai_provider)
 
+add_executable(fake_codex support/fakecodex.cpp)
+target_link_libraries(fake_codex PRIVATE Qt6::Core)
+set_target_properties(fake_codex PROPERTIES WIN32_EXECUTABLE FALSE)
+add_executable(test_codex_provider test_codex_provider.cpp)
+target_link_libraries(test_codex_provider PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+target_compile_definitions(test_codex_provider PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
+add_dependencies(test_codex_provider fake_codex)
+target_compile_definitions(test_cli PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
+add_dependencies(test_cli fake_codex)
+add_test(NAME CodexProviderTest COMMAND test_codex_provider)
+
 # Canonical auto-destination language rule - pure, headless (see gotcha list).
 add_executable(test_translationlogic
     test_translationlogic.cpp
@@ -227,6 +241,22 @@ target_link_libraries(test_llmocr PRIVATE
 )
 add_test(NAME LlmOcrTest COMMAND test_llmocr)
 
+add_executable(fake_indra support/fakeindra.cpp)
+target_link_libraries(fake_indra PRIVATE Qt6::Gui)
+add_executable(test_indraocr test_indraocr.cpp)
+target_link_libraries(test_indraocr PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+target_compile_definitions(test_indraocr PRIVATE INDRA_TEST_BINARY_PATH="$<TARGET_FILE:fake_indra>")
+add_dependencies(test_indraocr fake_indra)
+add_test(NAME IndraOcrTest COMMAND test_indraocr)
+
+add_executable(fake_localmodels support/fakelocalmodels.cpp)
+target_link_libraries(fake_localmodels PRIVATE Qt6::Core)
+add_executable(test_localmodels_provider test_localmodels_provider.cpp)
+target_link_libraries(test_localmodels_provider PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+target_compile_definitions(test_localmodels_provider PRIVATE LOCALMODELS_TEST_BINARY_PATH="$<TARGET_FILE:fake_localmodels>")
+add_dependencies(test_localmodels_provider fake_localmodels)
+add_test(NAME LocalModelsProviderTest COMMAND test_localmodels_provider)
+
 # Live LlmOcr regression against a real, locally-running Ollama + vision-OCR
 # model - see test_llmocr_live.cpp for why MockHttpServer can't stand in for
 # this one. Headless OK; self-skips (not fails) when Ollama/the model isn't
@@ -260,6 +290,13 @@ target_link_libraries(test_statusstrip PRIVATE
     Qt6::Test
 )
 add_test(NAME StatusStripTest COMMAND test_statusstrip)
+
+add_executable(test_translationactivitywidget test_translationactivitywidget.cpp)
+target_link_libraries(test_translationactivitywidget PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+target_compile_definitions(test_translationactivitywidget PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
+add_dependencies(test_translationactivitywidget fake_codex)
+add_test(NAME TranslationActivityWidgetTest COMMAND test_translationactivitywidget)
+set_tests_properties(TranslationActivityWidgetTest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # SnippingArea terminal-signal regression guard (empty selection used to emit
 # nothing at all) - key/mouse events on a never-shown widget, headless OK.
@@ -328,11 +365,17 @@ target_link_libraries(test_translation_provider_contract PRIVATE
     Qt6::Test
 )
 add_test(NAME TranslationProviderContractTest COMMAND test_translation_provider_contract)
+target_compile_definitions(test_translation_provider_contract PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
+add_dependencies(test_translation_provider_contract fake_codex)
 
 # When using static ONNX Runtime, also configure test executables that link
 # the app library (they pull in Piper TTS transitively through it).
 if(WITH_PIPER_TTS AND ONNXRuntime_USE_STATIC)
-    foreach(_test_target IN ITEMS test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
+    configure_onnxruntime_static(test_localmodels_provider)
+    add_dependencies(test_localmodels_provider onnxruntime_ready)
+    configure_onnxruntime_static(test_indraocr)
+    add_dependencies(test_indraocr onnxruntime_ready)
+    foreach(_test_target IN ITEMS test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
         configure_onnxruntime_static(${_test_target})
         add_dependencies(${_test_target} onnxruntime_ready)
     endforeach()
@@ -349,7 +392,10 @@ endif()
 # configuration (see build.zsh's build-test/build-test-nopiper) still builds
 # and runs them.
 if(NOT BUILD_TESTING)
-    foreach(_test_target IN ITEMS test_helper_window test_dbus_static_init test_cli test_widget_free_core test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
+    set_target_properties(fake_localmodels test_localmodels_provider PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    set_target_properties(fake_indra test_indraocr PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    set_target_properties(fake_codex PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    foreach(_test_target IN ITEMS test_helper_window test_dbus_static_init test_cli test_widget_free_core test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
         set_target_properties(${_test_target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
     endforeach()
     if(TARGET test_singleapplication_recovery)

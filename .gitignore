@@ -4,6 +4,7 @@
 # Binaries
 build
 build-*/
+__pycache__/
 
 # Project-local opencode
 /.opencode/
@@ -28,3 +29,19 @@ compile_commands.json
 
 # Emacs
 .#*
+
+# Local assistant configuration and working notes
+/.claude/
+/.mcp.json
+/.chatgpt-project-bridge.json
+/CHATGPT_PROJECT_CONTEXT.md
+/CHATGPT_PROJECT_STATUS.md
+/CLAUDE.md
+CLAUDE.md.bak*
+/knowledge/
+/zzz-Temp/
+
+# Downloaded dependencies and local installer artifacts
+third_party/
+installer/out/
+installer/*.log

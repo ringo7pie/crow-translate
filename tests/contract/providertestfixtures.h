@@ -12,6 +12,7 @@
 #include "provideroptions.h"
 #include "translator/atranslationprovider.h"
 #include "translator/copytranslationprovider.h"
+#include "translator/codextranslationprovider.h"
 #include "translator/localaitranslationprovider.h"
 #include "translator/mozhitranslationprovider.h"
 
@@ -122,6 +123,43 @@ public:
     // Copy's translate() is fully synchronous - Processing and the
     // terminal state are both emitted before translate() returns, so
     // there's no async gap to abort into.
+};
+
+class CodexProviderFixture : public ProviderFixture
+{
+public:
+    QString name() const override { return QStringLiteral("Codex"); }
+    Language sourceLanguage() const override { return Language(QStringLiteral("es")); }
+    Language targetLanguage() const override { return Language(QStringLiteral("en")); }
+    std::unique_ptr<ATranslationProvider> createForSuccess() override
+    {
+        qunsetenv("CROW_CODEX_TEST_MODE");
+        return makeProvider();
+    }
+    std::unique_ptr<ATranslationProvider> createForFailure(Language &source, Language &target) override
+    {
+        source = sourceLanguage();
+        target = targetLanguage();
+        qputenv("CROW_CODEX_TEST_MODE", "error");
+        return makeProvider();
+    }
+    bool supportsDeterministicMidFlightAbort() const override { return true; }
+    std::unique_ptr<ATranslationProvider> createForHang() override
+    {
+        qputenv("CROW_CODEX_TEST_MODE", "hang");
+        return makeProvider();
+    }
+    ~CodexProviderFixture() override { qunsetenv("CROW_CODEX_TEST_MODE"); }
+
+private:
+    std::unique_ptr<ATranslationProvider> makeProvider()
+    {
+        auto provider = std::make_unique<CodexTranslationProvider>();
+        ProviderOptions opts;
+        opts.setOption("executable", QString::fromUtf8(CODEX_TEST_BINARY_PATH));
+        provider->applyOptions(opts);
+        return provider;
+    }
 };
 
 class LocalAiProviderFixture : public ProviderFixture

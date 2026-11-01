@@ -14,6 +14,10 @@ project(crow-translate
     LANGUAGES CXX
 )
 
+if(MSVC AND CMAKE_GENERATOR MATCHES "Ninja")
+    include(cmake/DetectMsvcIncludePrefix.cmake)
+endif()
+
 set(APPLICATION_NAME "Crow Translate")
 set(APPLICATION_ID "org.kde.CrowTranslate")
 set(EXECUTABLE_NAME crow)
@@ -183,6 +187,8 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/core/usernotifier.cpp
     src/gui/translationhtmlformatter.h
     src/gui/translationhtmlformatter.cpp
+    src/gui/translationactivitywidget.h
+    src/gui/translationactivitywidget.cpp
     src/frontend/icrowfrontend.h
     src/frontend/frontendregistry.h
     src/frontend/frontendregistry.cpp
@@ -200,6 +206,11 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/ocr/tesseractocr.cpp
     src/ocr/llmocr.h
     src/ocr/llmocr.cpp
+    src/ocr/indraocr.h
+    src/ocr/indraocr.cpp
+    src/translator/localmodelstranslationprovider.h
+    src/translator/localmodelstranslationprovider.cpp
+    src/translator/localmodels.qrc
     src/ocr/screengrabbers/abstractscreengrabber.h
     src/ocr/screengrabbers/abstractscreengrabber.cpp
     src/ocr/screengrabbers/genericscreengrabber.h
@@ -257,6 +268,8 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/translator/mozhitranslationprovider.cpp
     src/translator/localaitranslationprovider.h
     src/translator/localaitranslationprovider.cpp
+    src/translator/codextranslationprovider.h
+    src/translator/codextranslationprovider.cpp
     src/translator/translationlogic.h
     src/translator/translationlogic.cpp
     src/translator/languageresolution.h
@@ -306,7 +319,12 @@ elseif(APPLE)
         src/settings/autostartmanager/macosautostartmanager.cpp
     )
 elseif(WIN32)
-    ecm_add_app_icon(WINDOWS_ICON ICONS ${APP_ICONS})
+    # Embed the supplied multi-size ICO directly; no external icotool needed.
+    configure_file(data/icons/app/app.rc.in ${CMAKE_CURRENT_BINARY_DIR}/crow-icon.rc @ONLY)
+    set(WINDOWS_ICON ${CMAKE_CURRENT_BINARY_DIR}/crow-icon.rc)
+    set_source_files_properties(${WINDOWS_ICON} PROPERTIES
+        OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/icons/app/crow-translate.ico"
+    )
 
     target_sources(${PROJECT_NAME}-lib PRIVATE
         ${WINDOWS_ICON}
@@ -331,7 +349,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${EXECUTABLE_NAME})
 # Link executable against library
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-lib)
 
-# ecm_add_app_icon() attaches WINDOWS_ICON.rc to the static library above.
+# The platform block attaches the icon resource to the static library above.
 # The MSVC linker drops resources that are compiled into a static library
 # when the executable does not reference them (resources expose no symbol
 # that would force the object to be pulled in), so the application icon

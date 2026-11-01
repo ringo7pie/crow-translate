@@ -10,6 +10,8 @@
 
 #include <QCoreApplication>
 #include <QStandardPaths>
+#include <QSettings>
+#include <QDataStream>
 #include <QString>
 #include <QTemporaryDir>
 
@@ -38,12 +40,33 @@ inline void isolateTestSettings()
 {
     static QTemporaryDir *configDir = new QTemporaryDir();
     qputenv("XDG_CONFIG_HOME", configDir->path().toUtf8());
+#ifdef Q_OS_WIN
+    // XDG_CONFIG_HOME does not isolate the Windows registry. A custom format
+    // also avoids making AppSettings mistake an isolated INI for portable mode.
+    static const auto format = QSettings::registerFormat(QStringLiteral("crowtest"),
+        [](QIODevice &device, QSettings::SettingsMap &values) {
+            if (device.size() == 0)
+                return true;
+            QDataStream stream(&device);
+            stream >> values;
+            return stream.status() == QDataStream::Ok;
+        },
+        [](QIODevice &device, const QSettings::SettingsMap &values) {
+            QDataStream stream(&device);
+            stream << values;
+            return stream.status() == QDataStream::Ok;
+        });
+    QSettings::setDefaultFormat(format);
+    QSettings::setPath(format, QSettings::UserScope, configDir->path());
+#endif
 
     QCoreApplication::setOrganizationName(QStringLiteral("crow-translate-tests"));
     QCoreApplication::setApplicationName(QStringLiteral("crow-translate-tests"));
 
-    AppSettings settings;
-    settings.setShowPrivacyPopup(false);
+    // This helper also runs before QCoreApplication construction. Creating
+    // AppSettings here would cache an invalid root-level portable INI path.
+    QSettings settings;
+    settings.setValue(QStringLiteral("MainWindow/ShowPrivacyPopup"), false);
 }
 
 #endif // TESTISOLATION_H

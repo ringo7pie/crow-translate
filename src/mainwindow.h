@@ -90,6 +90,7 @@ public slots:
     void ttsStateChanged(QTextToSpeech::State newState);
     void onTTSError(QTextToSpeech::ErrorReason reason, const QString &errorString);
     void translatorStateChanged(ATranslationProvider::State newState);
+    void cancelTranslation();
     Q_SCRIPTABLE void open();
     Q_SCRIPTABLE static void quit();
     Q_SCRIPTABLE void openSettings();

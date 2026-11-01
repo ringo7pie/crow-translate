@@ -33,7 +33,9 @@ public:
     enum class ProviderBackend : uint8_t {
         Copy,
         Mozhi,
-        LocalAI
+        LocalAI,
+        Codex,
+        LocalModels
     };
     Q_ENUM(ProviderBackend)
 
@@ -90,6 +92,8 @@ signals:
     void detectionStarted();
     void languageDetected(const Language &detectedLanguage, bool isTranslationContext = true);
     void engineChanged(int engineIndex);
+    void modelLoading();
+    void modelReady();
 };
 
 #endif // ATRANSLATIONPROVIDER_H

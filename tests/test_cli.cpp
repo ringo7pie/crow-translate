@@ -30,6 +30,7 @@
 #include <QJsonParseError>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -72,12 +73,31 @@ private:
         return env;
     }
 
-    RunResult runCrow(const QStringList &args, const QString &configDir = QString()) const
+    RunResult runCrow(const QStringList &args, const QString &configDir = QString(), const QString &executable = QStringLiteral(CROW_BINARY_PATH)) const
     {
         RunResult result;
         QProcess process;
         process.setProcessEnvironment(cleanEnvironment(configDir));
-        process.start(QStringLiteral(CROW_BINARY_PATH), args);
+        QString program = executable;
+#ifdef Q_OS_WIN
+        QTemporaryDir portableDirectory;
+        if (executable == QStringLiteral(CROW_BINARY_PATH)) {
+            // XDG_CONFIG_HOME does not isolate native Windows settings. Each
+            // child gets a private portable executable and the test's INI.
+            if (!portableDirectory.isValid())
+                return result;
+            program = portableDirectory.filePath(QStringLiteral("crow.exe"));
+            const QString root = configDir.isEmpty() ? m_configDir.path() : configDir;
+            const QString settingsFile = portableDirectory.filePath(QStringLiteral("settings.ini"));
+            if (!QFile::copy(executable, program)
+                || !QFile::copy(root + QStringLiteral("/crow-translate/crow-translate.conf"), settingsFile))
+                return result;
+            QSettings settings(settingsFile, QSettings::IniFormat);
+            settings.setValue(QStringLiteral("Locale"), QLocale(QLocale::English));
+            settings.sync();
+        }
+#endif
+        process.start(program, args);
         if (!process.waitForStarted(5000))
             return result;
 
@@ -102,6 +122,42 @@ private:
     }
 
 private slots:
+    void testCodexProviderSelectionAndUtf8Json()
+    {
+        QTemporaryDir configDir;
+        QVERIFY(configDir.isValid());
+        QString executable = QStringLiteral(CROW_BINARY_PATH);
+        QString configPath;
+#ifdef Q_OS_WIN
+        // A private portable copy avoids touching the user's registry settings.
+        executable = configDir.filePath(QStringLiteral("crow.exe"));
+        QVERIFY(QFile::copy(QStringLiteral(CROW_BINARY_PATH), executable));
+        configPath = configDir.filePath(QStringLiteral("settings.ini"));
+#else
+        configPath = configDir.filePath(QStringLiteral("crow-translate/crow-translate.conf"));
+#endif
+        QSettings settings(configPath, QSettings::IniFormat);
+        settings.setValue(QStringLiteral("Codex/Executable"), QString::fromUtf8(CODEX_TEST_BINARY_PATH));
+        settings.setValue(QStringLiteral("Codex/Model"), QStringLiteral("test-model"));
+        settings.sync();
+        qputenv("CROW_CODEX_TEST_MODE", "echo");
+        const QString text = QString::fromUtf8("日本語の文章\n引用符: \"hello\"");
+        const RunResult result = runCrow({QStringLiteral("--translation-provider"), QStringLiteral("codex"),
+                                         QStringLiteral("-s"), QStringLiteral("ja"), QStringLiteral("-t"), QStringLiteral("en"),
+                                         QStringLiteral("--json"), text}, configDir.path(), executable);
+        qunsetenv("CROW_CODEX_TEST_MODE");
+        QVERIFY2(result.finished, "Codex CLI frontend did not terminate");
+        QCOMPARE(result.exitCode, 0);
+        QJsonParseError error;
+        const QJsonObject output = QJsonDocument::fromJson(result.out.toUtf8(), &error).object();
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        QCOMPARE(output.value(QStringLiteral("source")).toString(), text);
+        const QJsonArray translations = output.value(QStringLiteral("translations")).toArray();
+        QCOMPARE(translations.size(), 1);
+        QCOMPARE(translations.at(0).toObject().value(QStringLiteral("text")).toString(), text);
+        QVERIFY(!result.err.contains(QStringLiteral("Detecting fastest instance")));
+    }
+
     void initTestCase()
     {
         QVERIFY(m_configDir.isValid());

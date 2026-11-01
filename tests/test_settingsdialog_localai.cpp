@@ -15,13 +15,16 @@
 #include "settings/appsettings.h"
 #include "settings/settingsdialog.h"
 #include "translator/atranslationprovider.h"
+#include "translator/localmodelstranslationprovider.h"
 
 #include <QComboBox>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QSpinBox>
 #include <QStackedWidget>
 #include <QTabWidget>
 #include <QTest>
@@ -32,10 +35,234 @@ class SettingsDialogLocalAiTest : public QObject
     Q_OBJECT
 
 private slots:
+    void testLocalModelsSettingsAndMainWindowSelection()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setLocalModelsModel(QStringLiteral("index-translate-2b"));
+        MainWindow window;
+        {
+            SettingsDialog dialog(&window);
+            auto *backend = dialog.findChild<QComboBox *>(QStringLiteral("translationProviderComboBox"));
+            auto *models = dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"));
+            auto *root = dialog.findChild<QLineEdit *>(QStringLiteral("localModelsRootEdit"));
+            auto *timeout = dialog.findChild<QSpinBox *>(QStringLiteral("localModelsTimeoutSpinBox"));
+            auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("localModelsGroupBox"));
+            QVERIFY(backend && models && root && timeout && group);
+            QCOMPARE(models->count(), 4);
+            QCOMPARE(models->currentData().toString(), QStringLiteral("index-translate-2b"));
+            const int index = backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels));
+            QVERIFY(index >= 0);
+            backend->setCurrentIndex(index);
+            QVERIFY(!group->isHidden());
+            QVERIFY(dialog.findChild<QComboBox *>(QStringLiteral("detectProviderComboBox"))->isHidden());
+            QVERIFY(dialog.findChild<QComboBox *>(QStringLiteral("detectModelComboBox"))->isHidden());
+            models->setCurrentIndex(models->findData(QStringLiteral("seed-x-ppo-7b")));
+            root->setText(QStringLiteral("C:/Translation models/日本語"));
+            timeout->setValue(90);
+            dialog.accept();
+        }
+        QCOMPARE(settings.localModelsModel(), QStringLiteral("seed-x-ppo-7b"));
+        QCOMPARE(settings.localModelsRoot(), QStringLiteral("C:/Translation models/日本語"));
+        QCOMPARE(settings.localModelsTimeout(), 90);
+        {
+            SettingsDialog dialog(&window);
+            QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"))->currentData().toString(), settings.localModelsModel());
+            QCOMPARE(dialog.findChild<QLineEdit *>(QStringLiteral("localModelsRootEdit"))->text(), settings.localModelsRoot());
+            dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"))->setCurrentIndex(0);
+            dialog.reject();
+        }
+        QCOMPARE(settings.localModelsModel(), QStringLiteral("seed-x-ppo-7b"));
+        MainWindow reloaded;
+        auto *combo = reloaded.getEngineComboBox();
+        QCOMPARE(combo->count(), 4);
+        QCOMPARE(combo->currentData().toString(), QStringLiteral("seed-x-ppo-7b"));
+        combo->setCurrentIndex(combo->findData(QStringLiteral("hy-mt2-7b")));
+        QCOMPARE(settings.localModelsModel(), QStringLiteral("hy-mt2-7b"));
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
+    void testIndraSettingsRoundTrip()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setOcrEngine(AppSettings::OcrEngine::Tesseract);
+        MainWindow window;
+        {
+            SettingsDialog dialog(&window);
+            auto *engine = dialog.findChild<QComboBox *>(QStringLiteral("ocrEngineCombo"));
+            auto *executable = dialog.findChild<QLineEdit *>(QStringLiteral("indraExecutableEdit"));
+            auto *models = dialog.findChild<QLineEdit *>(QStringLiteral("indraModelDirectoryEdit"));
+            auto *timeout = dialog.findChild<QSpinBox *>(QStringLiteral("indraTimeoutSpin"));
+            auto *page = dialog.findChild<QWidget *>(QStringLiteral("indraOcrPage"));
+            QVERIFY(engine && executable && models && timeout && page);
+            const int index = engine->findData(static_cast<int>(AppSettings::OcrEngine::Indra));
+            QVERIFY(index >= 0);
+            engine->setCurrentIndex(index);
+            QVERIFY(!page->isHidden());
+            QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("languagesGroupBox"))->isHidden());
+            QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("ocrParametersGroupBox"))->isHidden());
+            executable->setText(QStringLiteral("C:/OCR tools/indra-ocr.exe"));
+            models->setText(QStringLiteral("C:/OCR models/日本語"));
+            timeout->setValue(45);
+            dialog.accept();
+        }
+        QCOMPARE(settings.ocrEngine(), AppSettings::OcrEngine::Indra);
+        QCOMPARE(settings.indraExecutable(), QStringLiteral("C:/OCR tools/indra-ocr.exe"));
+        QCOMPARE(settings.indraModelDirectory(), QStringLiteral("C:/OCR models/日本語"));
+        QCOMPARE(settings.indraTimeout(), 45);
+        {
+            SettingsDialog dialog(&window);
+            QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("ocrEngineCombo"))->currentData().toInt(),
+                     static_cast<int>(AppSettings::OcrEngine::Indra));
+            QCOMPARE(dialog.findChild<QLineEdit *>(QStringLiteral("indraExecutableEdit"))->text(), settings.indraExecutable());
+            QCOMPARE(dialog.findChild<QLineEdit *>(QStringLiteral("indraModelDirectoryEdit"))->text(), settings.indraModelDirectory());
+            QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("indraTimeoutSpin"))->value(), 45);
+        }
+        settings.setOcrEngine(AppSettings::OcrEngine::Tesseract);
+        settings.setIndraExecutable(QString());
+        settings.setIndraModelDirectory(QString());
+    }
+
+    void testCodexControlsVisibleOnTranslationPage_data()
+    {
+        QTest::addColumn<bool>("alreadySelected");
+        QTest::newRow("select-codex") << false;
+        QTest::newRow("saved-codex") << true;
+    }
+
+    void testCodexControlsVisibleOnTranslationPage()
+    {
+        QFETCH(bool, alreadySelected);
+        AppSettings settings;
+        settings.setTranslationProviderBackend(alreadySelected ? ATranslationProvider::ProviderBackend::Codex
+                                                              : ATranslationProvider::ProviderBackend::Copy);
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        auto *page = dialog.findChild<QWidget *>(QStringLiteral("translationPage"));
+        auto *stack = dialog.findChild<QStackedWidget *>(QStringLiteral("pagesStackedWidget"));
+        auto *list = dialog.findChild<QListWidget *>(QStringLiteral("pagesListWidget"));
+        auto *backend = dialog.findChild<QComboBox *>(QStringLiteral("translationProviderComboBox"));
+        auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("codexGroupBox"));
+        QVERIFY(page && stack && list && backend && group);
+        list->setCurrentRow(stack->indexOf(page));
+        dialog.resize(904, 746);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        // A narrow display starts compact mode with the content area hidden;
+        // navigate using the same click that opens it for the user.
+        QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          list->visualItemRect(list->item(stack->indexOf(page))).center());
+        QTRY_VERIFY(page->isVisible());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex)));
+
+        QVERIFY2(page->isAncestorOf(group), "Codex settings must belong to the Translation page");
+        QTRY_VERIFY(group->isVisible());
+        QTRY_VERIFY(group->visibleRegion().contains(group->rect()));
+        for (const auto *name : {"codexExecutableEdit", "codexModelComboBox", "codexReasoningEffortComboBox", "codexTimeoutSpinBox", "codexInstructionsEdit"}) {
+            auto *control = group->findChild<QWidget *>(QString::fromLatin1(name));
+            QVERIFY(control);
+            QVERIFY(control->isVisible());
+            QTRY_VERIFY(control->visibleRegion().contains(control->rect()));
+            QVERIFY(page->rect().contains(QRect(control->mapTo(page, QPoint()), control->size())));
+        }
+        const QString screenshot = qEnvironmentVariable("CROW_CODEX_SETTINGS_SCREENSHOT");
+        if (!screenshot.isEmpty()) {
+            QTest::qWait(50);
+            QVERIFY(dialog.grab().save(screenshot));
+        }
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Copy)));
+        QVERIFY(group->isHidden());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex)));
+        QTRY_VERIFY(group->isVisible());
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
+    void testCodexSettingsRoundTrip_data()
+    {
+        QTest::addColumn<QString>("modelName");
+        QTest::addColumn<QString>("effort");
+        QTest::newRow("listed-model") << QStringLiteral("gpt-6.1-sol") << QStringLiteral("high");
+        QTest::newRow("custom-model") << QStringLiteral("my-codex-model") << QStringLiteral("xhigh");
+    }
+
+    void testCodexSettingsRoundTrip()
+    {
+        QFETCH(QString, modelName);
+        QFETCH(QString, effort);
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setCodexModel(QStringLiteral("saved-custom-model"));
+        settings.setCodexReasoningEffort(QStringLiteral("medium"));
+        MainWindow window;
+        {
+            SettingsDialog dialog(&window);
+            auto *backend = dialog.findChild<QComboBox *>(QStringLiteral("translationProviderComboBox"));
+            auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("codexGroupBox"));
+            auto *executable = dialog.findChild<QLineEdit *>(QStringLiteral("codexExecutableEdit"));
+            auto *model = dialog.findChild<QComboBox *>(QStringLiteral("codexModelComboBox"));
+            auto *reasoning = dialog.findChild<QComboBox *>(QStringLiteral("codexReasoningEffortComboBox"));
+            auto *timeout = dialog.findChild<QSpinBox *>(QStringLiteral("codexTimeoutSpinBox"));
+            auto *instructions = dialog.findChild<QPlainTextEdit *>(QStringLiteral("codexInstructionsEdit"));
+            QVERIFY(backend && group && executable && model && reasoning && timeout && instructions);
+            QVERIFY(model->isEditable());
+            QVERIFY(!reasoning->isEditable());
+            QCOMPARE(model->currentText(), QStringLiteral("saved-custom-model"));
+            QCOMPARE(reasoning->currentData().toString(), QStringLiteral("medium"));
+            for (const auto &level : AppSettings::codexReasoningEfforts())
+                QVERIFY(reasoning->findData(level) >= 0);
+            const int index = backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex));
+            QVERIFY(index >= 0);
+            QVERIFY(group->isHidden());
+            backend->setCurrentIndex(index);
+            QVERIFY(!group->isHidden());
+            executable->setText(QStringLiteral("C:/Codex with spaces/codex.exe"));
+            if (modelName == QLatin1String("gpt-6.1-sol")) {
+                QVERIFY(model->findText(modelName) >= 0);
+                model->setCurrentIndex(model->findText(modelName));
+            } else {
+                model->setEditText(modelName);
+            }
+            reasoning->setCurrentIndex(reasoning->findData(effort));
+            timeout->setValue(42);
+            instructions->setPlainText(QStringLiteral("Keep product names unchanged."));
+            dialog.accept();
+        }
+        QCOMPARE(settings.translationProviderBackend(), ATranslationProvider::ProviderBackend::Codex);
+        {
+            SettingsDialog reloaded(&window);
+            QCOMPARE(reloaded.findChild<QComboBox *>(QStringLiteral("codexModelComboBox"))->currentText(), modelName);
+            QCOMPARE(reloaded.findChild<QComboBox *>(QStringLiteral("codexReasoningEffortComboBox"))->currentData().toString(), effort);
+            QCOMPARE(reloaded.findChild<QLineEdit *>(QStringLiteral("codexExecutableEdit"))->text(), QStringLiteral("C:/Codex with spaces/codex.exe"));
+            QCOMPARE(reloaded.findChild<QSpinBox *>(QStringLiteral("codexTimeoutSpinBox"))->value(), 42);
+            QCOMPARE(reloaded.findChild<QPlainTextEdit *>(QStringLiteral("codexInstructionsEdit"))->toPlainText(), QStringLiteral("Keep product names unchanged."));
+        }
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
+    void testCodexRestoreDefaults()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setCodexModel(QStringLiteral("saved-custom-model"));
+        settings.setCodexReasoningEffort(QStringLiteral("max"));
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "restoreDefaults", Qt::DirectConnection));
+        QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("codexModelComboBox"))->currentText(), AppSettings::defaultCodexModel());
+        QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("codexReasoningEffortComboBox"))->currentData().toString(), AppSettings::defaultCodexReasoningEffort());
+        // Restoring defaults is provisional until OK is pressed.
+        dialog.reject();
+        QCOMPARE(settings.codexModel(), QStringLiteral("saved-custom-model"));
+        QCOMPARE(settings.codexReasoningEffort(), QStringLiteral("max"));
+    }
+
     void initTestCase()
     {
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
         if (qgetenv("DISPLAY").isEmpty() && qgetenv("WAYLAND_DISPLAY").isEmpty())
             QSKIP("No display server available - skipping GUI tests");
+#endif
     }
 
     // Gotcha #6: "Refresh models" blocks the whole dialog on a nested
@@ -80,6 +307,9 @@ private slots:
         auto *pagesList = dialog.findChild<QListWidget *>(QStringLiteral("pagesListWidget"));
         QVERIFY(pagesList != nullptr);
         pagesList->setCurrentRow(pagesStack->indexOf(localAiPage));
+        QTest::mouseClick(pagesList->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          pagesList->visualItemRect(pagesList->currentItem()).center());
+        QTRY_VERIFY(localAiPage->isVisible());
 
         auto *tabs = dialog.findChild<QTabWidget *>(QStringLiteral("localAiTabWidget"));
         QVERIFY(tabs != nullptr);
@@ -182,6 +412,9 @@ private slots:
         auto *pagesList = dialog.findChild<QListWidget *>(QStringLiteral("pagesListWidget"));
         QVERIFY(pagesList != nullptr);
         pagesList->setCurrentRow(pagesStack->indexOf(ocrPage));
+        QTest::mouseClick(pagesList->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          pagesList->visualItemRect(pagesList->currentItem()).center());
+        QTRY_VERIFY(ocrPage->isVisible());
 
         auto *engineCombo = dialog.findChild<QComboBox *>(QStringLiteral("ocrEngineCombo"));
         QVERIFY(engineCombo != nullptr);

@@ -664,16 +664,7 @@
            </layout>
           </widget>
           <widget class="QWidget" name="translationPage">
-           <widget class="QWidget" name="">
-            <property name="geometry">
-             <rect>
-              <x>0</x>
-              <y>0</y>
-              <width>611</width>
-              <height>591</height>
-             </rect>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout_3">
+           <layout class="QVBoxLayout" name="translationPageLayout">
              <item>
               <widget class="QLabel" name="translationProviderLabel">
                <property name="text">
@@ -785,8 +776,7 @@
                 </layout>
               </widget>
              </item>
-            </layout>
-           </widget>
+           </layout>
           </widget>
           <widget class="QWidget" name="ttsPage">
            <property name="sizePolicy">

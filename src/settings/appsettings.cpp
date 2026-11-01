@@ -12,6 +12,7 @@
 #include "languagebuttonswidget.h"
 #include "trayicon.h"
 #include "translator/atranslationprovider.h"
+#include "translator/localmodelstranslationprovider.h"
 #include "tts/attsprovider.h"
 
 #include <QDir>
@@ -474,6 +475,77 @@ void AppSettings::setPrimaryLanguage(const Language &lang)
     m_settings->setValue(QStringLiteral("Translation/PrimaryLanguage"), lang.toCode());
 }
 
+QString AppSettings::codexExecutable() const
+{
+    const QString value = m_settings->value(QStringLiteral("Codex/Executable"), QStringLiteral("codex")).toString().trimmed();
+    return value.isEmpty() ? QStringLiteral("codex") : value;
+}
+
+void AppSettings::setCodexExecutable(const QString &executable)
+{
+    m_settings->setValue(QStringLiteral("Codex/Executable"), executable.trimmed());
+}
+
+QString AppSettings::defaultCodexModel()
+{
+    return QStringLiteral("gpt-6-luna");
+}
+
+QString AppSettings::codexModel() const
+{
+    const QString value = m_settings->value(QStringLiteral("Codex/Model"), defaultCodexModel()).toString().trimmed();
+    return value.isEmpty() ? defaultCodexModel() : value;
+}
+
+void AppSettings::setCodexModel(const QString &model)
+{
+    m_settings->setValue(QStringLiteral("Codex/Model"), model.trimmed());
+}
+
+QString AppSettings::defaultCodexReasoningEffort()
+{
+    return QStringLiteral("low");
+}
+
+QStringList AppSettings::codexReasoningEfforts()
+{
+    return {QStringLiteral("low"), QStringLiteral("medium"), QStringLiteral("high"),
+            QStringLiteral("xhigh"), QStringLiteral("max")};
+}
+
+QString AppSettings::codexReasoningEffort() const
+{
+    const QString value = m_settings->value(QStringLiteral("Codex/ReasoningEffort"), defaultCodexReasoningEffort()).toString().trimmed();
+    return codexReasoningEfforts().contains(value) ? value : defaultCodexReasoningEffort();
+}
+
+void AppSettings::setCodexReasoningEffort(const QString &effort)
+{
+    const QString value = effort.trimmed();
+    m_settings->setValue(QStringLiteral("Codex/ReasoningEffort"),
+                         codexReasoningEfforts().contains(value) ? value : defaultCodexReasoningEffort());
+}
+
+int AppSettings::codexTimeout() const
+{
+    return qBound(1, m_settings->value(QStringLiteral("Codex/Timeout"), defaultLocalAiTimeout()).toInt(), 3600);
+}
+
+void AppSettings::setCodexTimeout(int seconds)
+{
+    m_settings->setValue(QStringLiteral("Codex/Timeout"), qBound(1, seconds, 3600));
+}
+
+QString AppSettings::codexInstructions() const
+{
+    return m_settings->value(QStringLiteral("Codex/Instructions")).toString();
+}
+
+void AppSettings::setCodexInstructions(const QString &instructions)
+{
+    m_settings->setValue(QStringLiteral("Codex/Instructions"), instructions);
+}
+
 ATranslationProvider::ProviderBackend AppSettings::translationProviderBackend() const
 {
     uint8_t settingOrDefault = m_settings->value(QStringLiteral("Translation/Backend"),
@@ -864,6 +936,36 @@ static QString supersededSourceLangPrompt()
         "while adhering to {target_lang} grammar, vocabulary, and cultural sensitivities.\n"
         "Produce only the {target_lang} translation, without any additional explanations or commentary. "
         "Please translate the following {source_lang} text into {target_lang}:\n\n\n{text}");
+}
+
+QString AppSettings::localModelsRoot() const
+{
+    return m_settings->value(QStringLiteral("LocalModels/Root"), LocalModelsTranslationProvider::defaultRoot()).toString();
+}
+
+void AppSettings::setLocalModelsRoot(const QString &root)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/Root"), root);
+}
+
+QString AppSettings::localModelsModel() const
+{
+    return m_settings->value(QStringLiteral("LocalModels/Model"), QStringLiteral("index-translate-2b")).toString();
+}
+
+void AppSettings::setLocalModelsModel(const QString &model)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/Model"), model);
+}
+
+int AppSettings::localModelsTimeout() const
+{
+    return m_settings->value(QStringLiteral("LocalModels/Timeout"), 300).toInt();
+}
+
+void AppSettings::setLocalModelsTimeout(int seconds)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/Timeout"), qBound(1, seconds, 3600));
 }
 
 QString AppSettings::localAiPrompt(const QString &model) const
@@ -1280,6 +1382,36 @@ AppSettings::OcrEngine AppSettings::defaultOcrEngine()
     return OcrEngine::Tesseract;
 }
 
+QString AppSettings::indraExecutable() const
+{
+    return m_settings->value(QStringLiteral("OcrIndra/Executable")).toString();
+}
+
+void AppSettings::setIndraExecutable(const QString &executable)
+{
+    m_settings->setValue(QStringLiteral("OcrIndra/Executable"), executable);
+}
+
+QString AppSettings::indraModelDirectory() const
+{
+    return m_settings->value(QStringLiteral("OcrIndra/ModelDirectory")).toString();
+}
+
+void AppSettings::setIndraModelDirectory(const QString &directory)
+{
+    m_settings->setValue(QStringLiteral("OcrIndra/ModelDirectory"), directory);
+}
+
+int AppSettings::indraTimeout() const
+{
+    return m_settings->value(QStringLiteral("OcrIndra/Timeout"), 300).toInt();
+}
+
+void AppSettings::setIndraTimeout(int seconds)
+{
+    m_settings->setValue(QStringLiteral("OcrIndra/Timeout"), qBound(1, seconds, 3600));
+}
+
 QString AppSettings::ocrLlmProvider() const
 {
     return m_settings->value(QStringLiteral("OcrLlm/Provider"), QStringLiteral("ollama")).toString();
@@ -1370,8 +1502,16 @@ void AppSettings::setOcrLanguagesPath(const QByteArray &path)
     m_settings->setValue(QStringLiteral("OCR/LanguagesPath"), path);
 }
 
+// OCR 言語データの既定の場所を返す。
+// Windows のインストーラー版は実行ファイルと同じ場所の tessdata に言語データを同梱するため、
+// そのフォルダが存在するときだけそれを返す。無ければ従来どおり空（Tesseract の既定探索に任せる）。
 QByteArray AppSettings::defaultOcrLanguagesPath()
 {
+#ifdef Q_OS_WIN
+    const QDir bundledDirectory(QGuiApplication::applicationDirPath() + QStringLiteral("/tessdata")); // 同梱 tessdata の候補
+    if (bundledDirectory.exists())
+        return QDir::toNativeSeparators(bundledDirectory.absolutePath()).toLocal8Bit();
+#endif
     return {};
 }
 

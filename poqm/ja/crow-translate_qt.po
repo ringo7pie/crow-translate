@@ -1,0 +1,3013 @@
+# SPDX-FileCopyrightText: 2026 Crow Translate contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+msgid ""
+msgstr ""
+"Project-Id-Version: crow-translate\n"
+"PO-Revision-Date: 2026-10-13 00:00+0900\n"
+"Last-Translator: \n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Language: ja\n"
+"X-Source-Language: en\n"
+"X-Qt-Contexts: true\n"
+
+msgctxt "Cli|"
+msgid "translation options:"
+msgstr "翻訳オプション:"
+
+msgctxt "Cli|"
+msgid "examples:"
+msgstr "例文:"
+
+msgctxt "Cli|"
+msgid "Display all language codes."
+msgstr "すべての言語コードを表示します。"
+
+msgctxt "Cli|"
+msgid "Specify the source language (by default, engine will try to determine the language on its own)."
+msgstr "翻訳元の言語を指定します（既定では、エンジンが自動的に判定します）。"
+
+msgctxt "Cli|"
+msgid "Specify the translation language(s), split by '+' (by default, the system language is used)."
+msgstr "翻訳先の言語を '+' 区切りで指定します（既定ではシステムの言語が使われます）。"
+
+msgctxt "Cli|"
+msgid "Specify the translator engine ('google', 'yandex', 'bing', 'deepl', 'libretranslate', 'mymemory' or 'reverso'), Google is used by default."
+msgstr "翻訳エンジン（'google'、'yandex'、'bing'、'deepl'、'libretranslate'、'mymemory'、'reverso'）を指定します。既定では Google が使われます。"
+
+msgctxt "Cli|"
+msgid "Specify Mozhi instance URL. Instance URL from the app settings will be used by default."
+msgstr "Mozhi インスタンスの URL を指定します。既定ではアプリの設定にあるインスタンスの URL が使われます。"
+
+msgctxt "Cli|"
+msgid "Specify translation provider ('copy', 'mozhi' or 'localai'). Provider from app settings will be used by default."
+msgstr "翻訳プロバイダー（'copy'、'mozhi'、'localai'）を指定します。既定ではアプリの設定にあるプロバイダーが使われます。"
+
+msgctxt "Cli|"
+msgid "Specify TTS provider ('none', 'mozhi', 'qt' or 'piper'). Provider from app settings will be used by default."
+msgstr "TTS プロバイダー（'none'、'mozhi'、'qt'、'piper'）を指定します。既定ではアプリの設定にあるプロバイダーが使われます。"
+
+msgctxt "Cli|"
+msgid "Specify TTS provider ('none', 'mozhi' or 'qt'). Provider from app settings will be used by default."
+msgstr "TTS プロバイダー（'none'、'mozhi'、'qt'）を指定します。既定ではアプリの設定にあるプロバイダーが使われます。"
+
+msgctxt "Cli|"
+msgid "Specify TTS provider ('none'). This build has text-to-speech disabled."
+msgstr "TTS プロバイダー（'none'）を指定します。このビルドでは音声読み上げが無効になっています。"
+
+msgctxt "Cli|"
+msgid "Speak the translation."
+msgstr "翻訳結果を読み上げます。"
+
+msgctxt "Cli|"
+msgid "Speak the source."
+msgstr "原文を読み上げます。"
+
+msgctxt "Cli|"
+msgid "Read source text from files. Arguments will be interpreted as file paths."
+msgstr "ファイルから原文を読み込みます。引数はファイルパスとして扱われます。"
+
+msgctxt "Cli|"
+msgid "Add stdin data to source text."
+msgstr "標準入力のデータを原文に追加します。"
+
+msgctxt "Cli|"
+msgid "Read source text from an image using the configured OCR engine."
+msgstr "設定済みの OCR エンジンを使って、画像から原文を読み取ります。"
+
+msgctxt "Cli|"
+msgid "path"
+msgstr "パス"
+
+msgctxt "Cli|"
+msgid "Do not print any text when using --%1 or --%2."
+msgstr "--%1 または --%2 の使用時は、テキストを出力しません。"
+
+msgctxt "Cli|"
+msgid "Print only translations."
+msgstr "翻訳結果のみを出力します。"
+
+msgctxt "Cli|"
+msgid "Print output formatted as JSON."
+msgstr "出力を JSON 形式で表示します。"
+
+msgctxt "Cli|"
+msgid "Which frontend to run ('gui' or 'cli'). Defaults to 'cli' whenever any argument is given."
+msgstr "起動するフロントエンド（'gui' または 'cli'）を指定します。引数が指定された場合の既定は 'cli' です。"
+
+msgctxt "Cli|"
+msgid "frontend"
+msgstr "フロントエンド"
+
+msgctxt "Cli|"
+msgid "Application that allows to translate and speak text using various providers"
+msgstr "さまざまなプロバイダーを使ってテキストの翻訳と読み上げができるアプリケーション"
+
+msgctxt "Cli|"
+msgid "Text to translate. By default, the translation will be done to the system language."
+msgstr "翻訳するテキスト。既定では、システムの言語に翻訳されます。"
+
+msgctxt "Cli|"
+msgid "Error: For --%1 you must specify --%2 and/or --%3 options"
+msgstr "エラー: --%1 には --%2 オプションまたは --%3 オプション（あるいはその両方）の指定が必要です"
+
+msgctxt "Cli|"
+msgid "Error: Unknown engine '%1'"
+msgstr "エラー: 不明なエンジン '%1'"
+
+msgctxt "Cli|"
+msgid "Error: Unknown translation provider '%1'"
+msgstr "エラー: 不明な翻訳プロバイダー '%1'"
+
+msgctxt "Cli|"
+msgid "Error: Unknown source language code '%1'"
+msgstr "エラー: 不明な翻訳元言語コード '%1'"
+
+msgctxt "Cli|"
+msgid "Error: Unknown translation language code '%1'"
+msgstr "エラー: 不明な翻訳先言語コード '%1'"
+
+msgctxt "Cli|"
+msgid "Error: There is no text for translation"
+msgstr "エラー: 翻訳するテキストがありません"
+
+msgctxt "Cli|"
+msgid "Error: --%1 cannot be combined with text arguments"
+msgstr "エラー: --%1 はテキスト引数と併用できません"
+
+msgctxt "Cli|"
+msgid "Detecting fastest instance"
+msgstr "最速のインスタンスを検出しています"
+
+msgctxt "Cli|"
+msgid "Error: Unknown TTS provider '%1'"
+msgstr "エラー: 不明な TTS プロバイダー '%1'"
+
+msgctxt "Cli|"
+msgid "Error: Unable to initialize Tesseract with %1"
+msgstr "エラー: %1 で Tesseract を初期化できません"
+
+msgctxt "Cli|"
+msgid "Error: Unable to read image '%1'"
+msgstr "エラー: 画像 '%1' を読み込めません"
+
+msgctxt "Cli|"
+msgid "Error: No text was recognized in the image"
+msgstr "エラー: 画像からテキストを認識できませんでした"
+
+msgctxt "Cli|"
+msgid "Error: Recognition failed: %1"
+msgstr "エラー: 認識に失敗しました: %1"
+
+msgctxt "Cli|"
+msgid "Error: Recognition was cancelled"
+msgstr "エラー: 認識がキャンセルされました"
+
+msgctxt "Cli|"
+msgid "Error: %1"
+msgstr "エラー: %1"
+
+msgctxt "Cli|"
+msgid "Translation error occurred"
+msgstr "翻訳エラーが発生しました"
+
+msgctxt "Cli|"
+msgid "Unknown error"
+msgstr "不明なエラー"
+
+msgctxt "Cli|"
+msgid "Error: TTS failed: %1"
+msgstr "エラー: TTS に失敗しました: %1"
+
+msgctxt "Cli|"
+msgid "no provider was created"
+msgstr "プロバイダーが作成されませんでした"
+
+msgctxt "Cli|"
+msgid "the engine failed to start"
+msgstr "エンジンを起動できませんでした"
+
+msgctxt "Cli|"
+msgid "the selected provider has no voices available"
+msgstr "選択したプロバイダーには利用可能な音声がありません"
+
+msgctxt "Cli|"
+msgid "Error: text-to-speech is unavailable: %1"
+msgstr "エラー: 音声読み上げを利用できません: %1"
+
+msgctxt "Cli|"
+msgid "Source languages:"
+msgstr "翻訳元の言語:"
+
+msgctxt "Cli|"
+msgid "Translation languages:"
+msgstr "翻訳先の言語:"
+
+msgctxt "Cli|"
+msgid "Error: You can't use --%1 with --%2"
+msgstr "エラー: --%1 と --%2 は併用できません"
+
+msgctxt "Cli|"
+msgid "Error: File does not exist: %1"
+msgstr "エラー: ファイルが存在しません: %1"
+
+msgctxt "Cli|"
+msgid "Error: Unable to open file: %1"
+msgstr "エラー: ファイルを開けません: %1"
+
+msgctxt "ContextMenu|"
+msgid "Search on Forvo.com"
+msgstr "Forvo.com で検索"
+
+msgctxt "TesseractOcr|"
+msgid "OCR is not configured"
+msgstr "OCR が設定されていません"
+
+msgctxt "TesseractOcr|"
+msgid "Set up the OCR engine in the application settings"
+msgstr "アプリケーションの設定で OCR エンジンを設定してください"
+
+msgctxt "FrontendRegistry|"
+msgid "Graphical window"
+msgstr "グラフィカルウィンドウ"
+
+msgctxt "FrontendRegistry|"
+msgid "Command line"
+msgstr "コマンドライン"
+
+msgctxt "D-Bus|"
+msgid "Unable to register D-Bus object for %1"
+msgstr "%1 用の D-Bus オブジェクトを登録できません"
+
+msgctxt "D-Bus|"
+msgid "D-Bus service %1 is already registered by another application"
+msgstr "D-Bus サービス %1 は既に別のアプリケーションによって登録されています"
+
+msgctxt "TranslationHtmlFormatter|"
+msgid "translation options:"
+msgstr "翻訳オプション:"
+
+msgctxt "TranslationHtmlFormatter|"
+msgid "examples:"
+msgstr "例文:"
+
+msgctxt "InstancePinger|"
+msgid "Best instance URL is '%1' with time %2 ms"
+msgstr "最良のインスタンス URL は '%1' です（所要時間 %2 ms）"
+
+msgctxt "InstancePinger|"
+msgid "Ping to '%1' takes longer then %2 ms"
+msgstr "'%1' への Ping が %2 ms を超えました"
+
+msgctxt "InstancePinger|"
+msgid "Ping to '%1' successful, response time: %2 ms"
+msgstr "'%1' への Ping に成功しました。応答時間: %2 ms"
+
+msgctxt "InstancePinger|"
+msgid "Ping to '%1' failed, error: %2"
+msgstr "'%1' への Ping に失敗しました。エラー: %2"
+
+msgctxt "InstancePingerDialog|"
+msgid "Detecting fastest instance.\nChecking '%1'"
+msgstr "最速のインスタンスを検出しています。\n'%1' を確認中"
+
+msgctxt "LanguageButtonsWidget|"
+msgid "Window width is larger than screen due to the languages on the panel."
+msgstr "パネル上の言語が多いため、ウィンドウの幅が画面より大きくなっています。"
+
+msgctxt "LanguageButtonsWidget|"
+msgid "Please reduce added languages."
+msgstr "追加した言語を減らしてください。"
+
+msgctxt "LanguageButtonsWidget|"
+msgid "Auto"
+msgstr "自動"
+
+msgctxt "LanguageButtonsWidget|"
+msgid "Edit languages"
+msgstr "言語を編集"
+
+msgctxt "LanguagesDialog|"
+msgid "Filter (%1)"
+msgstr "フィルター (%1)"
+
+msgctxt "LanguagesDialog|"
+msgid "Edit languages"
+msgstr "言語を編集"
+
+msgctxt "LanguagesDialog|"
+msgid "Add to current languages"
+msgstr "現在の言語に追加"
+
+msgctxt "LanguagesDialog|"
+msgid "Move language down"
+msgstr "言語を下へ移動"
+
+msgctxt "LanguagesDialog|"
+msgid "Remove from current languages"
+msgstr "現在の言語から削除"
+
+msgctxt "LanguagesDialog|"
+msgid "Search languages"
+msgstr "言語を検索"
+
+msgctxt "LanguagesDialog|"
+msgid "Move language up"
+msgstr "言語を上へ移動"
+
+msgctxt "LanguagesDialog|"
+msgid "Available languages:"
+msgstr "利用可能な言語:"
+
+msgctxt "LanguagesDialog|"
+msgid "Current languages:"
+msgstr "現在の言語:"
+
+msgctxt "main|"
+msgid "Error: Unknown frontend '%1'"
+msgstr "エラー: 不明なフロントエンド '%1'"
+
+msgctxt "main|"
+msgid "Available frontends: %1"
+msgstr "利用可能なフロントエンド: %1"
+
+msgctxt "TesseractOcr|"
+msgid "Unable to set OCR languages"
+msgstr "OCR の言語を設定できません"
+
+msgctxt "TesseractOcr|"
+msgid "Unable to initialize Tesseract with %1"
+msgstr "%1 で Tesseract を初期化できません"
+
+msgctxt "QApplication|"
+msgid "OCR"
+msgstr "OCR"
+
+msgctxt "QApplication|"
+msgid "OCR image negated"
+msgstr "OCR 画像を反転しました"
+
+msgctxt "QApplication|"
+msgid "OCR image is normal"
+msgstr "OCR 画像は通常の状態です"
+
+msgctxt "MainWindow|"
+msgid "This application uses %1 to provide translations."
+msgstr "このアプリケーションは、翻訳の提供に %1 を使用しています。"
+
+msgctxt "MainWindow|"
+msgid "While Mozhi acts as a proxy to protect your privacy, the third-party services it uses may store and analyze the text you send. Your instance right now is '%1', but you can change it in the translation settings. See instance details in the link above."
+msgstr "Mozhi はプロキシとして動作してプライバシーを保護しますが、Mozhi が利用するサードパーティのサービスは、送信されたテキストを保存・分析する可能性があります。現在のインスタンスは '%1' ですが、翻訳設定で変更できます。インスタンスの詳細は上のリンクを参照してください。"
+
+msgctxt "MainWindow|"
+msgid "Don't show again"
+msgstr "今後表示しない"
+
+msgctxt "TrayIcon|"
+msgid "Invalid tray icon"
+msgstr "無効なトレイアイコン"
+
+msgctxt "TrayIcon|"
+msgid "The specified icon '%1' is invalid. The default icon will be used."
+msgstr "指定されたアイコン '%1' は無効です。既定のアイコンを使用します。"
+
+msgctxt "MainWindow|"
+msgid "TTS Error"
+msgstr "TTS エラー"
+
+msgctxt "MainWindow|"
+msgid "Text-to-Speech error:\n\n%1\n\nPlease check your TTS settings or try a different voice/locale."
+msgstr "音声読み上げのエラー:\n\n%1\n\nTTS の設定を確認するか、別の音声またはロケールをお試しください。"
+
+msgctxt "MainWindow|"
+msgid "Error: %1"
+msgstr "エラー: %1"
+
+msgctxt "MainWindow|"
+msgid "Image too large (%1 MP). Max %2 MP."
+msgstr "画像が大きすぎます（%1 MP）。最大 %2 MP です。"
+
+msgctxt "MainWindow|"
+msgid "OCR failed: %1"
+msgstr "OCR に失敗しました: %1"
+
+msgctxt "MainWindow|"
+msgid "Cannot open image:\n%1"
+msgstr "画像を開けません:\n%1"
+
+msgctxt "MainWindow|"
+msgid "Open image"
+msgstr "画像を開く"
+
+msgctxt "MainWindow|"
+msgid "Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tif *.tiff);;All files (*)"
+msgstr "画像 (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tif *.tiff);;すべてのファイル (*)"
+
+msgctxt "MainWindow|"
+msgid "Crow Translate"
+msgstr "Crow Translate"
+
+msgctxt "MainWindow|"
+msgid "Translate"
+msgstr "翻訳"
+
+msgctxt "MainWindow|"
+msgid "Swap languages"
+msgstr "言語を入れ替え"
+
+msgctxt "MainWindow|"
+msgid "Source"
+msgstr "原文"
+
+msgctxt "MainWindow|"
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgctxt "MainWindow|"
+msgid "Start/pause saying the source text aloud"
+msgstr "原文の読み上げを開始／一時停止"
+
+msgctxt "MainWindow|"
+msgid "Stop saying the source text aloud"
+msgstr "原文の読み上げを停止"
+
+msgctxt "MainWindow|"
+msgid "Copy source text to the clipboard"
+msgstr "原文をクリップボードにコピー"
+
+msgctxt "MainWindow|"
+msgid "Recognize text in an image file"
+msgstr "画像ファイル内のテキストを認識"
+
+msgctxt "MainWindow|"
+msgid "Recognize screen area with delay"
+msgstr "遅延を付けて画面の領域を認識"
+
+msgctxt "MainWindow|"
+msgid "Auto-translation"
+msgstr "自動翻訳"
+
+msgctxt "MainWindow|"
+msgid "Clear"
+msgstr "クリア"
+
+msgctxt "MainWindow|"
+msgid "Translation"
+msgstr "翻訳結果"
+
+msgctxt "MainWindow|"
+msgid "Start/pause saying the translated text aloud"
+msgstr "翻訳文の読み上げを開始／一時停止"
+
+msgctxt "MainWindow|"
+msgid "Stop saying the translated text aloud"
+msgstr "翻訳文の読み上げを停止"
+
+msgctxt "MainWindow|"
+msgid "Copy translation to the clipboard"
+msgstr "翻訳結果をクリップボードにコピー"
+
+msgctxt "MainWindow|"
+msgid "Copy all translation data to the clipboard"
+msgstr "すべての翻訳データをクリップボードにコピー"
+
+msgctxt "MainWindow|"
+msgid "Translate screen area with delay"
+msgstr "遅延を付けて画面の領域を翻訳"
+
+msgctxt "MainWindow|"
+msgid "Application settings"
+msgstr "アプリケーションの設定"
+
+msgctxt "ModuleStatus|"
+msgid "Waiting for capture"
+msgstr "キャプチャ待機中"
+
+msgctxt "ModuleStatus|"
+msgid "Select a region"
+msgstr "領域を選択してください"
+
+msgctxt "ModuleStatus|"
+msgid "Recognizing text"
+msgstr "テキストを認識中"
+
+msgctxt "ModuleStatus|"
+msgid "Translating"
+msgstr "翻訳中"
+
+msgctxt "ModuleStatus|"
+msgid "Detecting language"
+msgstr "言語を検出中"
+
+msgctxt "ModuleStatus|"
+msgid "Preparing speech"
+msgstr "音声を準備中"
+
+msgctxt "ModuleStatus|"
+msgid "Speaking"
+msgstr "読み上げ中"
+
+msgctxt "ModuleStatus|"
+msgid "Capture failed"
+msgstr "キャプチャに失敗しました"
+
+msgctxt "ModuleStatus|"
+msgid "OCR failed"
+msgstr "OCR に失敗しました"
+
+msgctxt "ModuleStatus|"
+msgid "Translation failed"
+msgstr "翻訳に失敗しました"
+
+msgctxt "ModuleStatus|"
+msgid "Speech error"
+msgstr "音声エラー"
+
+msgctxt "LlmOcr|"
+msgid "The model ran out of tokens before transcribing anything, having spent them reasoning instead. Turn on \"Disable reasoning\" for this provider, or pick a model with a larger context."
+msgstr "モデルは文字起こしを行う前にトークンを使い切りました（推論にトークンを消費したためです）。このプロバイダーで「推論を無効にする」をオンにするか、コンテキストの大きいモデルを選んでください。"
+
+msgctxt "LlmOcr|"
+msgid "The model ran out of tokens before transcribing anything: the image used %1 of its %2 token limit. Try a smaller region, or a model with a larger context."
+msgstr "モデルは文字起こしを行う前にトークンを使い切りました。画像が上限 %2 トークンのうち %1 トークンを使用しています。領域を小さくするか、コンテキストの大きいモデルをお試しください。"
+
+msgctxt "LlmOcr|"
+msgid "The model ran out of tokens before transcribing anything. Try a smaller region, or a model with a larger context."
+msgstr "モデルは文字起こしを行う前にトークンを使い切りました。領域を小さくするか、コンテキストの大きいモデルをお試しください。"
+
+msgctxt "LlmOcr|"
+msgid "LLM OCR error: %1"
+msgstr "LLM OCR エラー: %1"
+
+msgctxt "LlmOcr|"
+msgid "The model returned no text for this image."
+msgstr "モデルはこの画像に対するテキストを返しませんでした。"
+
+msgctxt "LlmOcr|"
+msgid "LLM OCR request timed out"
+msgstr "LLM OCR のリクエストがタイムアウトしました"
+
+msgctxt "AbstractScreenGrabber|"
+msgid "Unable to grab screen"
+msgstr "画面を取得できません"
+
+msgctxt "WaylandGnomeScreenGrabber|"
+msgid "GNOME failed to take screenshot."
+msgstr "GNOME がスクリーンショットの撮影に失敗しました。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Unable to create pipe: %1."
+msgstr "パイプを作成できません: %1。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Unable to detect active screen for screenshot"
+msgstr "スクリーンショット用のアクティブな画面を検出できません"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Unable to wait for socket readiness: %1."
+msgstr "ソケットの準備完了を待機できません: %1。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Timeout reading from pipe."
+msgstr "パイプからの読み取りがタイムアウトしました。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Unable to read data from socket: %1."
+msgstr "ソケットからデータを読み取れません: %1。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Unable to determine target screen"
+msgstr "対象の画面を特定できません"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Failed to extract screen area from workspace"
+msgstr "ワークスペースから画面領域を抽出できませんでした"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Screenshot Permission Required"
+msgstr "スクリーンショットの権限が必要です"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Crow Translate needs permission to take screenshots. Please grant permission in your system settings or use the interactive screenshot mode."
+msgstr "Crow Translate がスクリーンショットを撮影するには権限が必要です。システム設定で権限を許可するか、対話型のスクリーンショットモードを使用してください。"
+
+msgctxt "WaylandPlasmaScreenGrabber|"
+msgid "Screenshot permission denied. Please grant permission in system settings or try interactive mode."
+msgstr "スクリーンショットの権限が拒否されました。システム設定で権限を許可するか、対話モードをお試しください。"
+
+msgctxt "WaylandPortalScreenGrabber|"
+msgid "Unable to subscribe to response from xdg-desktop-portal."
+msgstr "xdg-desktop-portal からの応答を購読できません。"
+
+msgctxt "WaylandPortalScreenGrabber|"
+msgid "Received an empty path from xdg-desktop-portal."
+msgstr "xdg-desktop-portal から空のパスを受信しました。"
+
+msgctxt "SnippingArea|"
+msgid "Unable to snip screen area"
+msgstr "画面領域を切り取れません"
+
+msgctxt "SnippingArea|"
+msgid "Received an invalid image of screen %1."
+msgstr "画面 %1 の無効な画像を受信しました。"
+
+msgctxt "SnippingArea|"
+msgid "Click and drag to draw a selection rectangle,\nor press Esc to quit"
+msgstr "クリックしてドラッグすると選択範囲を描画できます。\nEsc キーで終了します"
+
+msgctxt "SnippingArea|"
+msgid "Confirm:"
+msgstr "確定:"
+
+msgctxt "SnippingArea|"
+msgid "Release left-click"
+msgstr "左クリックを離す"
+
+msgctxt "SnippingArea|"
+msgid "Enter"
+msgstr "Enter"
+
+msgctxt "SnippingArea|"
+msgid "Double-click"
+msgstr "ダブルクリック"
+
+msgctxt "SnippingArea|"
+msgid "Create new selection rectangle:"
+msgstr "新しい選択範囲を作成:"
+
+msgctxt "SnippingArea|"
+msgid "Drag outside selection rectangle"
+msgstr "選択範囲の外側をドラッグ"
+
+msgctxt "SnippingArea|"
+msgid "+ Shift: Magnifier"
+msgstr "+ Shift: 拡大鏡"
+
+msgctxt "SnippingArea|"
+msgid "Move selection rectangle:"
+msgstr "選択範囲を移動:"
+
+msgctxt "SnippingArea|"
+msgid "Drag inside selection rectangle"
+msgstr "選択範囲の内側をドラッグ"
+
+msgctxt "SnippingArea|"
+msgid "Arrow keys"
+msgstr "矢印キー"
+
+msgctxt "SnippingArea|"
+msgid "+ Shift: Move in 1 pixel steps"
+msgstr "+ Shift: 1 ピクセル単位で移動"
+
+msgctxt "SnippingArea|"
+msgid "Resize selection rectangle:"
+msgstr "選択範囲のサイズを変更:"
+
+msgctxt "SnippingArea|"
+msgid "Drag handles"
+msgstr "ハンドルをドラッグ"
+
+msgctxt "SnippingArea|"
+msgid "Arrow keys + Alt"
+msgstr "矢印キー + Alt"
+
+msgctxt "SnippingArea|"
+msgid "+ Shift: Resize in 1 pixel steps"
+msgstr "+ Shift: 1 ピクセル単位でサイズ変更"
+
+msgctxt "SnippingArea|"
+msgid "Reset selection:"
+msgstr "選択をリセット:"
+
+msgctxt "SnippingArea|"
+msgid "Right-click"
+msgstr "右クリック"
+
+msgctxt "SnippingArea|"
+msgid "Cancel:"
+msgstr "キャンセル:"
+
+msgctxt "SnippingArea|"
+msgid "Esc key"
+msgstr "Esc キー"
+
+msgctxt "SnippingArea|"
+msgid "DPI Detection Error"
+msgstr "DPI 検出エラー"
+
+msgctxt "SnippingArea|"
+msgid "Screen under cursor disappeared before we got dpi from it. Using primary screen for dpi information."
+msgstr "DPI を取得する前に、カーソル下の画面が消えました。DPI 情報にはプライマリ画面を使用します。"
+
+msgctxt "TesseractOcr|"
+msgid "%1 is not a valid Tesseract parameter name."
+msgstr "%1 は有効な Tesseract パラメーター名ではありません。"
+
+msgctxt "OnlineTranslator|"
+msgid "Language detection is not supported for %1"
+msgstr "%1 では言語検出がサポートされていません"
+
+msgctxt "OnlineTranslator|"
+msgid "Operation aborted by user"
+msgstr "ユーザーによって操作が中止されました"
+
+msgctxt "OnlineTranslator|"
+msgid "%1 engine does not support TTS"
+msgstr "%1 エンジンは TTS をサポートしていません"
+
+msgctxt "OnlineTranslator|"
+msgid "Automatically detect"
+msgstr "自動検出"
+
+msgctxt "OnlineTranslator|"
+msgid "Afrikaans"
+msgstr "アフリカーンス語"
+
+msgctxt "OnlineTranslator|"
+msgid "Albanian"
+msgstr "アルバニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Amharic"
+msgstr "アムハラ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Arabic"
+msgstr "アラビア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Armenian"
+msgstr "アルメニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Assamese"
+msgstr "アッサム語"
+
+msgctxt "OnlineTranslator|"
+msgid "Aymara"
+msgstr "アイマラ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Azerbaijani"
+msgstr "アゼルバイジャン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bajan"
+msgstr "バジャン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Balkan Gipsy"
+msgstr "バルカン・ジプシー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bambara"
+msgstr "バンバラ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bangla"
+msgstr "ベンガル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bashkir"
+msgstr "バシキール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Basque"
+msgstr "バスク語"
+
+msgctxt "OnlineTranslator|"
+msgid "Belarusian"
+msgstr "ベラルーシ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bemba"
+msgstr "ベンバ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bhojpuri"
+msgstr "ボージュプリー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bislama"
+msgstr "ビスラマ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bosnian"
+msgstr "ボスニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Breton"
+msgstr "ブルトン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Bulgarian"
+msgstr "ブルガリア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Cantonese (Traditional)"
+msgstr "広東語（繁体字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Catalan"
+msgstr "カタルーニャ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Cebuano"
+msgstr "セブアノ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Chamorro"
+msgstr "チャモロ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Chichewa"
+msgstr "チェワ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Chinese (Literary)"
+msgstr "中国語（文語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Chinese (Simplified)"
+msgstr "中国語（簡体字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Chinese (Traditional)"
+msgstr "中国語（繁体字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Chuvash"
+msgstr "チュヴァシ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Comorian (Ngazidja)"
+msgstr "コモロ語（ングジジャ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Coptic"
+msgstr "コプト語"
+
+msgctxt "OnlineTranslator|"
+msgid "Corsican"
+msgstr "コルシカ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Antigua and Barbuda)"
+msgstr "英語系クレオール語（アンティグア・バーブーダ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Bahamas)"
+msgstr "英語系クレオール語（バハマ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Grenadian)"
+msgstr "英語系クレオール語（グレナダ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Guyanese)"
+msgstr "英語系クレオール語（ガイアナ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Jamaican)"
+msgstr "英語系クレオール語（ジャマイカ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Vincentian)"
+msgstr "英語系クレオール語（セントビンセント）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole English (Virgin Islands)"
+msgstr "英語系クレオール語（ヴァージン諸島）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole French (Saint Lucian)"
+msgstr "フランス語系クレオール語（セントルシア）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole French (Seselwa)"
+msgstr "フランス語系クレオール語（セーシェル）"
+
+msgctxt "OnlineTranslator|"
+msgid "Creole Portuguese (Upper Guinea)"
+msgstr "ポルトガル語系クレオール語（上ギニア）"
+
+msgctxt "OnlineTranslator|"
+msgid "Croatian"
+msgstr "クロアチア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Czech"
+msgstr "チェコ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Danish"
+msgstr "デンマーク語"
+
+msgctxt "OnlineTranslator|"
+msgid "Dari"
+msgstr "ダリー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Divehi"
+msgstr "ディベヒ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Dogri"
+msgstr "ドーグリー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Dutch"
+msgstr "オランダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Dzongkha"
+msgstr "ゾンカ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Elvish (Sindarin)"
+msgstr "エルフ語（シンダリン）"
+
+msgctxt "OnlineTranslator|"
+msgid "Emoji"
+msgstr "絵文字"
+
+msgctxt "OnlineTranslator|"
+msgid "English"
+msgstr "英語"
+
+msgctxt "OnlineTranslator|"
+msgid "Esperanto"
+msgstr "エスペラント語"
+
+msgctxt "OnlineTranslator|"
+msgid "Estonian"
+msgstr "エストニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Ewe"
+msgstr "エウェ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Fanagalo"
+msgstr "ファナカロ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Faroese"
+msgstr "フェロー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Fijian"
+msgstr "フィジー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Filipino"
+msgstr "フィリピノ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Finnish"
+msgstr "フィンランド語"
+
+msgctxt "OnlineTranslator|"
+msgid "French"
+msgstr "フランス語"
+
+msgctxt "OnlineTranslator|"
+msgid "French (Canada)"
+msgstr "フランス語（カナダ）"
+
+msgctxt "OnlineTranslator|"
+msgid "Frisian"
+msgstr "フリジア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Galician"
+msgstr "ガリシア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Ganda"
+msgstr "ガンダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Georgian"
+msgstr "ジョージア語"
+
+msgctxt "OnlineTranslator|"
+msgid "German"
+msgstr "ドイツ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Greek"
+msgstr "ギリシャ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Greek (Classical)"
+msgstr "古代ギリシャ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Guarani"
+msgstr "グアラニー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Gujarati"
+msgstr "グジャラート語"
+
+msgctxt "OnlineTranslator|"
+msgid "Haitian Creole"
+msgstr "ハイチ・クレオール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hausa"
+msgstr "ハウサ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hawaiian"
+msgstr "ハワイ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hebrew"
+msgstr "ヘブライ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hill Mari"
+msgstr "山地マリ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hindi"
+msgstr "ヒンディー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hmong"
+msgstr "モン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hmong Daw"
+msgstr "白モン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Hungarian"
+msgstr "ハンガリー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Icelandic"
+msgstr "アイスランド語"
+
+msgctxt "OnlineTranslator|"
+msgid "Igbo"
+msgstr "イボ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Ilocano"
+msgstr "イロカノ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Indonesian"
+msgstr "インドネシア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Inuinnaqtun"
+msgstr "イヌイナクトゥン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Inuktitut"
+msgstr "イヌクティトゥット語"
+
+msgctxt "OnlineTranslator|"
+msgid "Inuktitut (Greenlandic)"
+msgstr "イヌクティトゥット語（グリーンランド）"
+
+msgctxt "OnlineTranslator|"
+msgid "Inuktitut (Latin)"
+msgstr "イヌクティトゥット語（ラテン文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Irish"
+msgstr "アイルランド語"
+
+msgctxt "OnlineTranslator|"
+msgid "Italian"
+msgstr "イタリア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Japanese"
+msgstr "日本語"
+
+msgctxt "OnlineTranslator|"
+msgid "Javanese"
+msgstr "ジャワ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kabuverdianu"
+msgstr "カーボベルデ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kabylian"
+msgstr "カビル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kannada"
+msgstr "カンナダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kazakh"
+msgstr "カザフ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kazakh (Latin)"
+msgstr "カザフ語（ラテン文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Khmer"
+msgstr "クメール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kinyarwanda"
+msgstr "キニアルワンダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kirundi"
+msgstr "キルンディ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Klingon (Latin)"
+msgstr "クリンゴン語（ラテン文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Konkani"
+msgstr "コンカニ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Korean"
+msgstr "韓国語"
+
+msgctxt "OnlineTranslator|"
+msgid "Krio"
+msgstr "クリオ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Kurdish (Central)"
+msgstr "クルド語（中央）"
+
+msgctxt "OnlineTranslator|"
+msgid "Kurdish (Northern)"
+msgstr "クルド語（北部）"
+
+msgctxt "OnlineTranslator|"
+msgid "Kurdish (Sorani)"
+msgstr "クルド語（ソラニー）"
+
+msgctxt "OnlineTranslator|"
+msgid "Kyrgyz"
+msgstr "キルギス語"
+
+msgctxt "OnlineTranslator|"
+msgid "Lao"
+msgstr "ラオ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Latin"
+msgstr "ラテン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Latvian"
+msgstr "ラトビア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Lingala"
+msgstr "リンガラ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Lithuanian"
+msgstr "リトアニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Lower Sorbian"
+msgstr "下ソルブ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Luganda"
+msgstr "ルガンダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Luxembourgish"
+msgstr "ルクセンブルク語"
+
+msgctxt "OnlineTranslator|"
+msgid "Macedonian"
+msgstr "マケドニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Maithili"
+msgstr "マイティリー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Malagasy"
+msgstr "マラガシ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Malay"
+msgstr "マレー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Malayalam"
+msgstr "マラヤーラム語"
+
+msgctxt "OnlineTranslator|"
+msgid "Maltese"
+msgstr "マルタ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Manx Gaelic"
+msgstr "マンクス語"
+
+msgctxt "OnlineTranslator|"
+msgid "Marathi"
+msgstr "マラーティー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Mari"
+msgstr "マリ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Marshallese"
+msgstr "マーシャル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Meiteilon (Manipuri)"
+msgstr "メイテイ語（マニプリ語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Mende"
+msgstr "メンデ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Mizo"
+msgstr "ミゾ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Mongolian"
+msgstr "モンゴル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Mongolian (Cyrillic)"
+msgstr "モンゴル語（キリル文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Mongolian (Traditional)"
+msgstr "モンゴル語（伝統文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Morisyen"
+msgstr "モーリシャス・クレオール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Myanmar (Burmese)"
+msgstr "ミャンマー語（ビルマ語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Māori"
+msgstr "マオリ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Nepali"
+msgstr "ネパール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Niuean"
+msgstr "ニウエ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Norwegian"
+msgstr "ノルウェー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Nyanja"
+msgstr "ニャンジャ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Odia"
+msgstr "オディア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Oromo"
+msgstr "オロモ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Palauan"
+msgstr "パラオ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Papiamentu"
+msgstr "パピアメント語"
+
+msgctxt "OnlineTranslator|"
+msgid "Pashto"
+msgstr "パシュトー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Persian"
+msgstr "ペルシア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Pijin"
+msgstr "ピジン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Polish"
+msgstr "ポーランド語"
+
+msgctxt "OnlineTranslator|"
+msgid "Portuguese (Brazilian)"
+msgstr "ポルトガル語（ブラジル）"
+
+msgctxt "OnlineTranslator|"
+msgid "Portuguese (Portugal)"
+msgstr "ポルトガル語（ポルトガル）"
+
+msgctxt "OnlineTranslator|"
+msgid "Potawatomi"
+msgstr "ポタワトミ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Punjabi"
+msgstr "パンジャブ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Quechua"
+msgstr "ケチュア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Querétaro Otomi"
+msgstr "ケレタロ・オトミ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Romanian"
+msgstr "ルーマニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Rundi"
+msgstr "ルンディ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Russian"
+msgstr "ロシア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Samoan"
+msgstr "サモア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sango"
+msgstr "サンゴ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sanskrit"
+msgstr "サンスクリット語"
+
+msgctxt "OnlineTranslator|"
+msgid "Scots Gaelic"
+msgstr "スコットランド・ゲール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Serbian (Cyrillic)"
+msgstr "セルビア語（キリル文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Serbian (Latin)"
+msgstr "セルビア語（ラテン文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Sesotho"
+msgstr "セソト語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sesotho sa Leboa"
+msgstr "北ソト語"
+
+msgctxt "OnlineTranslator|"
+msgid "Setswana"
+msgstr "ツワナ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Shona"
+msgstr "ショナ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sindhi"
+msgstr "シンド語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sinhala"
+msgstr "シンハラ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Slovak"
+msgstr "スロバキア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Slovenian"
+msgstr "スロベニア語"
+
+msgctxt "OnlineTranslator|"
+msgid "Somali"
+msgstr "ソマリ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Spanish"
+msgstr "スペイン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sranan Tongo"
+msgstr "スラナン・トンゴ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Sundanese"
+msgstr "スンダ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Swahili"
+msgstr "スワヒリ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Swedish"
+msgstr "スウェーデン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Syriac (Aramaic)"
+msgstr "シリア語（アラム語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Tahitian"
+msgstr "タヒチ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tajik"
+msgstr "タジク語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tamashek (Tuareg)"
+msgstr "タマシェク語（トゥアレグ語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Tamil"
+msgstr "タミル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tatar"
+msgstr "タタール語"
+
+msgctxt "OnlineTranslator|"
+msgid "Telugu"
+msgstr "テルグ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tetum"
+msgstr "テトゥン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Thai"
+msgstr "タイ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tibetan"
+msgstr "チベット語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tigrinya"
+msgstr "ティグリニャ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tok Pisin"
+msgstr "トク・ピシン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tokelauan"
+msgstr "トケラウ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tongan"
+msgstr "トンガ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tsonga"
+msgstr "ツォンガ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Turkish"
+msgstr "トルコ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Turkmen"
+msgstr "トルクメン語"
+
+msgctxt "OnlineTranslator|"
+msgid "Tuvaluan"
+msgstr "ツバル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Twi"
+msgstr "トウィ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Udmurt"
+msgstr "ウドムルト語"
+
+msgctxt "OnlineTranslator|"
+msgid "Ukrainian"
+msgstr "ウクライナ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Uma"
+msgstr "ウマ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Upper Sorbian"
+msgstr "上ソルブ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Urdu"
+msgstr "ウルドゥー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Uyghur"
+msgstr "ウイグル語"
+
+msgctxt "OnlineTranslator|"
+msgid "Uzbek (Cyrillic)"
+msgstr "ウズベク語（キリル文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Uzbek (Latin)"
+msgstr "ウズベク語（ラテン文字）"
+
+msgctxt "OnlineTranslator|"
+msgid "Vietnamese"
+msgstr "ベトナム語"
+
+msgctxt "OnlineTranslator|"
+msgid "Wallisian"
+msgstr "ウォリス語"
+
+msgctxt "OnlineTranslator|"
+msgid "Welsh"
+msgstr "ウェールズ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Wolof"
+msgstr "ウォロフ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Xhosa"
+msgstr "コサ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Yakut"
+msgstr "サハ語（ヤクート語）"
+
+msgctxt "OnlineTranslator|"
+msgid "Yiddish"
+msgstr "イディッシュ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Yoruba"
+msgstr "ヨルバ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Yucatec Maya"
+msgstr "ユカテコ・マヤ語"
+
+msgctxt "OnlineTranslator|"
+msgid "Zulu"
+msgstr "ズールー語"
+
+msgctxt "OnlineTranslator|"
+msgid "Instance error: %1"
+msgstr "インスタンスエラー: %1"
+
+msgctxt "OnlineTranslator|"
+msgid "Error: Unable to parse autodetected language"
+msgstr "エラー: 自動検出された言語を解析できません"
+
+msgctxt "PopupWindow|"
+msgid "Swap languages"
+msgstr "言語を入れ替え"
+
+msgctxt "PopupWindow|"
+msgid "Translate"
+msgstr "翻訳"
+
+msgctxt "PopupWindow|"
+msgid "Start/pause saying the source text aloud"
+msgstr "原文の読み上げを開始／一時停止"
+
+msgctxt "PopupWindow|"
+msgid "Stop saying the source text aloud"
+msgstr "原文の読み上げを停止"
+
+msgctxt "PopupWindow|"
+msgid "Copy source text to the clipboard"
+msgstr "原文をクリップボードにコピー"
+
+msgctxt "PopupWindow|"
+msgid "Start/pause saying the translated text aloud"
+msgstr "翻訳文の読み上げを開始／一時停止"
+
+msgctxt "PopupWindow|"
+msgid "Stop saying the translated text aloud"
+msgstr "翻訳文の読み上げを停止"
+
+msgctxt "PopupWindow|"
+msgid "Copy all translation data to the clipboard"
+msgstr "すべての翻訳データをクリップボードにコピー"
+
+msgctxt "PopupWindow|"
+msgid "Copy translation to the clipboard"
+msgstr "翻訳結果をクリップボードにコピー"
+
+msgctxt "AppSettings|"
+msgid "OpenAI-compatible (custom)"
+msgstr "OpenAI 互換（カスタム）"
+
+msgctxt "AppSettings|"
+msgid "Unknown language code: %1"
+msgstr "不明な言語コード: %1"
+
+msgctxt "AbstractAutostartManager|"
+msgid "Unable to apply autostart settings"
+msgstr "自動起動の設定を適用できません"
+
+msgctxt "PortalAutostartManager|"
+msgid "Allow %1 to manage autostart setting for itself."
+msgstr "%1 が自身の自動起動設定を管理することを許可します。"
+
+msgctxt "PortalAutostartManager|"
+msgid "Unable to subscribe to response from xdg-desktop-portal."
+msgstr "xdg-desktop-portal からの応答を購読できません。"
+
+msgctxt "UnixAutostartManager|"
+msgid "Unable to create %1"
+msgstr "%1 を作成できません"
+
+msgctxt "UnixAutostartManager|"
+msgid "Unable to copy %1 to %2"
+msgstr "%1 を %2 にコピーできません"
+
+msgctxt "UnixAutostartManager|"
+msgid "Unable to remove %1 from %2"
+msgstr "%2 から %1 を削除できません"
+
+msgctxt "SettingsDialog|"
+msgid "Portable mode"
+msgstr "ポータブルモード"
+
+msgctxt "SettingsDialog|"
+msgid "Use %1 to store settings"
+msgstr "%1 を使用して設定を保存"
+
+msgctxt "SettingsDialog|"
+msgid "<System language>"
+msgstr "<システム言語>"
+
+msgctxt "SettingsDialog|"
+msgid "<Auto>"
+msgstr "<自動>"
+
+msgctxt "SettingsDialog|"
+msgid "Copy"
+msgstr "コピー"
+
+msgctxt "SettingsDialog|"
+msgid "None"
+msgstr "なし"
+
+msgctxt "SettingsDialog|"
+msgid "Icons:"
+msgstr "アイコン:"
+
+msgctxt "SettingsDialog|"
+msgid "The OCR parameter fields can not be empty."
+msgstr "OCR パラメーターのフィールドは空にできません。"
+
+msgctxt "SettingsDialog|"
+msgid "Do you want to discard the invalid parameters?"
+msgstr "無効なパラメーターを破棄しますか？"
+
+msgctxt "SettingsDialog|"
+msgid "URL:"
+msgstr "URL:"
+
+msgctxt "SettingsDialog|"
+msgid "Key:"
+msgstr "キー:"
+
+msgctxt "SettingsDialog|"
+msgid "optional, e.g. for a cloud endpoint"
+msgstr "任意。例: クラウドのエンドポイント用"
+
+msgctxt "SettingsDialog|"
+msgid "Refresh models"
+msgstr "モデルを更新"
+
+msgctxt "SettingsDialog|"
+msgid "Translation model:"
+msgstr "翻訳モデル:"
+
+msgctxt "SettingsDialog|"
+msgid "Timeout:"
+msgstr "タイムアウト:"
+
+msgctxt "SettingsDialog|"
+msgid " s"
+msgstr " 秒"
+
+msgctxt "SettingsDialog|"
+msgid "Maximum time to wait for a translation or detection response."
+msgstr "翻訳または検出の応答を待つ最大時間。"
+
+msgctxt "SettingsDialog|"
+msgid "Disable reasoning"
+msgstr "推論を無効にする"
+
+msgctxt "SettingsDialog|"
+msgid "Placeholders: %1"
+msgstr "プレースホルダー: %1"
+
+msgctxt "SettingsDialog|"
+msgid "Reset Text prompt"
+msgstr "テキストプロンプトをリセット"
+
+msgctxt "SettingsDialog|"
+msgid "OCR engine:"
+msgstr "OCR エンジン:"
+
+msgctxt "SettingsDialog|"
+msgid "Tesseract"
+msgstr "Tesseract"
+
+msgctxt "SettingsDialog|"
+msgid "Vision model (LLM)"
+msgstr "ビジョンモデル (LLM)"
+
+msgctxt "SettingsDialog|"
+msgid "Tesseract runs locally. Configure languages and parameters below."
+msgstr "Tesseract はローカルで動作します。言語とパラメーターは以下で設定してください。"
+
+msgctxt "SettingsDialog|"
+msgid "Provider:"
+msgstr "プロバイダー:"
+
+msgctxt "SettingsDialog|"
+msgid "Maximum time to wait for a transcription response."
+msgstr "文字起こしの応答を待つ最大時間。"
+
+msgctxt "SettingsDialog|"
+msgid "Model:"
+msgstr "モデル:"
+
+msgctxt "SettingsDialog|"
+msgid "Reset OCR prompt"
+msgstr "OCR プロンプトをリセット"
+
+msgctxt "SettingsDialog|"
+msgid "— Server reports image support —"
+msgstr "— サーバーが画像対応を報告 —"
+
+msgctxt "SettingsDialog|"
+msgid "— Image support not reported —"
+msgstr "— 画像対応の報告なし —"
+
+msgctxt "SettingsDialog|"
+msgid "No models loaded yet — press \"Refresh models\", or type a model name."
+msgstr "モデルがまだ読み込まれていません — 「モデルを更新」を押すか、モデル名を入力してください。"
+
+msgctxt "SettingsDialog|"
+msgid "This endpoint does not report model capabilities, so image support cannot be verified here. Pick a model you know accepts images."
+msgstr "このエンドポイントはモデルの機能を報告しないため、画像に対応しているかをここでは確認できません。画像を受け付けると分かっているモデルを選んでください。"
+
+msgctxt "SettingsDialog|"
+msgid "The server reported no image-capable models. A model listed here may still work, but recognition will fail if it cannot accept images."
+msgstr "サーバーは画像対応のモデルを報告しませんでした。ここに表示されたモデルでも動作する可能性はありますが、画像を受け付けない場合は認識に失敗します。"
+
+msgctxt "SettingsDialog|"
+msgid "%n model(s) reported as image-capable."
+msgid_plural "%n model(s) reported as image-capable."
+msgstr[0] "画像対応と報告されたモデル: %n 件"
+
+msgctxt "SettingsDialog|"
+msgid "Vision model"
+msgstr "ビジョンモデル"
+
+msgctxt "SettingsDialog|"
+msgid "Enter the endpoint URL first."
+msgstr "先にエンドポイントの URL を入力してください。"
+
+msgctxt "SettingsDialog|"
+msgid "No models found."
+msgstr "モデルが見つかりません。"
+
+msgctxt "SettingsDialog|"
+msgid "Could not reach %1 at %2:\n%3"
+msgstr "%2 の %1 に接続できませんでした:\n%3"
+
+msgctxt "SettingsDialog|"
+msgid "Select icon"
+msgstr "アイコンを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Images (*.png *.ico *.svg *.jpg);;All files()"
+msgstr "画像 (*.png *.ico *.svg *.jpg);;すべてのファイル()"
+
+msgctxt "SettingsDialog|"
+msgid "Select OCR languages path"
+msgstr "OCR 言語のパスを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Piper voices path:"
+msgstr "Piper 音声のパス:"
+
+msgctxt "SettingsDialog|"
+msgid "Directory with voice models"
+msgstr "音声モデルのディレクトリ"
+
+msgctxt "SettingsDialog|"
+msgid "Select Piper voices path"
+msgstr "Piper 音声のパスを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Back"
+msgstr "戻る"
+
+msgctxt "SettingsDialog|"
+msgid "Settings"
+msgstr "設定"
+
+msgctxt "SettingsDialog|"
+msgid "General"
+msgstr "全般"
+
+msgctxt "SettingsDialog|"
+msgid "Interface"
+msgstr "インターフェース"
+
+msgctxt "SettingsDialog|"
+msgid "Translation"
+msgstr "翻訳"
+
+msgctxt "SettingsDialog|"
+msgid "Text-To-Speech"
+msgstr "テキスト読み上げ"
+
+msgctxt "SettingsDialog|"
+msgid "Mozhi"
+msgstr "Mozhi"
+
+msgctxt "SettingsDialog|"
+msgid "Connection"
+msgstr "接続"
+
+msgctxt "SettingsDialog|"
+msgid "Shortcuts"
+msgstr "ショートカット"
+
+msgctxt "SettingsDialog|"
+msgid "About"
+msgstr "情報"
+
+msgctxt "SettingsDialog|"
+msgid "Language:"
+msgstr "言語:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Interface language</p></body></html>"
+msgstr "<html><head/><body><p>インターフェースの言語</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Main window orientation:"
+msgstr "メインウィンドウの向き:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Orientation of the main window layout<br/>When using <span style=\" font-style:italic;\">Auto</span>, the window orientation will match the screen orientation</p></body></html>"
+msgstr "<html><head/><body><p>メインウィンドウのレイアウトの向き<br/><span style=\" font-style:italic;\">自動</span>を選ぶと、ウィンドウの向きは画面の向きに合わせられます</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Auto"
+msgstr "自動"
+
+msgctxt "SettingsDialog|"
+msgid "Portrait"
+msgstr "縦向き"
+
+msgctxt "SettingsDialog|"
+msgid "Landscape"
+msgstr "横向き"
+
+msgctxt "SettingsDialog|"
+msgid "Translation mode:"
+msgstr "翻訳モード:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>A window for translating selected text. If the application is minimized, the main window will always be used.</p></body></html>"
+msgstr "<html><head/><body><p>選択したテキストを翻訳するウィンドウ。アプリケーションが最小化されている場合は、常にメインウィンドウが使われます。</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Pop-up window"
+msgstr "ポップアップウィンドウ"
+
+msgctxt "SettingsDialog|"
+msgid "Main window"
+msgstr "メインウィンドウ"
+
+msgctxt "SettingsDialog|"
+msgid "Notification"
+msgstr "通知"
+
+msgctxt "SettingsDialog|"
+msgid "Translation notification timeout:"
+msgstr "翻訳通知のタイムアウト:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Notification with translation display time</p></body></html>"
+msgstr "<html><head/><body><p>翻訳を表示する通知の表示時間</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid " sec"
+msgstr " 秒"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Display icon in the system tray</p></body></html>"
+msgstr "<html><head/><body><p>システムトレイにアイコンを表示します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Show tray icon"
+msgstr "トレイアイコンを表示"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Start application minimized to the system tray</p></body></html>"
+msgstr "<html><head/><body><p>アプリケーションをシステムトレイに最小化した状態で起動します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Start minimized"
+msgstr "最小化した状態で起動"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Run the application at system startup</p></body></html>"
+msgstr "<html><head/><body><p>システムの起動時にアプリケーションを実行します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Launch at startup"
+msgstr "起動時に開始"
+
+msgctxt "SettingsDialog|"
+msgid "Font"
+msgstr "フォント"
+
+msgctxt "SettingsDialog|"
+msgid "Name:"
+msgstr "名前:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Translation and source text font</p></body></html>"
+msgstr "<html><head/><body><p>翻訳文と原文のフォント</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Size:"
+msgstr "サイズ:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Font size of translation and source text</p></body></html>"
+msgstr "<html><head/><body><p>翻訳文と原文のフォントサイズ</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Pop-up window height in pixels</p></body></html>"
+msgstr "<html><head/><body><p>ポップアップウィンドウの高さ（ピクセル）</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Width:"
+msgstr "幅:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Pop-up window width in pixels</p></body></html>"
+msgstr "<html><head/><body><p>ポップアップウィンドウの幅（ピクセル）</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Pop-up window opacity</p></body></html>"
+msgstr "<html><head/><body><p>ポップアップウィンドウの不透明度</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Opacity:"
+msgstr "不透明度:"
+
+msgctxt "SettingsDialog|"
+msgid "Show timeout:"
+msgstr "表示時間:"
+
+msgctxt "SettingsDialog|"
+msgid "Height:"
+msgstr "高さ:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>The number of seconds after which the window will be hidden if it has no focus</p></body></html>"
+msgstr "<html><head/><body><p>フォーカスがない場合に、ウィンドウが非表示になるまでの秒数</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Language format"
+msgstr "言語の表記"
+
+msgctxt "SettingsDialog|"
+msgid "Main window:"
+msgstr "メインウィンドウ:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Languages text on buttons</p></body></html>"
+msgstr "<html><head/><body><p>ボタンに表示する言語のテキスト</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Full name"
+msgstr "正式名称"
+
+msgctxt "SettingsDialog|"
+msgid "ISO 639-1 code"
+msgstr "ISO 639-1 コード"
+
+msgctxt "SettingsDialog|"
+msgid "Pop-up:"
+msgstr "ポップアップ:"
+
+msgctxt "SettingsDialog|"
+msgid "Tray icon"
+msgstr "トレイアイコン"
+
+msgctxt "SettingsDialog|"
+msgid "Icon:"
+msgstr "アイコン:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>System tray icon</p></body></html>"
+msgstr "<html><head/><body><p>システムトレイのアイコン</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Default"
+msgstr "既定"
+
+msgctxt "SettingsDialog|"
+msgid "Monochrome (dark theme)"
+msgstr "モノクロ（ダークテーマ）"
+
+msgctxt "SettingsDialog|"
+msgid "Monochrome (light theme)"
+msgstr "モノクロ（ライトテーマ）"
+
+msgctxt "SettingsDialog|"
+msgid "Custom"
+msgstr "カスタム"
+
+msgctxt "SettingsDialog|"
+msgid "Custom:"
+msgstr "カスタム:"
+
+msgctxt "SettingsDialog|"
+msgid "Path to the icon or icon name from theme"
+msgstr "アイコンのパス、またはテーマのアイコン名"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Select icon</p></body></html>"
+msgstr "<html><head/><body><p>アイコンを選択</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Status bar"
+msgstr "ステータスバー"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/<body><p>Show what the application is currently doing at the bottom of the main and pop-up windows</p></body></html>"
+msgstr "<html><head/><body><p>メインウィンドウとポップアップウィンドウの下部に、アプリケーションが現在行っている処理を表示します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Show status bar"
+msgstr "ステータスバーを表示"
+
+msgctxt "SettingsDialog|"
+msgid "Translation provider:"
+msgstr "翻訳プロバイダー:"
+
+msgctxt "SettingsDialog|"
+msgid "Automatic language detection"
+msgstr "自動言語検出"
+
+msgctxt "SettingsDialog|"
+msgid "Primary translation language:"
+msgstr "第一翻訳言語:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Language to which text will be translated when autodetecting</p></body></html>"
+msgstr "<html><head/><body><p>自動検出時に、テキストが翻訳される言語</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Secondary translation language:"
+msgstr "第二翻訳言語:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Language to which the text will be translated if it is in the language selected above</p></body></html>"
+msgstr "<html><head/><body><p>テキストが上で選択した言語だった場合に、翻訳される言語</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Automatically switch to <span style=\" font-style:italic;\">Auto</span> when using OCR and global shortcuts</p></body></html>"
+msgstr "<html><head/><body><p>OCR とグローバルショートカットの使用時に、自動的に<span style=\" font-style:italic;\">自動</span>へ切り替えます</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Force source language detection"
+msgstr "翻訳元言語の検出を強制"
+
+msgctxt "SettingsDialog|"
+msgid "Force translation language detection"
+msgstr "翻訳先言語の検出を強制"
+
+msgctxt "SettingsDialog|"
+msgid "Detection provider:"
+msgstr "検出プロバイダー:"
+
+msgctxt "SettingsDialog|"
+msgid "Provider and model used to detect the source language when it is set to Auto. If no detection model is selected, translation falls back to the configured primary language above."
+msgstr "翻訳元言語が「自動」に設定されている場合に、言語の検出に使うプロバイダーとモデル。検出モデルが選択されていない場合、翻訳は上で設定した第一翻訳言語にフォールバックします。"
+
+msgctxt "SettingsDialog|"
+msgid "Detection model:"
+msgstr "検出モデル:"
+
+msgctxt "SettingsDialog|"
+msgid "Text-to-Speech"
+msgstr "テキスト読み上げ"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable source transliteration</p></body></html>"
+msgstr "<html><head/><body><p>原文の音訳（transliteration）を有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable source transliteration"
+msgstr "原文の音訳を有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable translation transliteration</p></body></html>"
+msgstr "<html><head/><body><p>翻訳文の音訳（transliteration）を有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable translation transliteration"
+msgstr "翻訳文の音訳を有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable source transcription</p></body></html>"
+msgstr "<html><head/><body><p>原文の発音表記（transcription）を有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable source transcription"
+msgstr "原文の発音表記を有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable translation options</p></body></html>"
+msgstr "<html><head/><body><p>翻訳オプションを有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable translation options"
+msgstr "翻訳オプションを有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable usage examples</p></body></html>"
+msgstr "<html><head/><body><p>用例を有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable examples"
+msgstr "用例を有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Replace each sequence of whitespaces (this includes the ASCII characters '\\t', '\\n', '\\v', '\\f', '\\r', and ' ') with a single space in queries</p></body></html>"
+msgstr "<html><head/><body><p>クエリ内の連続する空白文字（ASCII 文字の '\\t'、'\\n'、'\\v'、'\\f'、'\\r'、' ' を含む）を、それぞれ 1 つの空白に置き換えます</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Simplify source"
+msgstr "原文を簡略化"
+
+msgctxt "SettingsDialog|"
+msgid "Mozhi instance URL"
+msgstr "Mozhi インスタンスの URL"
+
+msgctxt "SettingsDialog|"
+msgid "Automatically pick the fastest instance based on the ping"
+msgstr "Ping に基づいて、最速のインスタンスを自動的に選択します"
+
+msgctxt "SettingsDialog|"
+msgid "Detect fastest"
+msgstr "最速を検出"
+
+msgctxt "SettingsDialog|"
+msgid "Optional. Required by self-hosted LibreTranslate instances and libretranslate.com; the Mozhi front-end ignores it."
+msgstr "任意。セルフホストの LibreTranslate インスタンスと libretranslate.com では必須です。Mozhi フロントエンドでは無視されます。"
+
+msgctxt "SettingsDialog|"
+msgid "Talk the direct LibreTranslate REST API to the instance URL instead of the Mozhi-compatible API; use this for self-hosted LibreTranslate servers."
+msgstr "Mozhi 互換 API ではなく、LibreTranslate の REST API をインスタンスの URL に対して直接使用します。セルフホストの LibreTranslate サーバーではこちらを使用してください。"
+
+msgctxt "SettingsDialog|"
+msgid "Local OpenAI-compatible servers. Set URL, translation model and prompt for each. Language detection is configured on the Translation page."
+msgstr "ローカルの OpenAI 互換サーバー。それぞれに URL、翻訳モデル、プロンプトを設定します。言語検出は「翻訳」ページで設定します。"
+
+msgctxt "SettingsDialog|"
+msgid "Languages"
+msgstr "言語"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Loading additional languages will impact both speed and accuracy, as there is more work to do to decide on the applicable language, and there is more chance of hallucinating incorrect words.</p></body></html>"
+msgstr "<html><head/><body><p>追加の言語を読み込むと、該当する言語を判断する作業が増え、誤った単語を生成してしまう可能性も高くなるため、速度と精度の両方に影響します。</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Languages path:"
+msgstr "言語のパス:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Select OCR languages path</p></body></html>"
+msgstr "<html><head/><body><p>OCR 言語のパスを選択</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Open GitHub repository</p></body></html>"
+msgstr "<html><head/><body><p>GitHub リポジトリを開く</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p><a href=\"https://github.com/tesseract-ocr/tessdata\"><span style=\" text-decoration: underline; color:#2980b9;\">Download more</span></a></p></body></html>"
+msgstr "<html><head/><body><p><a href=\"https://github.com/tesseract-ocr/tessdata\"><span style=\" text-decoration: underline; color:#2980b9;\">さらにダウンロード</span></a></p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Directory with trained models"
+msgstr "学習済みモデルのディレクトリ"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Replace all single line breaks with a space after text recognition</p></body></html>"
+msgstr "<html><head/><body><p>テキスト認識後、単独の改行をすべて空白に置き換えます</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Convert line breaks"
+msgstr "改行を変換"
+
+msgctxt "SettingsDialog|"
+msgid "Add parameter"
+msgstr "パラメーターを追加"
+
+msgctxt "SettingsDialog|"
+msgid "Remove parameter"
+msgstr "パラメーターを削除"
+
+msgctxt "SettingsDialog|"
+msgid "Screen capture"
+msgstr "画面キャプチャ"
+
+msgctxt "SettingsDialog|"
+msgid "Remember region:"
+msgstr "領域を記憶:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>When to remember the last selected region</p></body></html>"
+msgstr "<html><head/><body><p>最後に選択した領域を記憶するタイミング</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Never"
+msgstr "しない"
+
+msgctxt "SettingsDialog|"
+msgid "Remember last"
+msgstr "最後のものを記憶"
+
+msgctxt "SettingsDialog|"
+msgid "Remember always"
+msgstr "常に記憶"
+
+msgctxt "SettingsDialog|"
+msgid "Capture delay:"
+msgstr "キャプチャの遅延:"
+
+msgctxt "SettingsDialog|"
+msgid "Delay before screen capture"
+msgstr "画面キャプチャ前の遅延"
+
+msgctxt "SettingsDialog|"
+msgid " ms"
+msgstr " ms"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Show a magnifier next to the cursor</p></body></html>"
+msgstr "<html><head/><body><p>カーソルの横に拡大鏡を表示します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Show magnifier"
+msgstr "拡大鏡を表示"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Negate (invert) the image before OCR. Use for bright text on dark background.</p></body></html>"
+msgstr "<html><head/><body><p>OCR の前に画像を反転（ネガ化）します。暗い背景に明るい文字がある場合に使用します。</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Negate OCR"
+msgstr "OCR を反転"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Finish capturing the fragment when the mouse button is released</p></body></html>"
+msgstr "<html><head/><body><p>マウスボタンを離したときに、断片のキャプチャを完了します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Confirm on release"
+msgstr "離したときに確定"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Apply a slight fog to the unselected part</p></body></html>"
+msgstr "<html><head/><body><p>選択されていない部分に薄いかすみをかけます</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Apply light mask"
+msgstr "軽いマスクを適用"
+
+msgctxt "SettingsDialog|"
+msgid "Proxy server"
+msgstr "プロキシサーバー"
+
+msgctxt "SettingsDialog|"
+msgid "Type:"
+msgstr "種類:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Proxy type</p></body></html>"
+msgstr "<html><head/><body><p>プロキシの種類</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Use system settings"
+msgstr "システム設定を使用"
+
+msgctxt "SettingsDialog|"
+msgid "Don't use a proxy"
+msgstr "プロキシを使用しない"
+
+msgctxt "SettingsDialog|"
+msgid "Host:"
+msgstr "ホスト:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Proxy host name</p></body></html>"
+msgstr "<html><head/><body><p>プロキシのホスト名</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Port:"
+msgstr "ポート:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Proxy port</p></body></html>"
+msgstr "<html><head/><body><p>プロキシのポート</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Info: the proxy works only for text translation"
+msgstr "情報: プロキシはテキスト翻訳でのみ動作します"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Enable or disable authentication</p></body></html>"
+msgstr "<html><head/><body><p>認証を有効または無効にします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Authentication"
+msgstr "認証"
+
+msgctxt "SettingsDialog|"
+msgid "Username:"
+msgstr "ユーザー名:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Proxy username for authentication</p></body></html>"
+msgstr "<html><head/><body><p>認証に使用するプロキシのユーザー名</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Password:"
+msgstr "パスワード:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Proxy password for authentication</p></body></html>"
+msgstr "<html><head/><body><p>認証に使用するプロキシのパスワード</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Info: the password is saved unencrypted"
+msgstr "情報: パスワードは暗号化されずに保存されます"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Register global shortcuts in system</p></body></html>"
+msgstr "<html><head/><body><p>システムにグローバルショートカットを登録します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Enable global shortcuts"
+msgstr "グローバルショートカットを有効にする"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Reset all shortcuts to defaults</p></body></html>"
+msgstr "<html><head/><body><p>すべてのショートカットを既定に戻します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Reset all"
+msgstr "すべてリセット"
+
+msgctxt "SettingsDialog|"
+msgid "Shortcut"
+msgstr "ショートカット"
+
+msgctxt "SettingsDialog|"
+msgid "Key sequence:"
+msgstr "キーシーケンス:"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>The key sequence for the selected action</p></body></html>"
+msgstr "<html><head/><body><p>選択したアクションのキーシーケンス</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Accept shortcut</p></body></html>"
+msgstr "<html><head/><body><p>ショートカットを適用します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Accept"
+msgstr "適用"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Clear shortcut</p></body></html>"
+msgstr "<html><head/><body><p>ショートカットをクリアします</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Clear"
+msgstr "クリア"
+
+msgctxt "SettingsDialog|"
+msgid "<html><head/><body><p>Reset shortcut to default</p></body></html>"
+msgstr "<html><head/><body><p>ショートカットを既定に戻します</p></body></html>"
+
+msgctxt "SettingsDialog|"
+msgid "Reset"
+msgstr "リセット"
+
+msgctxt "SettingsDialog|"
+msgid "Version:"
+msgstr "バージョン:"
+
+msgctxt "SettingsDialog|"
+msgid "License:"
+msgstr "ライセンス:"
+
+msgctxt "SettingsDialog|"
+msgid "Source code:"
+msgstr "ソースコード:"
+
+msgctxt "SettingsDialog|"
+msgid "Translation backend:"
+msgstr "翻訳バックエンド:"
+
+msgctxt "ShortcutsModel|"
+msgid "Global"
+msgstr "グローバル"
+
+msgctxt "ShortcutsModel|"
+msgid "Translate selected text"
+msgstr "選択したテキストを翻訳"
+
+msgctxt "ShortcutsModel|"
+msgid "Speak selected text"
+msgstr "選択したテキストを読み上げ"
+
+msgctxt "ShortcutsModel|"
+msgid "Speak translation of selected text"
+msgstr "選択したテキストの翻訳を読み上げ"
+
+msgctxt "ShortcutsModel|"
+msgid "Stop text speaking"
+msgstr "テキストの読み上げを停止"
+
+msgctxt "ShortcutsModel|"
+msgid "Speak / pause text speaking"
+msgstr "テキストの読み上げ／一時停止"
+
+msgctxt "ShortcutsModel|"
+msgid "Show main window"
+msgstr "メインウィンドウを表示"
+
+msgctxt "ShortcutsModel|"
+msgid "Translate selected text and copy to clipboard"
+msgstr "選択したテキストを翻訳してクリップボードにコピー"
+
+msgctxt "ShortcutsModel|"
+msgid "Recognize text in screen area"
+msgstr "画面領域のテキストを認識"
+
+msgctxt "ShortcutsModel|"
+msgid "Translate text in screen area"
+msgstr "画面領域のテキストを翻訳"
+
+msgctxt "ShortcutsModel|"
+msgid "Recognize text in screen area with delay"
+msgstr "遅延を付けて画面領域のテキストを認識"
+
+msgctxt "ShortcutsModel|"
+msgid "Translate text in screen area with delay"
+msgstr "遅延を付けて画面領域のテキストを翻訳"
+
+msgctxt "ShortcutsModel|"
+msgid "Toggle color inversion for OCR"
+msgstr "OCR の色反転を切り替え"
+
+msgctxt "ShortcutsModel|"
+msgid "Main window"
+msgstr "メインウィンドウ"
+
+msgctxt "ShortcutsModel|"
+msgid "Translate"
+msgstr "翻訳"
+
+msgctxt "ShortcutsModel|"
+msgid "Swap languages"
+msgstr "言語を入れ替え"
+
+msgctxt "ShortcutsModel|"
+msgid "Close window"
+msgstr "ウィンドウを閉じる"
+
+msgctxt "ShortcutsModel|"
+msgid "Source text"
+msgstr "原文"
+
+msgctxt "ShortcutsModel|"
+msgid "Translation"
+msgstr "翻訳結果"
+
+msgctxt "ShortcutsModel|"
+msgid "Speak / pause speaking"
+msgstr "読み上げ／一時停止"
+
+msgctxt "ShortcutsModel|"
+msgid "Copy to clipboard"
+msgstr "クリップボードにコピー"
+
+msgctxt "ShortcutsModel|"
+msgid "Description"
+msgstr "説明"
+
+msgctxt "ShortcutsModel|"
+msgid "Shortcut"
+msgstr "ショートカット"
+
+msgctxt "TesseractParametersTableWidget|"
+msgid "Property"
+msgstr "プロパティ"
+
+msgctxt "TesseractParametersTableWidget|"
+msgid "Value"
+msgstr "値"
+
+msgctxt "StatusStrip|"
+msgid "Ready"
+msgstr "準備完了"
+
+msgctxt "ATranslationProvider|"
+msgid "Unsupported source language."
+msgstr "翻訳元の言語はサポートされていません。"
+
+msgctxt "ATranslationProvider|"
+msgid "Unsupported destination language."
+msgstr "翻訳先の言語はサポートされていません。"
+
+msgctxt "ATranslationProvider|"
+msgid "User aborted translation in progress"
+msgstr "ユーザーが実行中の翻訳を中止しました"
+
+msgctxt "ATranslationProvider|"
+msgid "Unknown error"
+msgstr "不明なエラー"
+
+msgctxt "QObject|"
+msgid "Translation Provider Error"
+msgstr "翻訳プロバイダーのエラー"
+
+msgctxt "QObject|"
+msgid "The selected translation provider crashed during initialization and has been reset to 'Copy' to prevent further issues. You can try selecting a different provider in Settings → Translation."
+msgstr "選択した翻訳プロバイダーが初期化中にクラッシュしたため、問題の再発を防ぐために「コピー」にリセットされました。設定 → 翻訳 で別のプロバイダーを選択できます。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "Destination language is not supported"
+msgstr "翻訳先の言語はサポートされていません"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "The model ran out of tokens before writing a translation: the text to translate used %1 of its %2 token limit, and it spent what was left reasoning instead of answering. Turn on \"Disable reasoning\" for this provider, translate less text at once, or pick a model with a larger context."
+msgstr "モデルは翻訳を書き出す前にトークンを使い切りました。翻訳するテキストが上限 %2 トークンのうち %1 トークンを使用し、残りを回答ではなく推論に費やしました。このプロバイダーで「推論を無効にする」をオンにするか、一度に翻訳するテキストを減らすか、コンテキストの大きいモデルを選んでください。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "The model spent its whole token budget reasoning and never wrote a translation. Turn on \"Disable reasoning\" for this provider, translate less text at once, or pick a model with a larger context."
+msgstr "モデルはトークンの予算をすべて推論に費やし、翻訳を書き出しませんでした。このプロバイダーで「推論を無効にする」をオンにするか、一度に翻訳するテキストを減らすか、コンテキストの大きいモデルを選んでください。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "The model ran out of tokens before writing a translation: the text to translate used %1 of its %2 token limit. Translate less text at once, or pick a model with a larger context."
+msgstr "モデルは翻訳を書き出す前にトークンを使い切りました。翻訳するテキストが上限 %2 トークンのうち %1 トークンを使用しています。一度に翻訳するテキストを減らすか、コンテキストの大きいモデルを選んでください。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "The model ran out of tokens before writing a translation. Translate less text at once, or pick a model with a larger context."
+msgstr "モデルは翻訳を書き出す前にトークンを使い切りました。一度に翻訳するテキストを減らすか、コンテキストの大きいモデルを選んでください。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "LocalAI error: %1"
+msgstr "LocalAI エラー: %1"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "The model returned an empty response."
+msgstr "モデルが空の応答を返しました。"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "LocalAI request timed out"
+msgstr "LocalAI のリクエストがタイムアウトしました"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "Language detection timed out"
+msgstr "言語検出がタイムアウトしました"
+
+msgctxt "LocalAiTranslationProvider|"
+msgid "Translation aborted by user"
+msgstr "ユーザーによって翻訳が中止されました"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Translation aborted by user"
+msgstr "ユーザーによって翻訳が中止されました"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Destination language '%1' is not supported"
+msgstr "翻訳先の言語 '%1' はサポートされていません"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Source language '%1' is not supported"
+msgstr "翻訳元の言語 '%1' はサポートされていません"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Network error: %1"
+msgstr "ネットワークエラー: %1"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Instance error: %1"
+msgstr "インスタンスエラー: %1"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Parsing error: %1"
+msgstr "解析エラー: %1"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Unsupported TTS engine: %1"
+msgstr "サポートされていない TTS エンジン: %1"
+
+msgctxt "MozhiTranslationProvider|"
+msgid "Unknown error: %1"
+msgstr "不明なエラー: %1"
+
+msgctxt "TrayIcon|"
+msgid "Show window"
+msgstr "ウィンドウを表示"
+
+msgctxt "TrayIcon|"
+msgid "Settings"
+msgstr "設定"
+
+msgctxt "TrayIcon|"
+msgid "Quit"
+msgstr "終了"
+
+msgctxt "TrayIcon|"
+msgid "Report Bug…"
+msgstr "バグを報告…"
+
+msgctxt "TrayIcon|"
+msgid "Translation result"
+msgstr "翻訳結果"
+
+msgctxt "QObject|"
+msgid "TTS Provider Error"
+msgstr "TTS プロバイダーのエラー"
+
+msgctxt "QObject|"
+msgid "The selected TTS provider crashed during initialization and has been reset to 'None' to prevent further issues. You can try selecting a different provider in Settings → TTS."
+msgstr "選択した TTS プロバイダーが初期化中にクラッシュしたため、問題の再発を防ぐために「なし」にリセットされました。設定 → TTS で別のプロバイダーを選択できます。"
+
+msgctxt "MozhiTTSProvider|"
+msgid "Text is empty"
+msgstr "テキストが空です"
+
+msgctxt "MozhiTTSProvider|"
+msgid "No audio URLs generated"
+msgstr "音声 URL が生成されませんでした"
+
+msgctxt "MozhiTTSProvider|"
+msgid "Mozhi instance failed: %1 (HTTP Server Error)"
+msgstr "Mozhi インスタンスが失敗しました: %1 (HTTP サーバーエラー)"
+
+msgctxt "MozhiTTSProvider|"
+msgid "Cannot connect to Mozhi instance: %1"
+msgstr "Mozhi インスタンスに接続できません: %1"
+
+msgctxt "MozhiTTSProvider|"
+msgid "Mozhi instance failed: %1 (HTTP 500 Internal Server Error)"
+msgstr "Mozhi インスタンスが失敗しました: %1 (HTTP 500 Internal Server Error)"
+
+msgctxt "MozhiTTSProvider|"
+msgid "Mozhi instance error: %1 (HTTP 4XX Client Error)"
+msgstr "Mozhi インスタンスのエラー: %1 (HTTP 4XX クライアントエラー)"
+
+msgctxt "PiperTTSProvider|"
+msgid "Failed to initialize Piper TTS"
+msgstr "Piper TTS を初期化できませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "ONNX Runtime exception: %1"
+msgstr "ONNX Runtime の例外: %1"
+
+msgctxt "PiperTTSProvider|"
+msgid "Unknown ONNX Runtime initialization error"
+msgstr "不明な ONNX Runtime 初期化エラー"
+
+msgctxt "PiperTTSProvider|"
+msgid "Failed to initialize espeak-ng"
+msgstr "espeak-ng を初期化できませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "ONNX Runtime initialization error: %1"
+msgstr "ONNX Runtime の初期化エラー: %1"
+
+msgctxt "PiperTTSProvider|"
+msgid "Could not disable neural TTS telemetry"
+msgstr "ニューラル TTS のテレメトリーを無効にできませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "Crow Translate could not switch off ONNX Runtime's telemetry, so this copy of it may report usage data to Microsoft."
+msgstr "Crow Translate は ONNX Runtime のテレメトリーをオフにできなかったため、この ONNX Runtime が使用状況データを Microsoft に送信する可能性があります。"
+
+msgctxt "PiperTTSProvider|"
+msgid "Reason: %1\n\nOnly Microsoft's own Windows builds of ONNX Runtime have telemetry compiled in. Builds from source - including the one Crow Translate links statically - have none, and it is inactive on other platforms."
+msgstr "理由: %1\n\nテレメトリーが組み込まれているのは、Microsoft 自身の Windows 向け ONNX Runtime ビルドのみです。ソースからのビルド（Crow Translate が静的リンクしているものを含む）にはテレメトリーがなく、他のプラットフォームでも無効です。"
+
+msgctxt "PiperTTSProvider|"
+msgid "No audio data generated"
+msgstr "音声データが生成されませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "Failed to create temporary audio file"
+msgstr "一時音声ファイルを作成できませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "Failed to write audio data"
+msgstr "音声データを書き込めませんでした"
+
+msgctxt "PiperTTSProvider|"
+msgid "<h3>Piper Voice Models Not Found</h3><p>No Piper TTS voice models were found in the standard locations.</p><p><b>To use Piper TTS:</b></p><ol><li>Download voice models from <a href='https://huggingface.co/rhasspy/piper-voices'>HuggingFace Piper Voices</a></li><li>Extract the models to a directory</li><li>Set the path in Settings → TTS → Piper Voices Path</li></ol><p><b>⚠️ License Warning:</b> Some models may have non-free licenses and cannot be used in commercial settings. Please check the license of each model before commercial use.</p>"
+msgstr "<h3>Piper 音声モデルが見つかりません</h3><p>標準の場所に Piper TTS の音声モデルが見つかりませんでした。</p><p><b>Piper TTS を使用するには:</b></p><ol><li><a href='https://huggingface.co/rhasspy/piper-voices'>HuggingFace Piper Voices</a> から音声モデルをダウンロードします</li><li>モデルをディレクトリに展開します</li><li>設定 → TTS → Piper 音声のパス でパスを設定します</li></ol><p><b>⚠️ ライセンスに関する警告:</b> 一部のモデルは非フリーのライセンスで提供されており、商用環境では使用できない場合があります。商用利用の前に、各モデルのライセンスを確認してください。</p>"
+
+msgctxt "PiperTTSProvider|"
+msgid "Piper Voice Models Required"
+msgstr "Piper 音声モデルが必要です"
+
+msgctxt "PiperTTSProvider|"
+msgid "No Piper TTS voice models were found. Set the path in Settings -> TTS -> Piper Voices Path."
+msgstr "Piper TTS の音声モデルが見つかりませんでした。設定 -> TTS -> Piper 音声のパス でパスを設定してください。"
+
+msgctxt "QtTTSProvider|"
+msgid "<h3>Windows TTS Voice Not Found</h3><p>No Windows TTS voice was found for <b>%1</b>.</p><p><b>To install additional languages:</b></p><ol><li>Open <b>Settings → Time & Language → Language & region</b></li><li>Click <b>Add a language</b> and select your desired language</li><li>Click on the installed language and select <b>Language options</b></li><li>Under <b>Speech</b>, click <b>Download</b> for the speech pack</li></ol><p><b>⚠️ License Note:</b> Crow Translate currently only supports \"Basic voice models\" from Windows TTS. \"Narrator voices\" have licensing restrictions that are incompatible with this application.</p>"
+msgstr "<h3>Windows TTS の音声が見つかりません</h3><p><b>%1</b> 用の Windows TTS の音声が見つかりませんでした。</p><p><b>言語を追加するには:</b></p><ol><li><b>設定 → 時刻と言語 → 言語と地域</b> を開きます</li><li><b>言語の追加</b> をクリックし、目的の言語を選択します</li><li>インストールされた言語をクリックして <b>言語のオプション</b> を選択します</li><li><b>音声</b> の下で、音声パックの <b>ダウンロード</b> をクリックします</li></ol><p><b>⚠️ ライセンスに関する注意:</b> Crow Translate は現在、Windows TTS の「基本音声モデル」のみをサポートしています。「ナレーター音声」には、このアプリケーションと互換性のないライセンス上の制限があります。</p>"
+
+msgctxt "QtTTSProvider|"
+msgid "Windows TTS Voice Installation"
+msgstr "Windows TTS 音声のインストール"
+
+msgctxt "QtTTSProvider|"
+msgid "No Windows TTS voice is installed for %1."
+msgstr "%1 用の Windows TTS 音声がインストールされていません。"
+
+msgctxt "SettingsDialog|"
+msgid "Codex CLI"
+msgstr "Codex CLI"
+
+msgctxt "SettingsDialog|"
+msgid "Install Codex CLI and run codex login before translating. Uses your existing CLI login."
+msgstr "翻訳する前に Codex CLI をインストールし、codex login を実行してください。既存の CLI ログイン情報を使用します。"
+
+msgctxt "SettingsDialog|"
+msgid "Codex executable:"
+msgstr "Codex 実行ファイル:"
+
+msgctxt "SettingsDialog|"
+msgid "Select Codex executable"
+msgstr "Codex 実行ファイルを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Codex model:"
+msgstr "Codex モデル:"
+
+msgctxt "SettingsDialog|"
+msgid "Select a model or enter a custom model name."
+msgstr "モデルを選択するか、モデル名を直接入力してください。"
+
+msgctxt "SettingsDialog|"
+msgid "Reasoning effort:"
+msgstr "思考レベル:"
+
+msgctxt "SettingsDialog|"
+msgid "Low (low)"
+msgstr "低 (low)"
+
+msgctxt "SettingsDialog|"
+msgid "Medium (medium)"
+msgstr "中 (medium)"
+
+msgctxt "SettingsDialog|"
+msgid "High (high)"
+msgstr "高 (high)"
+
+msgctxt "SettingsDialog|"
+msgid "Extra high (xhigh)"
+msgstr "非常に高 (xhigh)"
+
+msgctxt "SettingsDialog|"
+msgid "Maximum (max)"
+msgstr "最大 (max)"
+
+msgctxt "SettingsDialog|"
+msgid "Codex timeout:"
+msgstr "Codex タイムアウト:"
+
+msgctxt "SettingsDialog|"
+msgid "Additional translation instructions:"
+msgstr "翻訳への追加指示:"
+
+msgctxt "SettingsDialog|"
+msgid "Optional style and terminology preferences, e.g. use polite Japanese."
+msgstr "口調や用語の指定（任意）。例: 丁寧な日本語で翻訳する。"
+
+msgctxt "SettingsDialog|"
+msgid "Browse..."
+msgstr "参照..."
+
+msgctxt "CodexTranslationProvider|"
+msgid "Codex request timed out. Increase the timeout in Translation settings or translate less text."
+msgstr "Codex の処理がタイムアウトしました。翻訳設定のタイムアウトを延ばすか、翻訳する文章を短くしてください。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "There is no text to translate or detect."
+msgstr "翻訳または言語判定するテキストがありません。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Codex executable was not found. Install Codex CLI or select its executable in Translation settings."
+msgstr "Codex 実行ファイルが見つかりません。Codex CLI をインストールするか、翻訳設定で実行ファイルを選択してください。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Could not create a temporary directory for Codex."
+msgstr "Codex 用の一時ディレクトリを作成できませんでした。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Could not write the Codex response schema."
+msgstr "Codex の応答スキーマを書き込めませんでした。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Could not create the Codex process group."
+msgstr "Codex のプロセスグループを作成できませんでした。"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Could not start Codex: %1"
+msgstr "Codex を起動できませんでした: %1"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Codex failed. Check CLI login (codex login), model access and usage limits.\n%1"
+msgstr "Codex の処理に失敗しました。CLI のログイン（codex login）、モデルの利用権限、使用制限を確認してください。\n%1"
+
+msgctxt "CodexTranslationProvider|"
+msgid "Codex did not return a valid translation response."
+msgstr "Codex から有効な翻訳結果を取得できませんでした。"
+
+msgctxt "Cli|"
+msgid "Specify translation provider ('copy', 'mozhi', 'localai' or 'codex'). Provider from app settings will be used by default."
+msgstr "翻訳プロバイダー（'copy'、'mozhi'、'localai'、'codex'）を指定します。既定ではアプリの設定を使用します。"
+
+msgctxt "TranslationActivityWidget|"
+msgid "Cancel"
+msgstr "中止"
+
+msgctxt "TranslationActivityWidget|"
+msgid "Translation progress"
+msgstr "翻訳の進行状況"
+
+msgctxt "SettingsDialog|"
+msgid "Local translation models"
+msgstr "ローカル翻訳モデル"
+
+msgctxt "SettingsDialog|"
+msgid "English and Japanese are detected and translated on this computer. Only the selected model is loaded; the first translation may take longer."
+msgstr "英語・日本語の判定と翻訳をこのPCで行います。選択中のモデルだけを読み込みます。初回の翻訳は時間がかかる場合があります。"
+
+msgctxt "SettingsDialog|"
+msgid "Select local translation model directory"
+msgstr "ローカル翻訳モデルの保存先を選択"
+
+msgctxt "SettingsDialog|"
+msgid "Ready"
+msgstr "準備完了"
+
+msgctxt "SettingsDialog|"
+msgid "Not installed"
+msgstr "未導入"
+
+msgctxt "SettingsDialog|"
+msgid "%1: %2"
+msgstr "%1: %2"
+
+msgctxt "ModuleStatus|"
+msgid "Loading translation model"
+msgstr "翻訳モデルを読み込み中"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "Local translation timed out. Try a shorter passage or increase the timeout."
+msgstr "ローカル翻訳がタイムアウトしました。文章を短くするか、タイムアウトを延ばしてください。"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "Select English or Japanese as the destination language."
+msgstr "翻訳先に英語または日本語を選択してください。"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "Select English or Japanese as the source language."
+msgstr "原文の言語に英語または日本語を選択してください。"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "Unknown local translation model: %1"
+msgstr "不明なローカル翻訳モデルです: %1"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "The local translation environment is not installed. Check the model directory in Translation settings."
+msgstr "ローカル翻訳環境がインストールされていません。翻訳設定でモデルの保存先を確認してください。"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "The local translation worker stopped: %1"
+msgstr "ローカル翻訳の処理が停止しました: %1"
+
+msgctxt "LocalModelsTranslationProvider|"
+msgid "Invalid local translation response."
+msgstr "ローカル翻訳の応答が不正です。"
+
+msgctxt "Cli|"
+msgid "Specify translation provider ('copy', 'mozhi', 'localai', 'codex' or 'local-models'). Provider from app settings will be used by default."
+msgstr "翻訳プロバイダー（'copy'、'mozhi'、'localai'、'codex'、'local-models'）を指定します。既定ではアプリの設定を使用します。"
+
+msgctxt "Cli|"
+msgid "Select a local translation model by its preset ID."
+msgstr "プリセットIDでローカル翻訳モデルを選択します。"
+
+msgctxt "SettingsDialog|"
+msgid "Indra OCR (local)"
+msgstr "Indra OCR（ローカル）"
+
+msgctxt "SettingsDialog|"
+msgid "Indra OCR runs locally and detects languages automatically. Install it with python -m pip install indra-ocr. Models are downloaded on first use."
+msgstr "Indra OCR はローカルで動作し、言語を自動判定します。python -m pip install indra-ocr でインストールできます。初回使用時にモデルをダウンロードします。"
+
+msgctxt "SettingsDialog|"
+msgid "Executable:"
+msgstr "実行ファイル:"
+
+msgctxt "SettingsDialog|"
+msgid "Browse…"
+msgstr "参照…"
+
+msgctxt "SettingsDialog|"
+msgid "Select Indra OCR executable"
+msgstr "Indra OCR の実行ファイルを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Automatic download and cache"
+msgstr "自動ダウンロードとキャッシュ"
+
+msgctxt "SettingsDialog|"
+msgid "Model directory:"
+msgstr "モデル保存先:"
+
+msgctxt "SettingsDialog|"
+msgid "Select Indra OCR model directory"
+msgstr "Indra OCR のモデル保存先を選択"
+
+msgctxt "IndraOcr|"
+msgid "Indra OCR timed out. Increase the timeout in OCR settings; the first run may need to download models."
+msgstr "Indra OCR がタイムアウトしました。OCR 設定でタイムアウトを延ばしてください。初回はモデルのダウンロードが必要な場合があります。"
+
+msgctxt "IndraOcr|"
+msgid "Indra OCR was not found. Install indra-ocr and select its executable in OCR settings."
+msgstr "Indra OCR が見つかりません。indra-ocr をインストールし、OCR 設定で実行ファイルを選択してください。"
+
+msgctxt "IndraOcr|"
+msgid "Unable to save the image for Indra OCR."
+msgstr "Indra OCR 用の画像を保存できませんでした。"
+
+msgctxt "IndraOcr|"
+msgid "Unable to start Indra OCR: %1"
+msgstr "Indra OCR を起動できませんでした: %1"
+
+msgctxt "IndraOcr|"
+msgid "Indra OCR failed (exit code %1): %2"
+msgstr "Indra OCR に失敗しました（終了コード %1）: %2"
+
+msgctxt "TranslationActivityWidget|"
+msgid "%1 s"
+msgstr "%1 秒"

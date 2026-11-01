@@ -20,7 +20,10 @@
 #include "core/translationsession.h"
 #include "core/usernotifier.h"
 #include "gui/translationhtmlformatter.h"
+#include "gui/translationactivitywidget.h"
 #include "ocr/aocrprovider.h"
+#include "ocr/indraocr.h"
+#include "translator/localmodelstranslationprovider.h"
 #include "ocr/llmocr.h"
 #include "ocr/screengrabbers/abstractscreengrabber.h"
 #include "ocr/tesseractocr.h"
@@ -89,6 +92,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_statusStrip = new StatusStrip;
     m_statusStrip->setModel(m_session->moduleStatus());
     ui->statusbar->addWidget(m_statusStrip, 1);
+
+    auto *translationActivity = new TranslationActivityWidget;
+    ui->translationLayout->insertWidget(1, translationActivity);
+    translationActivity->setModel(m_session->moduleStatus());
+    connect(translationActivity, &TranslationActivityWidget::cancelRequested, this, &MainWindow::cancelTranslation);
     // Save original Mozhi engine combo items so they can be restored after
     // switching to LocalAI (which clears the combo).
     for (int i = 0; i < ui->engineComboBox->count(); ++i) {
@@ -134,6 +142,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_screenGrabber, &AbstractScreenGrabber::grabbingFailed, m_session, &TranslationSession::disarmOcrTranslation);
     connect(m_session->tesseractOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
     connect(m_session->llmOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
+    connect(m_session->indraOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
     // Text inserted through replaceText() deliberately suppresses
     // SourceTextEdit::textEdited (the armed flows chain their own follow-up),
     // so an UNarmed recognition - a plain recognize-screen-area, or an image
@@ -153,9 +162,10 @@ MainWindow::MainWindow(QWidget *parent)
     };
     connect(m_session->tesseractOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
     connect(m_session->llmOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
+    connect(m_session->indraOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
     m_screenCaptureTimer->setSingleShot(true);
 
-    // The session binds its own two recognition engines; the grabber and the
+    // The session binds its recognition engines; the grabber and the
     // snipping area belong to whatever owns a screen, which is this window.
     m_session->moduleStatus()->bindCapture(m_screenGrabber, m_snippingArea);
     connect(m_session, &TranslationSession::ocrLanguagesUnavailable, this, [this](const QString &languages) {
@@ -451,7 +461,6 @@ void MainWindow::setListenForContentChanges(bool listen)
 Q_SCRIPTABLE void MainWindow::open()
 {
     ui->sourceEdit->setFocus();
-    ui->sourceEdit->selectAll();
 
     setWindowState(windowState() & ~Qt::WindowMinimized);
     show();
@@ -1266,6 +1275,12 @@ void MainWindow::setupEngineComboBoxConnection()
                 auto options = std::make_unique<ProviderOptions>();
                 options->setOption("engine", index);
                 m_session->translator()->applyOptions(*options);
+            } else if (reqs.testFlag(ProviderCapability::ModelSelection)) {
+                const QString model = ui->engineComboBox->itemData(index).toString();
+                if (!model.isEmpty()) {
+                    AppSettings().setLocalModelsModel(model);
+                    m_session->applyTranslationOptions();
+                }
             } else if (reqs.testFlag(ProviderCapability::ProviderSelection)) {
                 // LocalAI: the combo lists local providers (Ollama/FastFlowLM/LM Studio).
                 const QString providerId = ui->engineComboBox->itemData(index).toString();
@@ -1289,7 +1304,8 @@ void MainWindow::updateProviderUI()
         // backend used to be asked for widget names, which meant it had to
         // know this layout.
         ui->engineComboBox->setVisible(translationReqs.testFlag(ProviderCapability::EngineSelection)
-                                       || translationReqs.testFlag(ProviderCapability::ProviderSelection));
+                                       || translationReqs.testFlag(ProviderCapability::ProviderSelection)
+                                       || translationReqs.testFlag(ProviderCapability::ModelSelection));
 
         // Set current engine selection for providers that support it
         if (translationReqs.testFlag(ProviderCapability::EngineSelection)) {
@@ -1307,6 +1323,14 @@ void MainWindow::updateProviderUI()
                 }
             }
             ui->engineComboBox->setCurrentIndex(static_cast<int>(settings.currentEngine()));
+        } else if (translationReqs.testFlag(ProviderCapability::ModelSelection)) {
+            const AppSettings settings;
+            QSignalBlocker blocker(ui->engineComboBox);
+            ui->engineComboBox->clear();
+            for (const QString &id : LocalModelsTranslationProvider::modelIds())
+                ui->engineComboBox->addItem(LocalModelsTranslationProvider::modelName(id), id);
+            ui->engineComboBox->setCurrentIndex(ui->engineComboBox->findData(settings.localModelsModel()));
+            widenComboPopup(ui->engineComboBox);
         } else if (translationReqs.testFlag(ProviderCapability::ProviderSelection)) {
             // LocalAI: populate the combo with local providers, select the active one.
             const AppSettings settings;
@@ -1689,7 +1713,16 @@ void MainWindow::on_swapButton_clicked()
 
 void MainWindow::on_abortButton_clicked()
 {
-    emit resetTranslator();
+    cancelTranslation();
+}
+
+void MainWindow::cancelTranslation()
+{
+    if (m_session->moduleStatus()->activity(ModuleStatus::Module::Translation) != ModuleStatus::Activity::Busy)
+        return;
+    // abort() also cancels a standalone detection while the provider is Ready.
+    m_session->abortTranslation();
+    m_session->resetTranslator();
 }
 
 void MainWindow::on_copySourceButton_clicked()

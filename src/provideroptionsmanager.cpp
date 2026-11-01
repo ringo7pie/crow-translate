@@ -30,6 +30,22 @@ std::unique_ptr<ProviderOptions> ProviderOptionsManager::createTranslationOption
         return createCopyTranslationOptionsFromSettings();
     } else if (providerType == "LocalAiTranslationProvider") {
         return createLocalAiTranslationOptionsFromSettings();
+    } else if (providerType == "LocalModelsTranslationProvider") {
+        const AppSettings settings;
+        auto options = std::make_unique<ProviderOptions>();
+        options->setOption("root", settings.localModelsRoot());
+        options->setOption("model", settings.localModelsModel());
+        options->setOption("timeout", settings.localModelsTimeout());
+        return options;
+    } else if (providerType == "CodexTranslationProvider") {
+        const AppSettings settings;
+        auto options = std::make_unique<ProviderOptions>();
+        options->setOption("executable", settings.codexExecutable());
+        options->setOption("model", settings.codexModel());
+        options->setOption("reasoningEffort", settings.codexReasoningEffort());
+        options->setOption("timeout", settings.codexTimeout());
+        options->setOption("instructions", settings.codexInstructions());
+        return options;
     }
 
     return nullptr;

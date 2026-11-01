@@ -7,6 +7,8 @@
 
 #include "cli.h"
 
+#include <QStringConverter>
+
 #include "instancepinger.h"
 #include "provideroptions.h"
 #include "core/translationsession.h"
@@ -134,8 +136,10 @@ void Cli::process(const QCoreApplication &app)
                                  QStringLiteral("URL"),
                                  settings.instance());
     const QCommandLineOption translationProvider({"tp", "translation-provider"},
-                                                 tr("Specify translation provider ('copy', 'mozhi' or 'localai'). Provider from app settings will be used by default."),
+                                                 tr("Specify translation provider ('copy', 'mozhi', 'localai', 'codex' or 'local-models'). Provider from app settings will be used by default."),
                                                  QStringLiteral("provider"));
+    const QCommandLineOption localModel(QStringList{QStringLiteral("local-model")},
+                                       tr("Select a local translation model by its preset ID."), QStringLiteral("model"));
     // Built without WITH_TTS there is nothing but 'none' to choose, and
     // without WITH_PIPER_TTS 'piper' is rejected by the parsing below - so
     // the text has to be guarded the same way the parsing is, or the binary
@@ -180,6 +184,7 @@ void Cli::process(const QCoreApplication &app)
     parser.addOption(engine);
     parser.addOption(url);
     parser.addOption(translationProvider);
+    parser.addOption(localModel);
     parser.addOption(ttsProvider);
     parser.addOption(speakTranslation);
     parser.addOption(speakSource);
@@ -224,6 +229,10 @@ void Cli::process(const QCoreApplication &app)
             translationBackend = ATranslationProvider::ProviderBackend::Mozhi;
         } else if (providerName == "localai" || providerName == "ollama") {
             translationBackend = ATranslationProvider::ProviderBackend::LocalAI;
+        } else if (providerName == "codex") {
+            translationBackend = ATranslationProvider::ProviderBackend::Codex;
+        } else if (providerName == "local-models") {
+            translationBackend = ATranslationProvider::ProviderBackend::LocalModels;
         } else {
             exitWithUsage(parser, tr("Error: Unknown translation provider '%1'").arg(providerName));
         }
@@ -299,7 +308,7 @@ void Cli::process(const QCoreApplication &app)
     }
 
     // Set up Mozhi instance for auto-detection (only if no URL specified)
-    if (!parser.isSet(url) && settings.instance().isEmpty()) {
+    if (translationBackend == ATranslationProvider::ProviderBackend::Mozhi && !parser.isSet(url) && settings.instance().isEmpty()) {
         printError(tr("Detecting fastest instance"));
 
         InstancePinger pinger;
@@ -315,6 +324,13 @@ void Cli::process(const QCoreApplication &app)
     // instance may have been detected and stored since, and the provider was
     // filled in before that happened.
     m_session->applyTranslationOptions();
+    if (parser.isSet(localModel)) {
+        if (translationBackend != ATranslationProvider::ProviderBackend::LocalModels)
+            exitWithUsage(parser, tr("--local-model requires --translation-provider local-models."));
+        ProviderOptions options;
+        options.setOption(QStringLiteral("model"), parser.value(localModel));
+        m_session->translator()->applyOptions(options);
+    }
 
     // Override with CLI arguments if provided
     if (m_session->translator()->getProviderType() == "MozhiTranslationProvider") {
@@ -407,6 +423,9 @@ void Cli::process(const QCoreApplication &app)
     m_audioOnly = parser.isSet(audioOnly);
     m_brief = parser.isSet(brief);
     m_json = parser.isSet(json);
+    // JSON is consumed as UTF-8, including on Japanese Windows systems.
+    if (m_json)
+        m_stdout.setEncoding(QStringConverter::Utf8);
 
     // Start translation process
     if (m_imagePath.isEmpty()) {
@@ -421,6 +440,14 @@ void Cli::process(const QCoreApplication &app)
 // spoken and printed exactly as typed text would be.
 void Cli::recognizeImage()
 {
+    QImage source;
+    if (!TranslationSession::loadImage(m_imagePath, source)) {
+        printError(tr("Error: Unable to read image '%1'").arg(m_imagePath));
+        cleanup();
+        QCoreApplication::exit(1);
+        return;
+    }
+
     // The window does this when it loads its settings; nothing had done it
     // here, so Tesseract had no languages and reported itself unconfigured
     // however well it was actually set up.
@@ -441,14 +468,6 @@ void Cli::recognizeImage()
                 QCoreApplication::exit(1);
             },
             Qt::QueuedConnection);
-        return;
-    }
-
-    QImage source;
-    if (!TranslationSession::loadImage(m_imagePath, source)) {
-        printError(tr("Error: Unable to read image '%1'").arg(m_imagePath));
-        cleanup();
-        QCoreApplication::exit(1);
         return;
     }
 

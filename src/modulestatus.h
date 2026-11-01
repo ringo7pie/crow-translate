@@ -8,6 +8,7 @@
 
 #include "translator/atranslationprovider.h"
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 #include <QTextToSpeech>
@@ -46,6 +47,9 @@ public:
     QString message(Module module) const;
     // Tooltip text: the full error message of the provider, not translated.
     QString detail(Module module) const;
+    // Monotonic time shared by every view, including pop-ups opened mid-run.
+    // Returns zero for an idle or failed module.
+    qint64 elapsedMilliseconds(Module module) const;
     // Any module Busy; drives the view's ellipsis timer.
     bool isBusy() const;
     // False only for TTS when the backend is None - the view omits the
@@ -58,8 +62,8 @@ public:
     // long-lived and are bound once.
     void bindTranslator(ATranslationProvider *translator);
     void bindTtsProvider(ATTSProvider *tts);
-    // Both engines, not activeOcr(): the active one switches per settings read.
-    void bindOcr(AOcrProvider *tesseract, AOcrProvider *llm);
+    // Every engine: the active one switches per settings read.
+    void bindOcr(AOcrProvider *tesseract, AOcrProvider *llm, AOcrProvider *indra = nullptr);
     void bindCapture(AbstractScreenGrabber *grabber, SnippingArea *snippingArea);
 
     static constexpr int moduleCount()
@@ -83,6 +87,7 @@ private:
         SelectRegion,
         RecognizingText,
         Translating,
+        LoadingModel,
         DetectingLanguage,
         PreparingSpeech,
         Speaking,
@@ -96,6 +101,7 @@ private:
         Activity activity = Activity::Idle;
         Message message = Message::None;
         QString detail;
+        QElapsedTimer started;
     };
 
     void setEntry(Module module, Activity activity, Message message, const QString &detail = QString());
@@ -123,6 +129,7 @@ private:
     ATTSProvider *m_tts = nullptr;
     AOcrProvider *m_tesseractOcr = nullptr;
     AOcrProvider *m_llmOcr = nullptr;
+    AOcrProvider *m_indraOcr = nullptr;
     AbstractScreenGrabber *m_grabber = nullptr;
     SnippingArea *m_snippingArea = nullptr;
 };

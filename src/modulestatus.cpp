@@ -31,6 +31,12 @@ QString ModuleStatus::detail(Module module) const
     return m_entries[static_cast<int>(module)].detail;
 }
 
+qint64 ModuleStatus::elapsedMilliseconds(Module module) const
+{
+    const ModuleEntry &entry = m_entries[static_cast<int>(module)];
+    return entry.activity == Activity::Busy && entry.started.isValid() ? entry.started.elapsed() : 0;
+}
+
 bool ModuleStatus::isBusy() const
 {
     for (const ModuleEntry &entry : m_entries) {
@@ -55,11 +61,19 @@ void ModuleStatus::bindTranslator(ATranslationProvider *translator)
     if (m_translator != nullptr)
         disconnect(m_translator, nullptr, this, nullptr);
     m_translator = translator;
+    m_detectionInFlight = false;
+    setEntry(Module::Translation, Activity::Idle, Message::None);
     if (translator == nullptr)
         return;
 
     connect(translator, &ATranslationProvider::stateChanged, this, [this](ATranslationProvider::State newState) {
         handleTranslationState(newState);
+    });
+    connect(translator, &ATranslationProvider::modelLoading, this, [this]() {
+        setEntry(Module::Translation, Activity::Busy, Message::LoadingModel);
+    });
+    connect(translator, &ATranslationProvider::modelReady, this, [this]() {
+        setEntry(Module::Translation, Activity::Busy, Message::Translating);
     });
     connect(translator, &ATranslationProvider::detectionStarted, this, [this]() {
         // A detection chained inside a translation must not clobber
@@ -78,8 +92,6 @@ void ModuleStatus::bindTranslator(ATranslationProvider *translator)
 
     // Seed by pulling: a provider swapped in mid-flight would otherwise stay
     // unreported until its next state change.
-    m_detectionInFlight = false;
-    setEntry(Module::Translation, Activity::Idle, Message::None);
     if (translator->getState() == ATranslationProvider::State::Processing)
         setEntry(Module::Translation, Activity::Busy, Message::Translating);
 }
@@ -103,17 +115,21 @@ void ModuleStatus::bindTtsProvider(ATTSProvider *tts)
     seedTtsState();
 }
 
-void ModuleStatus::bindOcr(AOcrProvider *tesseract, AOcrProvider *llm)
+void ModuleStatus::bindOcr(AOcrProvider *tesseract, AOcrProvider *llm, AOcrProvider *indra)
 {
     if (m_tesseractOcr != nullptr)
         disconnect(m_tesseractOcr, nullptr, this, nullptr);
     if (m_llmOcr != nullptr)
         disconnect(m_llmOcr, nullptr, this, nullptr);
+    if (m_indraOcr != nullptr)
+        disconnect(m_indraOcr, nullptr, this, nullptr);
     m_tesseractOcr = tesseract;
     m_llmOcr = llm;
+    m_indraOcr = indra;
 
     bindOneOcr(tesseract);
     bindOneOcr(llm);
+    bindOneOcr(indra);
 }
 
 void ModuleStatus::bindCapture(AbstractScreenGrabber *grabber, SnippingArea *snippingArea)
@@ -155,6 +171,12 @@ void ModuleStatus::setEntry(Module module, Activity activity, Message message, c
     if (entry.activity == activity && entry.message == message && entry.detail == detail)
         return;
 
+    if (activity == Activity::Busy) {
+        if (entry.activity != Activity::Busy || entry.message != message)
+            entry.started.start();
+    } else {
+        entry.started.invalidate();
+    }
     entry.activity = activity;
     entry.message = message;
     entry.detail = detail;
@@ -275,6 +297,8 @@ QString ModuleStatus::messageText(Message message) const
         return tr("Recognizing text");
     case Message::Translating:
         return tr("Translating");
+    case Message::LoadingModel:
+        return tr("Loading translation model");
     case Message::DetectingLanguage:
         return tr("Detecting language");
     case Message::PreparingSpeech:

@@ -18,11 +18,13 @@
 #include "autostartmanager/abstractautostartmanager.h"
 #include "llm/openaiendpoint.h"
 #include "llm/visionmodelprobe.h"
+#include "ocr/indraocr.h"
 #include "ocr/llmocr.h"
 #include "ocr/tesseractocr.h"
 #include "shortcutsmodel/shortcutitem.h"
 #include "shortcutsmodel/shortcutsmodel.h"
 #include "translator/atranslationprovider.h"
+#include "translator/localmodelstranslationprovider.h"
 #include "tts/attsprovider.h"
 
 #include <QButtonGroup>
@@ -34,6 +36,7 @@
 #include <QFormLayout>
 #include <QFrame>
 #include <QGridLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -119,6 +122,8 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
 
     buildLocalAiTabs();
     buildOcrEngineUi();
+    buildCodexUi();
+    buildLocalModelsUi();
 
     // Adjust tab widgets to fit the scroll area viewport (sidebar occupies ~200 px).
     connect(ui->pagesStackedWidget, &QStackedWidget::currentChanged, this, [this](int /*idx*/) {
@@ -152,6 +157,8 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
     ui->translationProviderComboBox->addItem(tr("Copy"), QVariant::fromValue(ATranslationProvider::ProviderBackend::Copy));
     ui->translationProviderComboBox->addItem("Mozhi", QVariant::fromValue(ATranslationProvider::ProviderBackend::Mozhi));
     ui->translationProviderComboBox->addItem("LocalAI", QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalAI));
+    ui->translationProviderComboBox->addItem("Codex", QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex));
+    ui->translationProviderComboBox->addItem(tr("Local translation models"), QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels));
 
     // Populate TTS providers dynamically
     ui->ttsProviderComboBox->addItem(tr("None"), QVariant::fromValue(ATTSProvider::ProviderBackend::None));
@@ -210,6 +217,124 @@ SettingsDialog::~SettingsDialog()
     delete ui;
 }
 
+void SettingsDialog::buildCodexUi()
+{
+    auto *group = new QGroupBox(tr("Codex CLI"), ui->translationPage);
+    group->setObjectName(QStringLiteral("codexGroupBox"));
+    auto *form = new QFormLayout(group);
+    auto *hint = new QLabel(tr("Install Codex CLI and run codex login before translating. Uses your existing CLI login."), group);
+    hint->setWordWrap(true);
+    form->addRow(hint);
+
+    auto *executableRow = new QWidget(group);
+    auto *row = new QHBoxLayout(executableRow);
+    row->setContentsMargins(0, 0, 0, 0);
+    m_codexExecutable = new QLineEdit(executableRow);
+    m_codexExecutable->setObjectName(QStringLiteral("codexExecutableEdit"));
+    auto *browse = new QPushButton(tr("Browse..."), executableRow);
+    connect(browse, &QPushButton::clicked, this, [this]() {
+        const QString path = QFileDialog::getOpenFileName(this, tr("Select Codex executable"), m_codexExecutable->text());
+        if (!path.isEmpty())
+            m_codexExecutable->setText(path);
+    });
+    row->addWidget(m_codexExecutable, 1);
+    row->addWidget(browse);
+    form->addRow(tr("Codex executable:"), executableRow);
+
+    m_codexModel = new QComboBox(group);
+    m_codexModel->setObjectName(QStringLiteral("codexModelComboBox"));
+    m_codexModel->setEditable(true);
+    m_codexModel->setInsertPolicy(QComboBox::NoInsert);
+    m_codexModel->addItems({AppSettings::defaultCodexModel(), QStringLiteral("gpt-6.1-terra"),
+                            QStringLiteral("gpt-6.1-sol"), QStringLiteral("gpt-6-sol"), QStringLiteral("gpt-6-astra")});
+    m_codexModel->setToolTip(tr("Select a model or enter a custom model name."));
+    form->addRow(tr("Codex model:"), m_codexModel);
+    m_codexReasoningEffort = new QComboBox(group);
+    m_codexReasoningEffort->setObjectName(QStringLiteral("codexReasoningEffortComboBox"));
+    m_codexReasoningEffort->addItem(tr("Low (low)"), QStringLiteral("low"));
+    m_codexReasoningEffort->addItem(tr("Medium (medium)"), QStringLiteral("medium"));
+    m_codexReasoningEffort->addItem(tr("High (high)"), QStringLiteral("high"));
+    m_codexReasoningEffort->addItem(tr("Extra high (xhigh)"), QStringLiteral("xhigh"));
+    m_codexReasoningEffort->addItem(tr("Maximum (max)"), QStringLiteral("max"));
+    form->addRow(tr("Reasoning effort:"), m_codexReasoningEffort);
+    m_codexTimeout = new QSpinBox(group);
+    m_codexTimeout->setObjectName(QStringLiteral("codexTimeoutSpinBox"));
+    m_codexTimeout->setRange(1, 3600);
+    m_codexTimeout->setSuffix(tr(" s"));
+    form->addRow(tr("Codex timeout:"), m_codexTimeout);
+    m_codexInstructions = new QPlainTextEdit(group);
+    m_codexInstructions->setObjectName(QStringLiteral("codexInstructionsEdit"));
+    m_codexInstructions->setPlaceholderText(tr("Optional style and terminology preferences, e.g. use polite Japanese."));
+    m_codexInstructions->setMaximumHeight(100);
+    form->addRow(tr("Additional translation instructions:"), m_codexInstructions);
+    // Keep the controls on the Translation page, immediately below the
+    // provider selector. translationLayout belongs to the separate Mozhi page.
+    ui->translationPageLayout->insertWidget(2, group);
+
+    connect(ui->translationProviderComboBox, &QComboBox::currentIndexChanged, group, [this, group]() {
+        group->setVisible(ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>()
+                          == ATranslationProvider::ProviderBackend::Codex);
+    });
+    group->setVisible(false);
+}
+
+void SettingsDialog::buildLocalModelsUi()
+{
+    auto *group = new QGroupBox(tr("Local translation models"), ui->translationPage);
+    group->setObjectName(QStringLiteral("localModelsGroupBox"));
+    auto *form = new QFormLayout(group);
+    auto *hint = new QLabel(tr("English and Japanese are detected and translated on this computer. Only the selected model is loaded; the first translation may take longer."), group);
+    hint->setWordWrap(true);
+    form->addRow(hint);
+    m_localModelsModel = new QComboBox(group);
+    m_localModelsModel->setObjectName(QStringLiteral("localModelsModelComboBox"));
+    for (const auto &id : LocalModelsTranslationProvider::modelIds())
+        m_localModelsModel->addItem(LocalModelsTranslationProvider::modelName(id), id);
+    form->addRow(tr("Translation model:"), m_localModelsModel);
+    m_localModelsRoot = new QLineEdit(group);
+    m_localModelsRoot->setObjectName(QStringLiteral("localModelsRootEdit"));
+    auto *rootRow = new QHBoxLayout();
+    rootRow->addWidget(m_localModelsRoot);
+    auto *browse = new QPushButton(tr("Browse..."), group);
+    rootRow->addWidget(browse);
+    form->addRow(tr("Model directory:"), rootRow);
+    connect(browse, &QPushButton::clicked, this, [this]() {
+        const QString root = QFileDialog::getExistingDirectory(this, tr("Select local translation model directory"), m_localModelsRoot->text());
+        if (!root.isEmpty())
+            m_localModelsRoot->setText(root);
+    });
+    m_localModelsTimeout = new QSpinBox(group);
+    m_localModelsTimeout->setObjectName(QStringLiteral("localModelsTimeoutSpinBox"));
+    m_localModelsTimeout->setRange(1, 3600);
+    m_localModelsTimeout->setSuffix(tr(" s"));
+    form->addRow(tr("Timeout:"), m_localModelsTimeout);
+    m_localModelsStatus = new QLabel(group);
+    m_localModelsStatus->setObjectName(QStringLiteral("localModelsStatusLabel"));
+    m_localModelsStatus->setWordWrap(true);
+    form->addRow(m_localModelsStatus);
+    connect(m_localModelsRoot, &QLineEdit::textChanged, this, &SettingsDialog::updateLocalModelsStatus);
+    ui->translationPageLayout->insertWidget(2, group);
+    connect(ui->translationProviderComboBox, &QComboBox::currentIndexChanged, group, [this, group]() {
+        const bool managed = ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>()
+            == ATranslationProvider::ProviderBackend::LocalModels;
+        group->setVisible(managed);
+        for (QWidget *widget : QList<QWidget *>{ui->detectProviderLabel, ui->detectModelLabel,
+                                               ui->detectProviderComboBox, ui->detectModelComboBox})
+            widget->setVisible(!managed);
+    });
+    group->setVisible(false);
+}
+
+void SettingsDialog::updateLocalModelsStatus()
+{
+    QStringList lines;
+    for (const auto &id : LocalModelsTranslationProvider::modelIds()) {
+        lines << tr("%1: %2").arg(LocalModelsTranslationProvider::modelName(id),
+                    LocalModelsTranslationProvider::isInstalled(m_localModelsRoot->text(), id) ? tr("Ready") : tr("Not installed"));
+    }
+    m_localModelsStatus->setText(lines.join(QLatin1Char('\n')));
+}
+
 void SettingsDialog::accept()
 {
     if (!ui->tesseractParametersTableWidget->validateParameters()) {
@@ -257,6 +382,14 @@ void SettingsDialog::accept()
     settings.setCustomIconPath(ui->customTrayIconEdit->text());
     settings.setShowStatusBar(ui->showStatusBarCheckBox->isChecked());
     // Translation settings
+    settings.setCodexExecutable(m_codexExecutable->text());
+    settings.setCodexModel(m_codexModel->currentText());
+    settings.setCodexReasoningEffort(m_codexReasoningEffort->currentData().toString());
+    settings.setCodexTimeout(m_codexTimeout->value());
+    settings.setCodexInstructions(m_codexInstructions->toPlainText());
+    settings.setLocalModelsRoot(m_localModelsRoot->text().trimmed());
+    settings.setLocalModelsModel(m_localModelsModel->currentData().toString());
+    settings.setLocalModelsTimeout(m_localModelsTimeout->value());
     const ATranslationProvider::ProviderBackend currentBackend = settings.translationProviderBackend();
     const ATranslationProvider::ProviderBackend newBackend = ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>();
     settings.setTranslationProviderBackend(newBackend);
@@ -471,6 +604,7 @@ void SettingsDialog::buildOcrEngineUi()
     m_ocrEngineCombo->setObjectName(QStringLiteral("ocrEngineCombo"));
     m_ocrEngineCombo->addItem(tr("Tesseract"), static_cast<int>(AppSettings::OcrEngine::Tesseract));
     m_ocrEngineCombo->addItem(tr("Vision model (LLM)"), static_cast<int>(AppSettings::OcrEngine::Llm));
+    m_ocrEngineCombo->addItem(tr("Indra OCR (local)"), static_cast<int>(AppSettings::OcrEngine::Indra));
     engineLayout->addWidget(engineLabel);
     engineLayout->addWidget(m_ocrEngineCombo);
     engineLayout->addStretch(1);
@@ -558,6 +692,47 @@ void SettingsDialog::buildOcrEngineUi()
     m_ocrLlmPromptEdit->setPlaceholderText(LlmOcr::defaultPrompt());
     llmLayout->addWidget(m_ocrLlmPromptEdit, 1);
     m_ocrEngineStack->addWidget(llmPage);
+
+    auto *indraPage = new QWidget(m_ocrEngineStack);
+    indraPage->setObjectName(QStringLiteral("indraOcrPage"));
+    auto *indraLayout = new QFormLayout(indraPage);
+    indraLayout->setContentsMargins(0, 0, 0, 0);
+    auto *indraNote = new QLabel(tr("Indra OCR runs locally and detects languages automatically. Install it with "
+                                    "python -m pip install indra-ocr. Models are downloaded on first use."), indraPage);
+    indraNote->setWordWrap(true);
+    indraLayout->addRow(indraNote);
+    m_indraExecutableEdit = new QLineEdit(indraPage);
+    m_indraExecutableEdit->setObjectName(QStringLiteral("indraExecutableEdit"));
+    m_indraExecutableEdit->setPlaceholderText(IndraOcr::defaultExecutable());
+    auto *indraExecutableRow = new QHBoxLayout();
+    auto *indraBrowse = new QPushButton(tr("Browse…"), indraPage);
+    indraExecutableRow->addWidget(m_indraExecutableEdit);
+    indraExecutableRow->addWidget(indraBrowse);
+    indraLayout->addRow(tr("Executable:"), indraExecutableRow);
+    connect(indraBrowse, &QPushButton::clicked, this, [this]() {
+        const QString path = QFileDialog::getOpenFileName(this, tr("Select Indra OCR executable"), m_indraExecutableEdit->text());
+        if (!path.isEmpty())
+            m_indraExecutableEdit->setText(path);
+    });
+    m_indraModelDirectoryEdit = new QLineEdit(indraPage);
+    m_indraModelDirectoryEdit->setObjectName(QStringLiteral("indraModelDirectoryEdit"));
+    m_indraModelDirectoryEdit->setPlaceholderText(tr("Automatic download and cache"));
+    auto *indraModelRow = new QHBoxLayout();
+    auto *indraModelBrowse = new QPushButton(tr("Browse…"), indraPage);
+    indraModelRow->addWidget(m_indraModelDirectoryEdit);
+    indraModelRow->addWidget(indraModelBrowse);
+    indraLayout->addRow(tr("Model directory:"), indraModelRow);
+    connect(indraModelBrowse, &QPushButton::clicked, this, [this]() {
+        const QString path = QFileDialog::getExistingDirectory(this, tr("Select Indra OCR model directory"), m_indraModelDirectoryEdit->text());
+        if (!path.isEmpty())
+            m_indraModelDirectoryEdit->setText(path);
+    });
+    m_indraTimeoutSpin = new QSpinBox(indraPage);
+    m_indraTimeoutSpin->setObjectName(QStringLiteral("indraTimeoutSpin"));
+    m_indraTimeoutSpin->setRange(1, 3600);
+    m_indraTimeoutSpin->setSuffix(tr(" s"));
+    indraLayout->addRow(tr("Timeout:"), m_indraTimeoutSpin);
+    m_ocrEngineStack->addWidget(indraPage);
 
     if (auto *ocrLayout = ui->ocrPage->findChild<QVBoxLayout *>(QStringLiteral("ocrLayout"))) {
         ocrLayout->insertWidget(0, engineRow);
@@ -739,6 +914,9 @@ void SettingsDialog::updateOcrEngineVisibility(int engineValue)
 void SettingsDialog::loadOcrEngineSettings()
 {
     const AppSettings settings;
+    m_indraExecutableEdit->setText(settings.indraExecutable());
+    m_indraModelDirectoryEdit->setText(settings.indraModelDirectory());
+    m_indraTimeoutSpin->setValue(settings.indraTimeout());
     const int index = m_ocrEngineCombo->findData(static_cast<int>(settings.ocrEngine()));
     if (index >= 0) {
         m_ocrEngineCombo->setCurrentIndex(index);
@@ -759,6 +937,9 @@ void SettingsDialog::saveOcrEngineSettings()
     const QString id = m_ocrLlmProviderCombo->currentData().toString();
     const QString model = m_ocrLlmModelCombo->currentText();
     settings.setOcrEngine(static_cast<AppSettings::OcrEngine>(m_ocrEngineCombo->currentData().toInt()));
+    settings.setIndraExecutable(m_indraExecutableEdit->text().trimmed());
+    settings.setIndraModelDirectory(m_indraModelDirectoryEdit->text().trimmed());
+    settings.setIndraTimeout(m_indraTimeoutSpin->value());
     settings.setOcrLlmProvider(id);
     settings.setOcrLlmUrl(id, m_ocrLlmUrlEdit->text().trimmed());
     settings.setOcrLlmApiKey(id, m_ocrLlmApiKeyEdit->text());
@@ -1167,6 +1348,14 @@ void SettingsDialog::restoreDefaults()
 
     // Translation settings
     const int defaultTranslationBackendIndex = ui->translationProviderComboBox->findData(QVariant::fromValue(AppSettings().defaultTranslationProviderBackend()));
+    m_codexExecutable->setText(QStringLiteral("codex"));
+    m_codexModel->setCurrentText(AppSettings::defaultCodexModel());
+    m_codexReasoningEffort->setCurrentIndex(m_codexReasoningEffort->findData(AppSettings::defaultCodexReasoningEffort()));
+    m_codexTimeout->setValue(AppSettings::defaultLocalAiTimeout());
+    m_codexInstructions->clear();
+    m_localModelsRoot->setText(LocalModelsTranslationProvider::defaultRoot());
+    m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(QStringLiteral("index-translate-2b")));
+    m_localModelsTimeout->setValue(300);
     if (defaultTranslationBackendIndex != -1) {
         ui->translationProviderComboBox->setCurrentIndex(defaultTranslationBackendIndex);
     }
@@ -1284,6 +1473,15 @@ void SettingsDialog::loadSettings()
 
     // Translation settings
     // Translation provider backend
+    m_codexExecutable->setText(settings.codexExecutable());
+    m_codexModel->setCurrentText(settings.codexModel());
+    m_codexReasoningEffort->setCurrentIndex(m_codexReasoningEffort->findData(settings.codexReasoningEffort()));
+    m_codexTimeout->setValue(settings.codexTimeout());
+    m_codexInstructions->setPlainText(settings.codexInstructions());
+    m_localModelsRoot->setText(settings.localModelsRoot());
+    m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(settings.localModelsModel()));
+    m_localModelsTimeout->setValue(settings.localModelsTimeout());
+    updateLocalModelsStatus();
     const int translationBackendIndex = ui->translationProviderComboBox->findData(QVariant::fromValue(settings.translationProviderBackend()));
     if (translationBackendIndex != -1) {
         ui->translationProviderComboBox->setCurrentIndex(translationBackendIndex);

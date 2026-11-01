@@ -1,0 +1,8 @@
+<!-- SPDX-FileCopyrightText: 2026 Crow Translate contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<RCC>
+    <qresource prefix="/local-models">
+        <file alias="catalog.json">../../data/local-models/catalog.json</file>
+        <file alias="worker.py">../../data/local-models/worker.py</file>
+    </qresource>
+</RCC>

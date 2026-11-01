@@ -144,6 +144,7 @@ enum class ProviderCapability : uint16_t {
     VoiceSelection = 1u << 3,
     // Has named speakers within a voice, as Piper's multi-speaker models do.
     SpeakerSelection = 1u << 4,
+    ModelSelection = 1u << 5,
 };
 Q_DECLARE_FLAGS(ProviderCapabilities, ProviderCapability)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ProviderCapabilities)
