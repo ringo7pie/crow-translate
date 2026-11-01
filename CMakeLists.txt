@@ -208,6 +208,7 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/ocr/llmocr.cpp
     src/ocr/indraocr.h
     src/ocr/indraocr.cpp
+    src/optionalcomponents.h
     src/translator/localmodelstranslationprovider.h
     src/translator/localmodelstranslationprovider.cpp
     src/translator/localmodels.qrc

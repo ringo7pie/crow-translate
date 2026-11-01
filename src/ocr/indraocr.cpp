@@ -4,6 +4,7 @@
  */
 
 #include "indraocr.h"
+#include "optionalcomponents.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -40,7 +41,13 @@ QString IndraOcr::defaultExecutable()
 #else
     const QString bundled = QCoreApplication::applicationDirPath() + QStringLiteral("/indra-venv/bin/indra-ocr");
 #endif
-    return QFileInfo(bundled).isExecutable() ? bundled : QStringLiteral("indra-ocr");
+    if (QFileInfo(bundled).isExecutable())
+        return bundled;
+#ifdef Q_OS_WIN
+    if (QFileInfo(OptionalComponents::indraExecutable()).isExecutable())
+        return OptionalComponents::indraExecutable();
+#endif
+    return QStringLiteral("indra-ocr");
 }
 
 bool IndraOcr::isConfigured() const
@@ -56,6 +63,10 @@ void IndraOcr::setExecutable(const QString &executable)
 void IndraOcr::setModelDirectory(const QString &directory)
 {
     m_modelDirectory = directory;
+#ifdef Q_OS_WIN
+    if (directory.isEmpty() && QFileInfo::exists(OptionalComponents::indraModels() + QStringLiteral("/meta.json")))
+        m_modelDirectory = OptionalComponents::indraModels();
+#endif
 }
 
 void IndraOcr::setTimeout(int seconds)

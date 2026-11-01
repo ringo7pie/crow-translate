@@ -1,0 +1,384 @@
+{
+  "schema": 1,
+  "python": {
+    "url": "https://www.python.org/ftp/python/3.14.10/python-3.14.10-embed-amd64.zip",
+    "sha256": "90905e64a840557d8c1bc4f5b74db3d7ee85e3ffb217611cac1c7813acea4159",
+    "size": 12619664,
+    "file": "python-3.14.10-embed-amd64.zip"
+  },
+  "pip": {
+    "url": "https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl",
+    "file": "pip-26.2.2-py3-none-any.whl",
+    "size": 1819850,
+    "sha256": "fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
+  },
+  "llama_source": {
+    "url": "https://github.com/ggml-org/llama.cpp/archive/db33d3cb89d8b0d954df66047b13e9cc22df8f10.zip",
+    "sha256": "4d2ac0b07a86e6978926f859dc0fa76a5b37ace086233dc3be3364db05a294b8",
+    "size": 39835778,
+    "file": "llama-source.zip"
+  },
+  "torch_cpu": {
+    "url": "https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp314-cp314-win_amd64.whl",
+    "file": "torch-2.14.1+cpu-cp314-cp314-win_amd64.whl",
+    "sha256": "a93db7947d53caab62c2436205a60ddf9c3150c2e09eb9b24610c1c3f4cbaf99"
+  },
+  "packages": {
+    "indra": [
+      "indra-ocr==1.1.2",
+      "numpy==2.5.4",
+      "opencv-python-headless==5.0.0.93",
+      "onnxruntime==1.31.1",
+      "pypdfium2==5.14.0",
+      "huggingface-hub==0.36.0"
+    ],
+    "translation": [
+      "lingua-language-detector==2.2.0",
+      "tokenizers==0.22.2",
+      "huggingface-hub==0.36.0"
+    ],
+    "conversion": [
+      "transformers==4.57.6",
+      "sentencepiece",
+      "numpy==2.5.4",
+      "safetensors",
+      "protobuf",
+      "pyyaml",
+      "requests",
+      "tqdm"
+    ]
+  },
+  "components": [
+    {
+      "id": "indra",
+      "name": "Indra OCR",
+      "license": "Modified OpenRAIL-M (weights); Apache-2.0 (code)",
+      "license_summary": "モデルには用途制限があります。年収益・累計調達額2,000万米ドル超の場合は私的・研究以外の利用を制限します。本人・所属先がDatalabや関連会社と競合する製品・サービスを提供する場合は用途を問わず制限されるため、必要な別途許諾を確認してください。",
+      "license_url": "https://huggingface.co/datalab-to/indra-ocr/resolve/bd02167fdf2005a19962cc15188f8496a2c87d3b/LICENSE",
+      "licenses": [
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/bd02167fdf2005a19962cc15188f8496a2c87d3b/LICENSE",
+          "sha256": "50c88a018a7ee322e89f6b09401b237beb0cd331685879405b3db48993950a5f",
+          "size": 14750,
+          "file": "indra-weights.txt"
+        }
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/det.onnx",
+          "file": "indra-models/det.onnx",
+          "sha256": "f2bd4cba23e9c328cf7ec824634e423e191a2c6aacbbf35c62bd79dd70f62f59",
+          "size": 389948
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/lm.npz",
+          "file": "indra-models/lm.npz",
+          "sha256": "6c0fb618a363a0acdd05d4f5b0edd9e8146d2d990541b87f6130bbfe17cea58d",
+          "size": 15695957
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/lm_cjk.npz",
+          "file": "indra-models/lm_cjk.npz",
+          "sha256": "6d64f13f4f90f4e529bd63340c6df76238d007feaef2abb903d8cd28d92bc2f3",
+          "size": 18955160
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/lm_world.npz",
+          "file": "indra-models/lm_world.npz",
+          "sha256": "34df5e74a2fcbb9cf5e7f360a559375ffa2e04d2d2943a42308c177bcb444d5d",
+          "size": 11641215
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/meta.json",
+          "file": "indra-models/meta.json",
+          "sha256": "4ce4c94b46f5d644033c02e718322014ff4081270f385038c571912b56696339",
+          "size": 211869
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/order.onnx",
+          "file": "indra-models/order.onnx",
+          "sha256": "a42db2e8b536ad3d84045a4b7f9b0a72667cf8be4aa02d63f7b38004719fb180",
+          "size": 2973138
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/orient.onnx",
+          "file": "indra-models/orient.onnx",
+          "sha256": "20eaf670f55a7cf9facfe1bdd6c7b8e40be75bbf4d48a3df43f66aa3bbd874fd",
+          "size": 371802
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/rec.onnx",
+          "file": "indra-models/rec.onnx",
+          "sha256": "475972a2710be4a3cbfeb2bc7f3624ffd563de07de42476fc7a290d4e1ece484",
+          "size": 5042161
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/rec_cjk.onnx",
+          "file": "indra-models/rec_cjk.onnx",
+          "sha256": "4a035516a17e62cdf33a4fe2d88077654cb8841cff024685cdef4e351694ef50",
+          "size": 10176018
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/rec_rtl.onnx",
+          "file": "indra-models/rec_rtl.onnx",
+          "sha256": "468796bd684486a8388c30c8b4ed2a26e3eeb1f8ff02831c24c2e12c79a2a834",
+          "size": 4812710
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/rec_world.onnx",
+          "file": "indra-models/rec_world.onnx",
+          "sha256": "c8d1e59f21b04966f179d2d2d8e22b230d22110b3f89855bbbf2624a58c40043",
+          "size": 5627990
+        },
+        {
+          "url": "https://huggingface.co/datalab-to/indra-ocr/resolve/v1.1.0/script.onnx",
+          "file": "indra-models/script.onnx",
+          "sha256": "b6ce4e926e19c243faaf37bd46880398bf2cb4ae56a29e1177a3b017c1280e36",
+          "size": 191630
+        }
+      ],
+      "download_bytes": 76089598,
+      "free_bytes": 900000000,
+      "revision": "bd02167fdf2005a19962cc15188f8496a2c87d3b"
+    },
+    {
+      "id": "plamo-2-translate",
+      "name": "PLaMo-2-translate",
+      "format": "plamo",
+      "model_file": "plamo-2-translate-Q4_0-ssm-f16.gguf",
+      "license": "PLaMo Community License",
+      "license_summary": "商業目的（組織内部での使用を含む）はPFNへの事前登録と年間売上・収益10億円以下などの条件があります。条件外は別途商用許諾が必要です。Built with PLaMo.",
+      "license_url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/LICENSE/ja",
+      "licenses": [
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/LICENSE/ja",
+          "sha256": "988b37b0b21ca130ad84a092429e4e5bceec5f86dfe85a8ca3e06ea703b960ca",
+          "size": 8720,
+          "file": "plamo-ja.txt"
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/LICENSE/en",
+          "sha256": "fadfa9b6dbf81e250501f51d88b9935c412e88f7a9ed1f84de607638ecb4a5b1",
+          "size": 7630,
+          "file": "plamo-en.txt"
+        }
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/LICENSE/en",
+          "file": "local-translation/sources/plamo-weights/LICENSE/en",
+          "sha256": "fadfa9b6dbf81e250501f51d88b9935c412e88f7a9ed1f84de607638ecb4a5b1",
+          "size": 7630
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/LICENSE/ja",
+          "file": "local-translation/sources/plamo-weights/LICENSE/ja",
+          "sha256": "988b37b0b21ca130ad84a092429e4e5bceec5f86dfe85a8ca3e06ea703b960ca",
+          "size": 8720
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/config.json",
+          "file": "local-translation/sources/plamo-weights/config.json",
+          "sha256": "b38b2e9233346ff808840e0d53309406ac3b5dd7fbca91317b72429ac2061d53",
+          "size": 1184
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/generation_config.json",
+          "file": "local-translation/sources/plamo-weights/generation_config.json",
+          "sha256": "e64bfa6dd1bef506b740914c13021e588ff128563bdedfd0e9061bb18d3b9a27",
+          "size": 132
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/model-00001-of-00004.safetensors",
+          "file": "local-translation/sources/plamo-weights/model-00001-of-00004.safetensors",
+          "sha256": "d201b4d02529e37365c05191511903d6db52e2aac9aa05b4d6a760858e293fce",
+          "size": 4771172576
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/model-00002-of-00004.safetensors",
+          "file": "local-translation/sources/plamo-weights/model-00002-of-00004.safetensors",
+          "sha256": "2da06403e4ea131a1b1310400717a2f3a72a6f0cc0875cc7955b32fe43efaafe",
+          "size": 4964802416
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/model-00003-of-00004.safetensors",
+          "file": "local-translation/sources/plamo-weights/model-00003-of-00004.safetensors",
+          "sha256": "d52f60efd8085a9e2e35b199d2da542a208f7f0cfc2ed11292e9c5cb374828f2",
+          "size": 4832590896
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/model-00004-of-00004.safetensors",
+          "file": "local-translation/sources/plamo-weights/model-00004-of-00004.safetensors",
+          "sha256": "5f0eb484000e34a8b1b947161db42350fc00933409ec7ade4519fb279ef5ffa3",
+          "size": 4487955040
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/model.safetensors.index.json",
+          "file": "local-translation/sources/plamo-weights/model.safetensors.index.json",
+          "sha256": "1e28c827a896063a6e21f4e81b064ac4169741c64ce6db04a24be0f2c6a26d98",
+          "size": 37217
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/modeling_plamo.py",
+          "file": "local-translation/sources/plamo-weights/modeling_plamo.py",
+          "sha256": "bbc2fe7264acba532a28e0aefa98be1445dc29d21e6ca44f9f96a0eb4b6d100a",
+          "size": 67985
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/special_tokens_map.json",
+          "file": "local-translation/sources/plamo-weights/special_tokens_map.json",
+          "sha256": "1004b03ad5c184693765d25d8d682e831727b43b84e321fc9dc14d9ef3d1466a",
+          "size": 587
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/tokenization_plamo.py",
+          "file": "local-translation/sources/plamo-weights/tokenization_plamo.py",
+          "sha256": "ebddaf4cd8c4f7cde47d9e94a227a1cec7eccfbf303a70f520a3fda7c060abef",
+          "size": 16889
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/tokenizer.jsonl",
+          "file": "local-translation/sources/plamo-weights/tokenizer.jsonl",
+          "sha256": "3af94303d6c676e875e13165abf4e4a9d42c663ef247a8985cdeedb223cc0681",
+          "size": 10573745
+        },
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/tokenizer_config.json",
+          "file": "local-translation/sources/plamo-weights/tokenizer_config.json",
+          "sha256": "5194084b19d0155a08e087dfc40e32e76ffd401e3d2ac09e6c0179a71d187832",
+          "size": 1425
+        }
+      ],
+      "download_bytes": 19067236442,
+      "free_bytes": 80000000000,
+      "revision": "7546b474fc8eba5e8354d4634770130428e9dd68",
+      "notices": [
+        {
+          "url": "https://huggingface.co/pfnet/plamo-2-translate/resolve/7546b474fc8eba5e8354d4634770130428e9dd68/README.md",
+          "sha256": "57517f31e88b39a35901f32529dda25dba95b8d02f2388f732a05d617e27f9f1",
+          "size": 12624,
+          "file": "plamo-2-translate-model-card.md"
+        }
+      ],
+      "generated_reference_sha256": "7bdbeda0cdaf5b99f1dca998ed5119282f4e03147d9cad9e3f0ea6e62f8414cd"
+    },
+    {
+      "id": "index-translate-2b",
+      "name": "Index-Translate 2B",
+      "format": "index",
+      "model_file": "Index-Translate-2B.Q4_K_M.gguf",
+      "license": "Apache-2.0",
+      "license_summary": "Apache 2.0。著作権・ライセンス・出所表示を保持して利用します。",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "licenses": [
+        {
+          "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "file": "index-translate-2b-license.txt"
+        }
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/IndexTeam/Index-Translate-2B-GGUF/resolve/3a0eca6ce931d88d00614d427ab3ed8ff0743902/Index-Translate-2B.Q4_K_M.gguf",
+          "file": "local-translation/models/Index-Translate-2B.Q4_K_M.gguf",
+          "sha256": "044b313d29342bd3b2c77cbb64023ca0d209bd9b3247763f9d162767ef2d746a",
+          "size": 1312164352
+        }
+      ],
+      "download_bytes": 1312164352,
+      "free_bytes": 2812164352,
+      "revision": "3a0eca6ce931d88d00614d427ab3ed8ff0743902",
+      "notices": [
+        {
+          "url": "https://huggingface.co/IndexTeam/Index-Translate-2B-GGUF/resolve/3a0eca6ce931d88d00614d427ab3ed8ff0743902/README.md",
+          "sha256": "b7366cd52681819e5493803fbb40cff66728abf58b63b9e980fbb314a46460c0",
+          "size": 6723,
+          "file": "index-translate-2b-model-card.md"
+        }
+      ]
+    },
+    {
+      "id": "hy-mt2-7b",
+      "name": "Hy-MT2 7B",
+      "format": "hy",
+      "model_file": "Hy-MT2-7B-Q4_K_M.gguf",
+      "license": "Apache-2.0",
+      "license_summary": "Apache 2.0。著作権・ライセンス・出所表示を保持して利用します。",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "licenses": [
+        {
+          "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "file": "hy-mt2-7b-license.txt"
+        }
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/Hy-MT2-7B-Q4_K_M.gguf",
+          "file": "local-translation/models/Hy-MT2-7B-Q4_K_M.gguf",
+          "sha256": "9f96256500f3fc1ab4d64336b58f52a949a95ad7516b0c229476eef782f9f77b",
+          "size": 4624648896
+        }
+      ],
+      "download_bytes": 4624648896,
+      "free_bytes": 6124648896,
+      "revision": "ab8472660ac61fac25f1af43fac2599d52a8a775",
+      "notices": [
+        {
+          "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/README.md",
+          "sha256": "9c9054f91dc86809e5da4d187a16b69ce39ebf02143767b1253bf1f26f1206a1",
+          "size": 15276,
+          "file": "hy-mt2-7b-model-card.md"
+        }
+      ]
+    },
+    {
+      "id": "seed-x-ppo-7b",
+      "name": "Seed-X-PPO 7B",
+      "format": "seed",
+      "model_file": "Seed-X-PPO-7B.Q4_K_M.gguf",
+      "license": "OpenMDW-1.0",
+      "license_summary": "量子化版はmradermacherによる非公式変換です。原版のOpenMDWライセンス・出所表示を保持します。",
+      "license_url": "https://huggingface.co/ByteDance-Seed/Seed-X-PPO-7B/resolve/6ef78fc034ec86c0036d7a7ca2bfc24607f48050/LICENSE",
+      "licenses": [
+        {
+          "url": "https://huggingface.co/ByteDance-Seed/Seed-X-PPO-7B/resolve/6ef78fc034ec86c0036d7a7ca2bfc24607f48050/LICENSE",
+          "sha256": "36f3765aeb1ed66d557068d61c295ada7be56c6975ae8bd4ba6290d93338950d",
+          "size": 2605,
+          "file": "seed-x-ppo-7b-license.txt"
+        }
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/mradermacher/Seed-X-PPO-7B-GGUF/resolve/c9166f2c073d3219fe22e1f35910a41e666e971f/Seed-X-PPO-7B.Q4_K_M.gguf",
+          "file": "local-translation/models/Seed-X-PPO-7B.Q4_K_M.gguf",
+          "sha256": "9202183d5b52a1d80271cfdf20e4bf98fb7430c797a225581cd226ba7ba3cdb1",
+          "size": 4557582848
+        },
+        {
+          "url": "https://huggingface.co/ByteDance-Seed/Seed-X-PPO-7B/resolve/6ef78fc034ec86c0036d7a7ca2bfc24607f48050/tokenizer.json",
+          "file": "local-translation/tokenizers/seed-x-ppo-7b/tokenizer.json",
+          "sha256": "35e68fc21e58581cff0ff98d9ca54fccbd8d0f0dd72c05a5bca8510eaf072ee1",
+          "size": 2853156
+        }
+      ],
+      "download_bytes": 4560436004,
+      "free_bytes": 6060436004,
+      "revision": "c9166f2c073d3219fe22e1f35910a41e666e971f",
+      "notices": [
+        {
+          "url": "https://huggingface.co/mradermacher/Seed-X-PPO-7B-GGUF/resolve/c9166f2c073d3219fe22e1f35910a41e666e971f/README.md",
+          "sha256": "745d1a558e5b07c303aa59fe568069c7e466240ee0568f40c3c72b2ce9599173",
+          "size": 3481,
+          "file": "seed-x-ppo-7b-model-card.md"
+        }
+      ]
+    }
+  ],
+  "runtime_license": {
+    "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/db33d3cb89d8b0d954df66047b13e9cc22df8f10/LICENSE",
+    "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+  }
+}

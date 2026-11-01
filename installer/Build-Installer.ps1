@@ -50,6 +50,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LicenseBundleDir,
 
+    # tools/setup_local_models.py --step runtime で作成したランタイム
+    [string]$OptionalRuntimeDir = '',
+    [string]$PythonExecutable = 'python',
+
     # cmake.exe のパス（PATH に無い環境向け。既定は Visual Studio 同梱の CMake）
     [string]$CMakeExecutable = 'E:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe',
 
@@ -74,6 +78,7 @@ $ErrorActionPreference = 'Stop'
 
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path  # このスクリプトのあるフォルダ（param の既定値では $PSScriptRoot が空になる環境があるため本体で求める）
 $repositoryRoot = Split-Path -Parent $scriptDirectory  # リポジトリのルート
+if ($OptionalRuntimeDir -eq '') { $OptionalRuntimeDir = Join-Path $repositoryRoot 'third_party/local-translation/runtime' }
 if ($OutputDir -eq '') { $OutputDir = Join-Path $scriptDirectory 'out' }
 $OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 $stagingDir = Join-Path $OutputDir 'staging'  # インストーラーに詰めるファイルの配置先
@@ -105,6 +110,7 @@ Assert-PathExists $TessdataDir 'tessdata のフォルダ'
 Assert-PathExists (Join-Path $InnoSetupDir 'ISCC.exe') 'ISCC.exe'
 Assert-PathExists (Join-Path $LicenseBundleDir 'THIRD-PARTY-NOTICES.txt') '第三者ライセンスの通知'
 Assert-PathExists (Join-Path $LicenseBundleDir 'licenses/dependency-manifest.json') '依存ライブラリのマニフェスト'
+Assert-PathExists (Join-Path $OptionalRuntimeDir 'llama-server.exe') '追加翻訳用ランタイム（-OptionalRuntimeDir）'
 if ($VcRedistPath -ne '') { Assert-PathExists $VcRedistPath 'VC++ 再頒布可能パッケージ' }
 
 # バージョンを CMakeLists.txt から取得する
@@ -203,6 +209,8 @@ $readmeText = Get-Content -LiteralPath (Join-Path $scriptDirectory 'README-Windo
 if ($VcRedistPath -ne '') {
     Copy-Item -LiteralPath $VcRedistPath -Destination (Join-Path $stagingDir 'vc_redist.x64.exe')
 }
+Invoke-Tool $PythonExecutable @((Join-Path $scriptDirectory 'Prepare-OptionalComponents.py'),
+    '--runtime-dir', $OptionalRuntimeDir, '--output-dir', (Join-Path $stagingDir 'optional'))
 
 # 9. Inno Setup でコンパイルする
 $scriptPath = Join-Path $scriptDirectory 'crow-translate.iss'  # Inno Setup スクリプト

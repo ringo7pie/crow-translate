@@ -14,6 +14,13 @@ Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B translation presets, Codex CLI
 translation, translation progress and cancellation controls, Japanese localization,
 Windows build/installer support, and replacement application icons.
 
+Modified on **2026-11-02**: added an optional installer for Indra OCR and each
+translation model, with license consent, private Python, resumable verified
+downloads, cancellation and automatic detection of the selected data directory.
+Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
+PFN registration and other conditions for commercial use; the optional setup
+shows the full model licenses and checks consent before downloading any model.
+
 The application code and these code additions are distributed under
 [GPL-3.0-or-later](LICENSES/GPL-3.0-or-later.txt). The replacement application
 icons and their JPEG sources are Copyright 2026 ringo7pie, licensed under
@@ -369,8 +376,13 @@ Windows x64 installers for this unofficial fork are available on the
 [GitHub Releases page](https://github.com/ringo7pie/crow-translate/releases/latest).
 Download the `crow-translate-*-setup.exe` asset. The installer includes Qt,
 Tesseract, English/Japanese OCR data, Visual C++ runtime DLLs and license notices.
-Indra OCR, Python, local translation models and Codex CLI are installed separately;
-see the included `README-Windows.txt` and the setup instructions above. Matching
+The installer asks whether to open the optional setup for Indra OCR and each local
+translation model. All optional items start unselected. Review the displayed
+capacity, full licenses and eligibility conditions before agreeing to install.
+Python is provisioned privately; PLaMo is downloaded from PFN and converted on
+the recipient's PC (80 GB free space required). Select No to skip all model and
+Python downloads. The Start menu can reopen the optional setup later. Codex CLI
+remains a separate installation. See `README-Windows.txt` for details. Matching
 application and dependency source archives and SHA-256 checksums accompany each
 installer. These installers are unsigned.
 

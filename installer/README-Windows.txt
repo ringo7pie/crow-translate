@@ -1,4 +1,4 @@
-Crow Translate 非公式版 4.1.0-local.2 / Windows x64
+Crow Translate 非公式版 4.1.0-local.3 / Windows x64
 ================================================
 
 このインストーラーには、Crow Translate本体、Qt、Tesseract、日本語・英語の
@@ -6,12 +6,38 @@ OCRデータ、Visual C++ランタイム、ライセンス文書を含みます�
 インストール完了後、スタートメニューからCrow Translateを起動してください。
 画面上の文字を認識するには「設定 → OCR」でエンジンを選択します。
 
-Indra OCR、翻訳モデル、Python、Codex CLIは別途導入します。
-このインストーラーを実行するだけでは、これらのモデルはダウンロードされません。
+本体のインストール中に、追加機能を導入するか「はい／いいえ」で選択できます。
+「はい」の場合、Indra OCRと4種類の翻訳モデルを個別に選ぶ画面が開きます。
+各項目の容量・ライセンス・利用条件を確認し、同意してからインストールします。
+「いいえ」の場合、モデルやPythonのダウンロードは行いません。
+後からスタートメニューの「追加機能のセットアップ」で導入・再試行できます。
+
+追加セットアップは専用のPython環境も自動作成します。既存のPythonやPATHを変更せず、
+選択した保存先にモデルと環境を置きます。保存済みの正しいファイルは再利用します。
+中止した場合はダウンロード・変換を終了し、完了済みの項目は残します。
+アプリをアンインストールしても、この別保存先のモデルは削除しません。
+Codex CLIはこの追加セットアップの対象外です。
+
+モデルごとの条件
+----------------
+Indra OCR: コードはApache 2.0、モデルはModified OpenRAIL-Mです。用途制限と
+商用条件があります。年収益・累計調達額2,000万米ドル超の場合の私的・研究以外の利用、
+本人・所属先がDatalabやその関連会社と競合する製品・サービスを提供する場合の利用などは
+別途許諾が必要です。競合に関する制限は用途を問わないため、必ず全文を確認してください。
+
+PLaMo: PLaMo Community License。私的・学術用途以外の商業目的には、PFNへの
+事前登録、年間売上・収益10億円以下などの条件があります。条件外は商用許諾が必要です。
+Built with PLaMo. モデルは公式から約19.1 GB取得し、このPCで約6.24 GBに変換します。
+変換時は80 GB以上の空き容量を用意してください。処理には時間がかかります。
+
+Index-Translate 2B: Apache 2.0、モデル約1.31 GB。
+Hy-MT2 7B: Apache 2.0、モデル約4.62 GB。
+Seed-X-PPO 7B: OpenMDW。mradermacherによる非公式GGUF変換と公式トークナイザーを
+使います。モデル約4.56 GB。各モデルのライセンスと出所表示を保存先に保持します。
 
 Indra OCR
 ---------
-Python 3.10以降を導入してから、PowerShellで専用環境を作成します。
+追加セットアップで導入できます。手動の場合はPython 3.10以降で次を実行します。
 
   $indraEnv = Join-Path $env:LOCALAPPDATA 'Crow Translate/indra-venv'
   python -m venv $indraEnv
@@ -23,13 +49,16 @@ Scripts/indra-ocr.exeを指定してください。初回は約76 MBのモデル
 ローカル翻訳モデル
 ------------------
 PLaMo-2-translate / Index-Translate 2B / Hy-MT2 7B / Seed-X-PPO 7Bに対応します。
-Python 3.14、Visual Studio C++ビルドツール、PowerShell 7が必要です。
+追加セットアップでは、Pythonと翻訳ランタイムも自動で導入します。
+手動でソースから準備する場合はPython 3.14、Visual Studio C++ビルドツール、PowerShell 7が必要です。
 Releaseのsource.zipをユーザーが書き込めるフォルダーに展開し、そのフォルダーで
 READMEの「Managed local translation models (Windows)」の手順を実行します。
 モデルの利用条件、ダウンロード容量、変換時の空き容量も確認してください。
 
-準備ができたら「設定 → 翻訳 → ローカル翻訳モデル」で、展開先の
-third_party/local-translationを指定し、モデルを選択します。
+追加セットアップの環境は、アプリを起動し直すと既定の参照先として検出されます。
+「設定 → OCR → Indra OCR (local)」「設定 → 翻訳 → ローカル翻訳モデル」で選択してください。
+既に手動指定した参照先は維持します。変更する場合は保存先のlocal-translation、
+またはlocal-translation/venv/Scripts/indra-ocr.exeを設定画面で指定してください。
 英日自動切り替えには第一翻訳言語・第二翻訳言語を英語と日本語に設定します。
 
 配布元・ライセンス

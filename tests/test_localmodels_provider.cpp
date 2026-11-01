@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "translator/localmodelstranslationprovider.h"
 #include "modulestatus.h"
+#include "optionalcomponents.h"
+#include <QScopeGuard>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -30,6 +32,46 @@ class LocalModelsProviderTest : public QObject
         provider.applyOptions(options);
     }
 private slots:
+    void embeddedPythonCanTranslateWithoutAVenvRedirector()
+    {
+#ifdef Q_OS_WIN
+        QTemporaryDir directory;
+        const QString root = directory.path();
+        QVERIFY(QDir().mkpath(root + QStringLiteral("/venv")));
+        QVERIFY(QFile::copy(QString::fromUtf8(LOCALMODELS_TEST_BINARY_PATH), root + QStringLiteral("/venv/python.exe")));
+        LocalModelsTranslationProvider provider;
+        ProviderOptions options;
+        options.setOption("root", root);
+        provider.applyOptions(options);
+        provider.translate(QStringLiteral("hello"), Language(QStringLiteral("ja")), Language(QStringLiteral("en")));
+        QTRY_COMPARE(provider.getState(), ATranslationProvider::State::Processed);
+        QCOMPARE(provider.result.translation, QString::fromUtf8("日本語の訳文\n\n123"));
+#endif
+    }
+
+    void optionalSetupResolvesAUserSelectedDataDirectory()
+    {
+#ifdef Q_OS_WIN
+        QTemporaryDir local;
+        QTemporaryDir models;
+        const QByteArray previous = qgetenv("LOCALAPPDATA");
+        const auto restore = qScopeGuard([previous]() { qputenv("LOCALAPPDATA", previous); });
+        qputenv("LOCALAPPDATA", local.path().toUtf8());
+        QVERIFY(QDir().mkpath(local.path() + QStringLiteral("/Crow Translate")));
+        QFile descriptor(local.path() + QStringLiteral("/Crow Translate/components.json"));
+        QVERIFY(descriptor.open(QIODevice::WriteOnly));
+        descriptor.write(QJsonDocument(QJsonObject{{QStringLiteral("root"), models.path()}}).toJson());
+        descriptor.close();
+        QCOMPARE(OptionalComponents::root(), models.path());
+        QVERIFY(QDir().mkpath(models.path() + QStringLiteral("/local-translation/venv")));
+        QFile python(models.path() + QStringLiteral("/local-translation/venv/python.exe"));
+        QVERIFY(python.open(QIODevice::WriteOnly));
+        python.close();
+        // An explicit legacy virtual environment keeps its established path.
+        QVERIFY(OptionalComponents::python(models.path() + QStringLiteral("/local-translation")).endsWith(QStringLiteral("/venv/python.exe")));
+#endif
+    }
+
     void catalogHasExactlyFourDistinctModels()
     {
         const auto ids = LocalModelsTranslationProvider::modelIds();

@@ -1,9 +1,10 @@
-Windows release build information: 4.1.0-local.2
+Windows release build information: 4.1.0-local.3
 =============================================
 
-The application C++ sources are unchanged from commit
-f5c4725fbee45f92f95785323d8b0cfc0f7a69ef. The release tag also contains
-the installer, license collection scripts, and deployment documentation.
+This release adds detection of the optional setup's data directory and private
+embeddable Python. Existing explicitly configured paths remain unchanged.
+The release tag contains application sources, installer and setup scripts,
+license manifests, and deployment documentation.
 
 Build environment
 -----------------
@@ -20,7 +21,8 @@ and Leptonica 1.87.0 DLLs. Both Tesseract sources are supplied.
 Other library versions, upstream URLs and archive checksums appear in
 dependency-manifest.json. vcpkg source archives include the Windows build
 recipes and patches. Microsoft Visual C++ runtime DLLs come from the
-Visual Studio 2026 x64 redistributable directory (14.51.36231).
+Visual Studio 2026 x64 redistributable directory (14.51.36231), including
+Microsoft.VC145.OpenMP/vcomp140.dll for the native translation runtime.
 
 Rebuilding
 ----------
@@ -39,7 +41,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.2
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.3
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:
@@ -47,13 +49,20 @@ Rebuilding
 7. Run installer/Build-Installer.ps1 with BuildDir, QtBinDir,
    DependencyBinDir, TessdataDir, InnoSetupDir, LicenseBundleDir,
    CMakeExecutable, OutputDir and Version. Inno Setup 6.7.3 was used.
+   OptionalRuntimeDir must contain the runtime built by
+   tools/setup_local_models.py --step runtime (the pinned PLaMo RoPE fix).
+   Prepare-OptionalComponents.py includes its license/third-party notices and
+   creates file hashes. PythonExecutable selects the build-time Python.
 
 Qt DLLs and plugins are deployed dynamically. The Windows multimedia
 backend is used. FFmpeg, Mesa software OpenGL, D3D compiler and DXC files
 are not deployed. Windows supplies its graphics/system libraries.
-No translation/Indra model weights, Python environment, user settings or
-credentials are included in the installer. Models and Indra OCR are installed
-separately as described in README-Windows.txt and the main README.
+No translation/Indra weights, Python environment, user settings or credentials
+are bundled. An optional, per-user setup downloads only selected components
+after explicit license consent. It uses official CPython, PyPI wheels and
+pinned Hugging Face revisions. PLaMo weights are converted locally instead
+of being redistributed. App-local native inference binaries are bundled with
+their licenses. No system Python/PATH/registry changes are needed.
 
 Redistribution
 --------------

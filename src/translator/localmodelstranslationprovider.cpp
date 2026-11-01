@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "localmodelstranslationprovider.h"
 #include "settings/appsettings.h"
+#include "optionalcomponents.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -95,20 +96,23 @@ QString LocalModelsTranslationProvider::defaultRoot()
     const QString development = QDir::cleanPath(QCoreApplication::applicationDirPath() + QStringLiteral("/../third_party/local-translation"));
     if (QFileInfo::exists(development + QStringLiteral("/venv")))
         return development;
+#ifdef Q_OS_WIN
+    const QString managed = OptionalComponents::root() + QStringLiteral("/local-translation");
+    if (QFileInfo::exists(OptionalComponents::python(managed)))
+        return managed;
+#endif
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/local-translation");
 }
 
 bool LocalModelsTranslationProvider::isInstalled(const QString &root, const QString &id)
 {
 #ifdef Q_OS_WIN
-    const QString python = QStringLiteral("/venv/Scripts/python.exe");
     const QString server = QStringLiteral("/runtime/llama-server.exe");
 #else
-    const QString python = QStringLiteral("/venv/bin/python");
     const QString server = QStringLiteral("/runtime/llama-server");
 #endif
     const QString file = modelFile(id);
-    return !file.isEmpty() && QFileInfo::exists(root + python) && QFileInfo::exists(root + server)
+    return !file.isEmpty() && QFileInfo::exists(OptionalComponents::python(root)) && QFileInfo::exists(root + server)
         && QFileInfo::exists(root + QStringLiteral("/models/") + file)
         && (id != QLatin1String("seed-x-ppo-7b") || QFileInfo::exists(root + QStringLiteral("/tokenizers/seed-x-ppo-7b/tokenizer.json")));
 }
@@ -199,11 +203,7 @@ void LocalModelsTranslationProvider::startRequest(const QString &text, bool dete
         m_process->write(QJsonDocument(m_command).toJson(QJsonDocument::Compact) + '\n');
         return;
     }
-#ifdef Q_OS_WIN
-    const QString python = m_root + QStringLiteral("/venv/Scripts/python.exe");
-#else
-    const QString python = m_root + QStringLiteral("/venv/bin/python");
-#endif
+    const QString python = OptionalComponents::python(m_root);
     if (!QFileInfo(python).isExecutable()) {
         fail(tr("The local translation environment is not installed. Check the model directory in Translation settings."));
         return;

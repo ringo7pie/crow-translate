@@ -153,6 +153,14 @@ def main():
                       "ea0385bfb0412554e67a2c0a4600857688ead6866c596d295b16da56769b7aa2")
     components.append({"name": "vcpkg", "version": VCPKG, "url": vcpkg_url,
                        "sha256": digest, "license": "MIT", "archive": vcpkg_path.name})
+    optional_catalog = root / "installer" / "optional-components.json"
+    if optional_catalog.exists():
+        record = json.loads(optional_catalog.read_text(encoding="utf-8"))["llama_source"]
+        path = downloads / "llama-cpp-b11318-source.zip"
+        digest = download(record["url"], path, "sha256", record["sha256"])
+        components.append({"name":"llama.cpp", "version":"b11318 + PLaMo RoPE initialization",
+                           "url":record["url"], "sha256":digest, "license":"MIT",
+                           "patch_script":"tools/setup_local_models.py", "archive":path.name})
     extract_notices(vcpkg_path, notices / "vcpkg")
     shutil.copytree(root / "LICENSES", notices / "application", dirs_exist_ok=True)
     for relative in [".reuse/dep5", "data/icons/3rdparty/breeze-icons/COPYING-ICONS",
@@ -190,6 +198,9 @@ and SHA-256 checksums are available alongside this installer at:
 Source archive: crow-translate-{args.version}-source.zip
 Dependency sources: crow-translate-{args.version}-dependency-sources.zip
 Model weights, Indra OCR and Python environments are separate installations.
+Optional inference runtime notices are also in optional/notices/runtime.
+The optional setup shows model-specific conditions and requires consent before
+downloading Python or models. PLaMo weights are converted on the recipient PC.
 """
     (output / "license-bundle" / "THIRD-PARTY-NOTICES.txt").write_text(text, encoding="utf-8")
     destination = output / f"crow-translate-{args.version}-dependency-sources.zip"
