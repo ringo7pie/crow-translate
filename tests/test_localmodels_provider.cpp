@@ -1,8 +1,10 @@
 /* SPDX-FileCopyrightText: 2026 Crow Translate contributors
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "translator/localmodelstranslationprovider.h"
+#include "core/translationsession.h"
 #include "modulestatus.h"
 #include "optionalcomponents.h"
+#include "testisolation.h"
 #include <QScopeGuard>
 #include <QCoreApplication>
 #include <QDir>
@@ -32,6 +34,69 @@ class LocalModelsProviderTest : public QObject
         provider.applyOptions(options);
     }
 private slots:
+    void localeVariants_data()
+    {
+        QTest::addColumn<Language>("source");
+        QTest::addColumn<Language>("destination");
+        QLocale japanese(QLocale::Japanese);
+        japanese.setNumberOptions(QLocale::OmitGroupSeparator);
+        const Language english(QStringLiteral("en"));
+        QTest::newRow("Japanese-display-options") << Language::autoLanguage() << Language(japanese);
+        QTest::newRow("British-English-target") << Language(QStringLiteral("ja")) << Language(QStringLiteral("en_GB"));
+        QTest::newRow("British-English-source") << Language(QStringLiteral("en_GB")) << Language(QStringLiteral("ja"));
+        QTest::newRow("Japanese-source-display-options") << Language(japanese) << english;
+        const Language system(QLocale::system());
+        if(system.toCode() == QLatin1String("en") || system.toCode() == QLatin1String("ja"))
+            QTest::newRow("system-locale") << Language::autoLanguage() << system;
+    }
+
+    void localeVariants()
+    {
+        QFETCH(Language, source);
+        QFETCH(Language, destination);
+        QTemporaryDir directory;
+        LocalModelsTranslationProvider provider;
+        configure(provider, directory.path());
+        provider.translate(QStringLiteral("The meeting starts tomorrow."), destination, source);
+        QVERIFY2(provider.error == ATranslationProvider::TranslationError::NoError, qPrintable(provider.getErrorString()));
+        QTRY_COMPARE(provider.getState(), ATranslationProvider::State::Processed);
+        QCOMPARE(provider.translationLanguage, destination);
+        QCOMPARE(provider.sourceLanguage.toCode(), source == Language::autoLanguage() ? QStringLiteral("en") : source.toCode());
+    }
+
+    void autoDestinationFromSessionAcceptsSystemLocale()
+    {
+        const Language system(QLocale::system());
+        if(system.toCode() != QLatin1String("en") && system.toCode() != QLatin1String("ja"))
+            QSKIP("The configured local models support English and Japanese system languages");
+        AppSettings settings;
+        settings.setPrimaryLanguage(Language::autoLanguage());
+        settings.setSecondaryLanguage(Language(QStringLiteral("en")));
+        QTemporaryDir directory;
+        TranslationSession session;
+        session.setTranslationBackend(ATranslationProvider::ProviderBackend::LocalModels);
+        auto *provider = qobject_cast<LocalModelsTranslationProvider *>(session.translator());
+        QVERIFY(provider);
+        configure(*provider, directory.path());
+        ProviderOptions options;
+        options.setOption("model", "seed-x-ppo-7b");
+        provider->applyOptions(options);
+        QSignalSpy started(&session, &TranslationSession::translationStarted);
+        session.requestTranslation(QStringLiteral("The meeting starts tomorrow."), Language::autoLanguage(), Language::autoLanguage());
+        QCOMPARE(started.count(), 1);
+        QVERIFY2(provider->error == ATranslationProvider::TranslationError::NoError, qPrintable(provider->getErrorString()));
+        QTRY_COMPARE(provider->getState(), ATranslationProvider::State::Processed);
+        QCOMPARE(provider->translationLanguage, started.first().at(1).value<Language>());
+    }
+
+    void unsupportedLanguageIsStillRejected()
+    {
+        LocalModelsTranslationProvider provider;
+        provider.translate(QStringLiteral("hello"), Language(QStringLiteral("fr")), Language(QStringLiteral("en")));
+        QCOMPARE(provider.getState(), ATranslationProvider::State::Finished);
+        QVERIFY(provider.getErrorString().contains(QStringLiteral("destination")));
+    }
+
     void embeddedPythonCanTranslateWithoutAVenvRedirector()
     {
 #ifdef Q_OS_WIN
@@ -205,5 +270,11 @@ private slots:
 #endif
     }
 };
-QTEST_GUILESS_MAIN(LocalModelsProviderTest)
+int main(int argc, char **argv)
+{
+    isolateTestSettings();
+    QCoreApplication application(argc, argv);
+    LocalModelsProviderTest test;
+    return QTest::qExec(&test, argc, argv);
+}
 #include "test_localmodels_provider.moc"

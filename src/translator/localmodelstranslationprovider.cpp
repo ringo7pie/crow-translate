@@ -1,4 +1,5 @@
 /* SPDX-FileCopyrightText: 2026 Crow Translate contributors
+ * SPDX-FileCopyrightText: 2026 ringo7pie
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "localmodelstranslationprovider.h"
 #include "settings/appsettings.h"
@@ -163,11 +164,14 @@ void LocalModelsTranslationProvider::translate(const QString &text, const Langua
     emit stateChanged(state);
     if (state != State::Processing)
         return;
-    if (!supportedDestinationLanguages().contains(destination)) {
+    // Auto destinations can resolve to the system QLocale, whose territory
+    // and number options need not equal the preset locale for the same language.
+    // Preserve the requested locale, but validate the language sent to the worker.
+    if (!supportedDestinationLanguages().contains(Language(destination.toCode()))) {
         fail(tr("Select English or Japanese as the destination language."));
         return;
     }
-    if (source != Language::autoLanguage() && !supportedSourceLanguages().contains(source)) {
+    if (source != Language::autoLanguage() && !supportedSourceLanguages().contains(Language(source.toCode()))) {
         fail(tr("Select English or Japanese as the source language."));
         return;
     }
@@ -316,7 +320,7 @@ void LocalModelsTranslationProvider::handleEvent(const QJsonObject &event)
     const Language detected(event.value(QStringLiteral("source")).toString());
     const QString translated = event.value(QStringLiteral("text")).toString();
     if (type != QLatin1String("result") || !supportedSourceLanguages().contains(detected)
-        || (!m_detectOnly && (translated.trimmed().isEmpty() || (!m_sourceWasAuto && detected != sourceLanguage)))) {
+        || (!m_detectOnly && (translated.trimmed().isEmpty() || (!m_sourceWasAuto && detected.toCode() != sourceLanguage.toCode())))) {
         fail(tr("Invalid local translation response."));
         return;
     }

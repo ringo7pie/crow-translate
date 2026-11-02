@@ -1,4 +1,4 @@
-Crow Translate 非公式版 4.1.0-local.5 / Windows x64
+Crow Translate 非公式版 4.1.0-local.6 / Windows x64
 ================================================
 
 このインストーラーには、Crow Translate本体、Qt、Tesseract、日本語・英語の
@@ -58,6 +58,8 @@ Scripts/indra-ocr.exeを指定してください。初回は約76 MBのモデル
 ローカル翻訳モデル
 ------------------
 PLaMo-2-translate / Index-Translate 2B / Hy-MT2 7B / Seed-X-PPO 7Bに対応します。
+翻訳先が「Auto (Japanese)」「Auto (English)」の場合も利用できます。
+地域・数値書式を含むシステムの言語設定でも、英語・日本語を正しく認識します。
 追加セットアップでは、Pythonと翻訳ランタイムも自動で導入します。
 手動でソースから準備する場合はPython 3.14、Visual Studio C++ビルドツール、PowerShell 7が必要です。
 Releaseのsource.zipをユーザーが書き込めるフォルダーに展開し、そのフォルダーで

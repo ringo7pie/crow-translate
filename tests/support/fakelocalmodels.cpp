@@ -40,6 +40,11 @@ int main(int argc, char **argv)
             event.insert(QStringLiteral("id"), command.value(QStringLiteral("id")));
             std::cout << QJsonDocument(event).toJson(QJsonDocument::Compact).constData() << std::endl;
         };
+        if (!command.value("detect_only").toBool() && command.value("target").toString() != QLatin1String("en")
+            && command.value("target").toString() != QLatin1String("ja")) {
+            emitEvent({{"event", "error"}, {"message", "Target must be a concrete English/Japanese code"}});
+            continue;
+        }
         if (QFile::exists(root + QStringLiteral("/fail"))) {
             emitEvent({{"event", "error"}, {"message", "Test model could not load"}});
             continue;
