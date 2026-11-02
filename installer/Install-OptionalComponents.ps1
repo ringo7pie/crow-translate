@@ -254,6 +254,7 @@ $bar = New-Object Windows.Forms.ProgressBar
 $bar.SetBounds(18, 648, 768, 18); $form.Controls.Add($bar)
 $install = New-Object Windows.Forms.Button
 $install.Text = '選択した項目をインストール'; $install.SetBounds(440, 680, 234, 30)
+$install.Enabled = $false
 $form.Controls.Add($install)
 $close = New-Object Windows.Forms.Button
 $close.Text = '閉じる'; $close.SetBounds(690, 680, 96, 30); $form.Controls.Add($close)
@@ -263,6 +264,28 @@ $script:receiptPath = ''
 $script:finished = $false
 $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 300
+function Update-InstallButton([int]$PendingIndex = -1, [bool]$PendingChecked = $false) {
+    $hasSelection = $false
+    $needsEligibility = $false
+    for($i=0; $i -lt $choices.Items.Count; $i++){
+        $checked = if($i -eq $PendingIndex){$PendingChecked}else{$choices.GetItemChecked($i)}
+        if($checked){
+            $hasSelection = $true
+            if($catalog.components[$i].id -in @('indra','plamo-2-translate')){$needsEligibility = $true}
+        }
+    }
+    $install.Enabled = ($null -eq $script:setupJob -and $choices.Enabled -and $hasSelection -and
+        $defaultModel.SelectedIndex -ge 0 -and $accept.Checked -and
+        (-not $needsEligibility -or $eligibility.Checked))
+}
+$accept.Add_CheckedChanged({Update-InstallButton})
+$eligibility.Add_CheckedChanged({Update-InstallButton})
+$defaultModel.Add_SelectedIndexChanged({Update-InstallButton})
+# ItemCheck fires before CheckedItems changes; evaluate the pending value too.
+$choices.Add_ItemCheck({ param($sender,$eventArgs)
+    Update-InstallButton $eventArgs.Index ($eventArgs.NewValue -eq [Windows.Forms.CheckState]::Checked)
+})
+Update-InstallButton
 $install.Add_Click({
     $selected = @(); for($i=0; $i -lt $choices.Items.Count; $i++){ if($choices.GetItemChecked($i)){ $selected += $catalog.components[$i].id } }
     if ($defaultModel.SelectedIndex -lt 0) {
@@ -319,6 +342,7 @@ $timer.Add_Tick({
             $status.Text='追加導入を完了できませんでした。導入済みの項目を残して再試行できます。'
             [void][Windows.Forms.MessageBox]::Show(($details+"`r`n保存先のoptional-install.log / optional-bootstrap.logも参照できます。"),$form.Text)
             foreach($control in @($choices,$defaultModel,$accept,$eligibility,$destination,$browse,$install)){ $control.Enabled=$true }
+            Update-InstallButton
             $install.Text='再試行'
         }
         $close.Text='閉じる'; $script:finished=$true

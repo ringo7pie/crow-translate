@@ -1,4 +1,4 @@
-Windows release build information: 4.1.0-local.4
+Windows release build information: 4.1.0-local.5
 =============================================
 
 This release adds selection of a default translation model and cleanup of verified
@@ -6,6 +6,10 @@ download/conversion inputs. The installer writes a one-time defaults request to
 the per-user components.json descriptor. Qt applies it on the next application
 start to the active native or portable settings store. Existing OCR settings are
 preserved; a selected translation default explicitly changes the backend/model.
+The optional setup's install button now stays disabled until the selection and
+required license/eligibility consent are complete, including on retry.
+Run tests/test_optional_setup_ui.ps1 with Windows PowerShell 5.1 to check its
+WinForms state transitions without starting a worker or downloading models.
 The release tag contains application sources, installer and setup scripts,
 license manifests, and deployment documentation.
 
@@ -44,7 +48,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.4
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.5
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:
