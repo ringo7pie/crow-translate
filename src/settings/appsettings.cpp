@@ -499,6 +499,16 @@ bool AppSettings::defaultSimplifySource()
     return false;
 }
 
+bool AppSettings::sentenceLineBreaks() const
+{
+    return m_settings->value(QStringLiteral("Translation/SentenceLineBreaks"), false).toBool();
+}
+
+void AppSettings::setSentenceLineBreaks(bool enabled)
+{
+    m_settings->setValue(QStringLiteral("Translation/SentenceLineBreaks"), enabled);
+}
+
 Language AppSettings::primaryLanguage() const
 {
     const QString code = m_settings->value(QStringLiteral("Translation/PrimaryLanguage"), defaultPrimaryLanguage().toCode()).toString();
@@ -1018,6 +1028,16 @@ int AppSettings::localModelsTimeout() const
 void AppSettings::setLocalModelsTimeout(int seconds)
 {
     m_settings->setValue(QStringLiteral("LocalModels/Timeout"), qBound(1, seconds, 3600));
+}
+
+int AppSettings::localModelsVramReserve() const
+{
+    return qBound(128, m_settings->value(QStringLiteral("LocalModels/VramReserveMiB"), 256).toInt(), 4096);
+}
+
+void AppSettings::setLocalModelsVramReserve(int mib)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/VramReserveMiB"), qBound(128, mib, 4096));
 }
 
 QString AppSettings::localModelsPrompt(const QString &model) const

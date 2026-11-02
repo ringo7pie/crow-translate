@@ -14,6 +14,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSettings>
+#include <QScopeGuard>
+#include <QFileInfo>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -44,6 +46,23 @@ class CodexProviderTest : public QObject
     }
 
 private slots:
+#ifdef Q_OS_WIN
+    void discoversStandaloneWithoutProcessPathAndHonorsExplicitPaths()
+    {
+        QTemporaryDir installation;
+        const QByteArray oldPath = qgetenv("PATH"), oldLocal = qgetenv("LOCALAPPDATA"), oldInstall = qgetenv("CODEX_INSTALL_DIR");
+        const auto restore = qScopeGuard([&]() { qputenv("PATH", oldPath); qputenv("LOCALAPPDATA", oldLocal); qputenv("CODEX_INSTALL_DIR", oldInstall); });
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        qputenv("LOCALAPPDATA", installation.path().toUtf8());
+        qunsetenv("CODEX_INSTALL_DIR");
+        const QString executable = installation.filePath(QStringLiteral("Programs/OpenAI/Codex/bin/codex.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(executable).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), executable));
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(), executable);
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(executable), executable);
+        QVERIFY(CodexTranslationProvider::findCodexExecutable(installation.filePath(QStringLiteral("missing.exe"))).isEmpty());
+    }
+#endif
     void init()
     {
         qunsetenv("CROW_CODEX_TEST_MODE");

@@ -12,6 +12,7 @@ import os
 import re
 from pathlib import Path
 import socket
+import shutil
 import subprocess
 import sys
 import threading
@@ -95,6 +96,8 @@ class Worker:
         self.log = deque(maxlen=200)
         self.detector = None
         self.seed_tokenizer = None
+        self.vram_reserve = 256
+        self.log_thread = None
         # Avoid an inherited proxy redirecting a local request elsewhere.
         self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -148,47 +151,147 @@ class Worker:
         executable = self.root / "runtime" / ("llama-server.exe" if os.name == "nt" else "llama-server")
         if not executable.is_file() or not model.is_file():
             raise FileNotFoundError("Local model is not installed. Check the model directory in Translation settings: " + str(model))
-        emit("stage", stage="loading")
         with socket.socket() as reservation:
             reservation.bind(("127.0.0.1", 0))
             port = reservation.getsockname()[1]
         self.base_url = f"http://127.0.0.1:{port}"
         environment = os.environ.copy()
         environment.pop("GGML_BACKEND_PATH", None)
+        for name in ("N_GPU_LAYERS", "DEVICE", "OVERRIDE_TENSOR", "KV_OFFLOAD", "FIT", "FIT_TARGET", "FIT_CTX", "LOAD_MODE", "FLASH_ATTN"):
+            environment.pop("LLAMA_ARG_" + name, None)
         environment["PATH"] = str(executable.parent) + os.pathsep + environment.get("PATH", "")
+        deadline = time.monotonic() + 120
+        nvidia_gpu = False
+        def gpu_devices():
+            nonlocal nvidia_gpu
+            devices = subprocess.run([str(executable), "--list-devices"], cwd=executable.parent, env=environment,
+                                     stdin=subprocess.DEVNULL, capture_output=True, timeout=min(10, max(0.01, deadline - time.monotonic())),
+                                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+            device_text = (devices.stdout + devices.stderr).decode("utf-8", errors="replace")
+            if devices.returncode:
+                raise RuntimeError("Could not enumerate local translation devices:\n" + device_text[-3000:])
+            nvidia_gpu = bool(re.search(r"^\s*(?:Vulkan|CUDA)\w*:\s+.*NVIDIA", device_text, re.M))
+            return re.findall(r"^\s*((?:Vulkan|CUDA|HIP|Metal|SYCL|OpenCL)\w*):\s+.*\((\d+) MiB, (\d+) MiB free\)", device_text, re.M)
+        gpus = gpu_devices()
+        has_gpu = bool(gpus)
+        def global_free_mib():
+            if not nvidia_gpu or len(gpus) != 1:
+                return None
+            executable_smi = shutil.which("nvidia-smi", path=environment.get("PATH"))
+            if not executable_smi:
+                return None
+            try:
+                measured = subprocess.run([executable_smi, "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
+                    stdin=subprocess.DEVNULL, capture_output=True, timeout=min(3, max(0.01, deadline-time.monotonic())),
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                values = measured.stdout.decode("ascii", errors="replace").strip().splitlines()
+                return int(values[0]) if measured.returncode == 0 and len(values) == 1 else None
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                return None
         arguments = [str(executable), "--model", str(model), "--host", "127.0.0.1", "--port", str(port),
                      "--api-key", self.key, "--ctx-size", "4096", "--parallel", "1", "--threads", "8",
-                     "--batch-size", "512", "--ubatch-size", "128", "--fit", "on", "--fit-target", "1024", "--jinja"]
-        self.log.clear()
-        self.process = subprocess.Popen(arguments, cwd=executable.parent, env=environment, stdin=subprocess.DEVNULL,
-                                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-        process = self.process
+                     "--batch-size", "512", "--ubatch-size", "128", "--fit", "on", "--gpu-layers", "auto",
+                     "--kv-offload", "--flash-attn", "auto", "--load-mode", "none" if has_gpu else "auto",
+                     "--log-verbosity", "4", "--jinja"]
+        if has_gpu:
+            arguments.append("--no-host")
+        margins = list(dict.fromkeys([self.vram_reserve, max(self.vram_reserve, 512), max(self.vram_reserve, 1024)])) if has_gpu else [self.vram_reserve]
+        attempts = [(margin, False) for margin in margins]
+        embedding_tried = False
+        embedding_required_mib = 0
+        for attempt, (margin, embedding_gpu) in enumerate(attempts):
+            if time.monotonic() >= deadline:
+                break
+            emit("stage", stage="loading", vram_reserve_mib=margin, attempt=attempt + 1)
+            free = global_free_mib()
+            budget = gpus if attempt == 0 else gpu_devices()
+            if embedding_gpu:
+                available = free if free is not None else int(budget[0][2])
+                if available < embedding_required_mib + margin:
+                    continue
+            # Windows Vulkan's per-process budget can overstate globally free
+            # dedicated VRAM. Account for other applications before --fit,
+            # otherwise WDDM silently pages GPU allocations into system RAM.
+            effective_margin = margin
+            if free is not None and len(budget) == 1:
+                effective_margin += max(0, int(budget[0][2]) - free)
+            print(f"GPU reserve: {margin} MiB; effective fit target: {effective_margin} MiB.", file=sys.stderr, flush=True)
+            self.log.clear()
+            extra = ["--override-tensor", "token_embd.weight=" + gpus[0][0]] if embedding_gpu else []
+            self.process = subprocess.Popen(arguments + extra + ["--fit-target", str(effective_margin)], cwd=executable.parent,
+                                            env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                            stderr=subprocess.PIPE,
+                                            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+            process = self.process
 
-        def drain():
-            for line in process.stderr:
-                self.log.append(line.decode("utf-8", errors="replace"))
-        threading.Thread(target=drain, daemon=True).start()
-        deadline = time.monotonic() + 120
-        while time.monotonic() < deadline:
-            if process.poll() is not None:
-                raise RuntimeError("Could not load the local model:\n" + "".join(self.log)[-4000:])
-            try:
-                if self.request("/health", timeout=1).get("status") == "ok":
-                    if self.profile["format"] == "plamo":
-                        import re
-                        if re.search(r"n_rot(?:_full)?\s*=\s*0\b", "".join(self.log)):
+            def drain(process=process):
+                for line in process.stderr:
+                    decoded = line.decode("utf-8", errors="replace")
+                    self.log.append(decoded)
+                    if re.search(r"load_tensors:.*(?:offload|buffer size)|llama_params_fit|ErrorOutOfDeviceMemory|out of device memory", decoded, re.I):
+                        print(decoded.rstrip(), file=sys.stderr, flush=True)
+            self.log_thread = threading.Thread(target=drain, daemon=True)
+            self.log_thread.start()
+            while time.monotonic() < deadline:
+                if process.poll() is not None:
+                    self.close()
+                    detail = "".join(self.log)
+                    if has_gpu and attempt + 1 < len(attempts) and (embedding_gpu or re.search(
+                            r"out.?of.?(?:device.?)?memory|ErrorOutOfDeviceMemory|failed to allocate.*(?:Vulkan|CUDA|device)|(?:Vulkan|CUDA).*failed to allocate", detail, re.I)):
+                        print(f"GPU allocation failed; retrying with {attempts[attempt + 1][0]} MiB reserve.", file=sys.stderr, flush=True)
+                        break
+                    raise RuntimeError("Could not load the local model:\n" + detail[-4000:])
+                try:
+                    if self.request("/health", timeout=min(1, max(0.01, deadline - time.monotonic()))).get("status") == "ok":
+                        if self.profile["format"] == "plamo" and re.search(r"n_rot(?:_full)?\s*=\s*0\b", "".join(self.log)):
+                            self.close()
                             raise RuntimeError("The runtime has the PLaMo RoPE bug. Reinstall the patched runtime.")
-                    return
-            except urllib.error.HTTPError as error:
-                if error.code != 503:
-                    raise
-            except (urllib.error.URLError, TimeoutError):
-                pass
-            time.sleep(0.1)
+                        # llama.cpp normally keeps the input embedding on CPU,
+                        # even when every repeating layer fits on GPU. Promote
+                        # only this tensor if its entire CPU buffer plus the
+                        # reserve fits in freshly measured free device memory.
+                        # A failed promotion falls back to the normal fitted
+                        # layout; never force GPU tensors on a tight budget.
+                        if has_gpu and len(gpus) == 1 and not embedding_tried:
+                            detail = "".join(self.log)
+                            layers = re.search(r"offloaded (\d+)/(\d+) layers", detail)
+                            host_mib = sum(float(size) for size in re.findall(
+                                r"(?:CPU(?:_Mapped)?|Vulkan_Host|CUDA_Host)\s+model buffer size\s*=\s*([\d.]+) MiB", detail))
+                            if layers and layers[1] == layers[2] and host_mib >= 128:
+                                try:
+                                    free = gpu_devices()
+                                except (subprocess.TimeoutExpired, RuntimeError):
+                                    free = []
+                                gpu_mib = sum(float(size) for size in re.findall(re.escape(gpus[0][0]) +
+                                    r"\s+(?:model|KV|RS|compute) buffer size\s*=\s*([\d.]+) MiB", detail))
+                                global_free = global_free_mib()
+                                available = global_free if global_free is not None else (int(free[0][2]) - gpu_mib if free else 0)
+                                if free and free[0][0] == gpus[0][0] and gpu_mib and available >= host_mib + margin + 128:
+                                    embedding_tried = True
+                                    embedding_required_mib = gpu_mib + host_mib + 128
+                                    print("Moving input embeddings to GPU; normal CPU placement remains the fallback.", file=sys.stderr, flush=True)
+                                    self.close()
+                                    time.sleep(0.2)
+                                    attempts[attempt + 1:attempt + 1] = [(margin, True), (margin, False)]
+                                    break
+                        return
+                except urllib.error.HTTPError as error:
+                    if error.code != 503:
+                        self.close()
+                        raise
+                except (urllib.error.URLError, TimeoutError):
+                    pass
+                time.sleep(0.1)
+        self.close()
         raise TimeoutError("Loading the local model timed out after 120 seconds.")
 
     def handle(self, command, emit):
+        margin = command.get("vram_reserve_mib", self.vram_reserve)
+        if type(margin) is not int or not 128 <= margin <= 4096:
+            raise ValueError("VRAM reserve must be between 128 and 4096 MiB.")
+        if margin != self.vram_reserve:
+            self.close()
+            self.vram_reserve = margin
         text = command.get("text", "")
         if not isinstance(text, str) or not text.strip():
             raise ValueError("There is no text to translate or detect.")
@@ -224,6 +327,10 @@ class Worker:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait(timeout=3)
+        if self.log_thread:
+            self.log_thread.join(timeout=1)
+            self.log_thread = None
+        self.process = None
 
 
 def main():

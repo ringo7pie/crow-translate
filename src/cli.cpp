@@ -12,6 +12,7 @@
 #include "instancepinger.h"
 #include "provideroptions.h"
 #include "core/translationsession.h"
+#include "core/sentenceformatter.h"
 #include "core/usernotifier.h"
 #include "frontend/frontendregistry.h"
 #include "ocr/aocrprovider.h"
@@ -663,6 +664,8 @@ void Cli::processNextTranslation()
     }
 
     const Language targetLang = m_translationLanguages[m_currentTranslationIndex];
+    if (AppSettings().sentenceLineBreaks())
+        m_sourceText = withSentenceLineBreaks(m_sourceText);
     translateText(m_sourceText, m_sourceLang, targetLang);
 }
 

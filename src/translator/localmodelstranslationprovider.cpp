@@ -203,7 +203,7 @@ void LocalModelsTranslationProvider::startRequest(const QString &text, bool dete
                  {QStringLiteral("source"), (detectOnly || m_sourceWasAuto) ? QStringLiteral("auto") : sourceLanguage.toCode()},
                  {QStringLiteral("target"), translationLanguage.toCode()}, {QStringLiteral("detect_only"), detectOnly},
                  {QStringLiteral("timeout"), m_timeout}, {QStringLiteral("prompt"), m_prompt},
-                 {QStringLiteral("instructions"), m_instructions}};
+                 {QStringLiteral("instructions"), m_instructions}, {QStringLiteral("vram_reserve_mib"), m_vramReserve}};
     m_timer.start((m_timeout + (detectOnly ? 0 : 120)) * 1000);
     if (detectOnly)
         emit detectionStarted();
@@ -410,7 +410,8 @@ void LocalModelsTranslationProvider::applyOptions(const ProviderOptions &options
 {
     const QString root = options.getOption(QStringLiteral("root"), m_root).toString();
     const QString model = options.getOption(QStringLiteral("model"), m_model).toString();
-    if (root != m_root || model != m_model) {
+    const int reserve = qBound(128, options.getOption(QStringLiteral("vramReserve"), m_vramReserve).toInt(), 4096);
+    if (root != m_root || model != m_model || reserve != m_vramReserve) {
         abort();
         if (state == State::Finished)
             reset();
@@ -421,6 +422,7 @@ void LocalModelsTranslationProvider::applyOptions(const ProviderOptions &options
         m_instructions.clear();
     }
     m_model = model;
+    m_vramReserve = reserve;
     m_timeout = qBound(1, options.getOption(QStringLiteral("timeout"), m_timeout).toInt(), 3600);
     m_prompt = options.getOption(QStringLiteral("prompt"), m_prompt).toString();
     m_instructions = options.getOption(QStringLiteral("instructions"), m_instructions).toString();
@@ -432,13 +434,14 @@ std::unique_ptr<ProviderOptions> LocalModelsTranslationProvider::getDefaultOptio
     options->setOption(QStringLiteral("root"), defaultRoot());
     options->setOption(QStringLiteral("model"), QStringLiteral("index-translate-2b"));
     options->setOption(QStringLiteral("timeout"), 300);
+    options->setOption(QStringLiteral("vramReserve"), 256);
     options->setOption(QStringLiteral("prompt"), QString());
     options->setOption(QStringLiteral("instructions"), QString());
     return options;
 }
 QStringList LocalModelsTranslationProvider::getAvailableOptions() const
 {
-    return {QStringLiteral("root"), QStringLiteral("model"), QStringLiteral("timeout"), QStringLiteral("prompt"), QStringLiteral("instructions")};
+    return {QStringLiteral("root"), QStringLiteral("model"), QStringLiteral("timeout"), QStringLiteral("prompt"), QStringLiteral("instructions"), QStringLiteral("vramReserve")};
 }
 void LocalModelsTranslationProvider::saveOptionToSettings(const QString &key, const QVariant &value)
 {
@@ -449,6 +452,8 @@ void LocalModelsTranslationProvider::saveOptionToSettings(const QString &key, co
         settings.setLocalModelsModel(value.toString());
     else if (key == QLatin1String("timeout"))
         settings.setLocalModelsTimeout(value.toInt());
+    else if (key == QLatin1String("vramReserve"))
+        settings.setLocalModelsVramReserve(value.toInt());
     else if (key == QLatin1String("prompt"))
         settings.setLocalModelsPrompt(m_model, value.toString());
     else if (key == QLatin1String("instructions"))

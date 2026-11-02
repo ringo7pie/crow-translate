@@ -22,6 +22,7 @@ public:
 
     void setListenForEdits(bool listen);
     void setSimplifySource(bool enabled);
+    void setSentenceLineBreaks(bool enabled);
     QString toSourceText();
 
     // Text manipulation that preserves undo / redo history
@@ -30,6 +31,8 @@ public:
 
 public slots:
     void stopEditTimer();
+    void undo();
+    void redo();
 
 signals:
     void textEdited();
@@ -41,12 +44,20 @@ private slots:
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
+    void inputMethodEvent(QInputMethodEvent *event) override;
+    void insertFromMimeData(const QMimeData *source) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     QTimer *m_textEditedTimer;
     bool m_listenForEdits = false;
     bool m_sourceEmpty = true;
     bool m_simplifySource = false;
+    bool m_sentenceLineBreaks = false;
+    bool m_formatting = false;
+    bool m_composing = false;
+    bool m_skipFormat = false;
+    void formatSentences();
 };
 
 #endif // SOURCETEXTEDIT_H

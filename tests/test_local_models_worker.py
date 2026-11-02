@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+import io
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("local_models_worker", ROOT / "data/local-models/worker.py")
@@ -14,6 +16,89 @@ spec.loader.exec_module(worker)
 
 
 class WorkerContractTest(unittest.TestCase):
+    def test_gpu_fit_retry_and_cpu_loading_policy(self):
+        catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
+        for gpu, failure in [(True, ""), (True, "vk::OutOfDeviceMemoryError"), (True, "invalid model"), (False, "")]:
+            with self.subTest(gpu=gpu, failure=failure), tempfile.TemporaryDirectory() as root:
+                instance = worker.Worker(root, "index-translate-2b", catalog)
+                model = Path(root) / "models" / instance.profile["file"]
+                server = Path(root) / "runtime" / ("llama-server.exe" if worker.os.name == "nt" else "llama-server")
+                model.parent.mkdir(); model.touch(); server.parent.mkdir(); server.touch()
+                arguments = []
+                def process(args, **kwargs):
+                    arguments.append(args)
+                    error = failure if len(arguments) == 1 else ""
+                    return SimpleNamespace(stderr=io.BytesIO(error.encode()), poll=lambda: 1 if error else None,
+                                           terminate=lambda: None, wait=lambda timeout: 0)
+                instance.request = lambda *args, **kwargs: {"status": "ok"}
+                devices = b"Available devices:\n  Vulkan0: Test GPU (8192 MiB, 7200 MiB free)\n" if gpu else b"Available devices:\n"
+                stages = []
+                with patch.object(worker.subprocess, "run", return_value=SimpleNamespace(stdout=devices, stderr=b"", returncode=0)), patch.object(worker.subprocess, "Popen", side_effect=process):
+                    if failure == "invalid model":
+                        with self.assertRaisesRegex(RuntimeError, "invalid model"):
+                            instance.ensure_server(lambda event, **fields: stages.append(fields))
+                    else:
+                        instance.ensure_server(lambda event, **fields: stages.append(fields))
+                    instance.close()
+                self.assertEqual(len(arguments), 2 if failure == "vk::OutOfDeviceMemoryError" else 1)
+                self.assertEqual(arguments[0][-2:], ["--fit-target", "256"])
+                self.assertEqual(arguments[0][arguments[0].index("--load-mode") + 1], "none" if gpu else "auto")
+                self.assertEqual(arguments[0][arguments[0].index("--gpu-layers") + 1], "auto")
+                if len(arguments) == 2:
+                    self.assertEqual(arguments[1][-2:], ["--fit-target", "512"])
+
+    def test_invalid_vram_reserve_never_loads_a_model(self):
+        catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
+        instance = worker.Worker(ROOT, "index-translate-2b", catalog)
+        instance.ensure_server = lambda emit: self.fail("Invalid margin must fail before loading")
+        for margin in [0, 127, 4097, "256", True]:
+            with self.subTest(margin=margin), self.assertRaises(ValueError):
+                instance.handle({"text": "Hello", "source": "en", "target": "ja", "vram_reserve_mib": margin}, lambda *args, **kwargs: None)
+
+    def test_nvidia_global_free_memory_limits_vulkan_fit_budget(self):
+        catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
+        with tempfile.TemporaryDirectory() as root:
+            instance = worker.Worker(root, "index-translate-2b", catalog)
+            model = Path(root) / "models" / instance.profile["file"]
+            server = Path(root) / "runtime" / ("llama-server.exe" if worker.os.name == "nt" else "llama-server")
+            model.parent.mkdir(); model.touch(); server.parent.mkdir(); server.touch()
+            args_used = []
+            def run(args, **kwargs):
+                data = b"Vulkan0: NVIDIA RTX 3070 (8192 MiB, 7200 MiB free)" if "--list-devices" in args else b"5000\n"
+                return SimpleNamespace(stdout=data, stderr=b"", returncode=0)
+            def process(args, **kwargs):
+                args_used.append(args)
+                return SimpleNamespace(stderr=io.BytesIO(), poll=lambda: None, terminate=lambda: None, wait=lambda timeout: 0)
+            instance.request = lambda *args, **kwargs: {"status": "ok"}
+            with patch.object(worker.subprocess, "run", side_effect=run), patch.object(worker.subprocess, "Popen", side_effect=process), patch.object(worker.shutil, "which", return_value="nvidia-smi.exe"):
+                instance.ensure_server(lambda *args, **kwargs: None)
+                instance.close()
+            self.assertEqual(args_used[0][-2:], ["--fit-target", "2456"])
+
+    def test_embedding_gpu_promotion_has_a_normal_placement_fallback(self):
+        catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
+        with tempfile.TemporaryDirectory() as root:
+            instance = worker.Worker(root, "index-translate-2b", catalog)
+            model = Path(root) / "models" / instance.profile["file"]
+            server = Path(root) / "runtime" / ("llama-server.exe" if worker.os.name == "nt" else "llama-server")
+            model.parent.mkdir(); model.touch(); server.parent.mkdir(); server.touch()
+            args_used = []
+            def process(args, **kwargs):
+                args_used.append(args)
+                error = "unsupported GPU embedding" if "--override-tensor" in args else ""
+                log = error or "offloaded 26/26 layers to GPU\nCPU model buffer size = 256.00 MiB\nVulkan0 model buffer size = 1000.00 MiB\n"
+                return SimpleNamespace(stderr=io.BytesIO(log.encode()), poll=lambda: 1 if error else None,
+                                       terminate=lambda: None, wait=lambda timeout: 0)
+            instance.request = lambda *args, **kwargs: {"status": "ok"}
+            devices = SimpleNamespace(stdout=b"Vulkan0: Test GPU (8192 MiB, 7200 MiB free)", stderr=b"", returncode=0)
+            with patch.object(worker.subprocess, "run", return_value=devices), patch.object(worker.subprocess, "Popen", side_effect=process):
+                instance.ensure_server(lambda *args, **kwargs: None)
+                instance.close()
+            self.assertEqual(len(args_used), 3)
+            self.assertNotIn("--override-tensor", args_used[0])
+            self.assertIn("token_embd.weight=Vulkan0", args_used[1])
+            self.assertNotIn("--override-tensor", args_used[2])
+
     def test_custom_basic_and_additional_instructions_for_every_model(self):
         template = "{source_lang} ({source_code}) -> {target_lang} ({target_code})\n{text}\nLiteral {unknown}"
         text = "原文 {target_lang}\n\n$() `quotes` 123"

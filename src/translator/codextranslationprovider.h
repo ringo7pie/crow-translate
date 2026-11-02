@@ -35,6 +35,7 @@ public:
     QStringList getAvailableOptions() const override;
     ProviderCapabilities capabilities() const override;
     void saveOptionToSettings(const QString &key, const QVariant &value) override;
+    static QString findCodexExecutable(const QString &configured = QStringLiteral("codex"));
 
 public slots:
     void translate(const QString &text, const Language &destination, const Language &source) override;

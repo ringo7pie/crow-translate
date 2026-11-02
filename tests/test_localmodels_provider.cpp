@@ -43,6 +43,7 @@ private slots:
         LocalModelsTranslationProvider provider;
         configure(provider, directory.path());
         settings.setLocalModelsRoot(directory.path());
+        settings.setLocalModelsVramReserve(384);
         ProviderOptionsManager manager;
         for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
             const QString prompt = QStringLiteral("Translate {text} into {target_lang}. ") + model;
@@ -65,11 +66,13 @@ private slots:
                 QCOMPARE(command.value("prompt").toString(), prompt);
                 QCOMPARE(command.value("instructions").toString(), extra + (request ? QStringLiteral(" updated") : QString()));
                 QCOMPARE(command.value("text").toString(), QStringLiteral("Hello {text}"));
+                QCOMPARE(command.value("vram_reserve_mib").toInt(), 384);
             }
         }
         QFile starts(directory.filePath(QStringLiteral("starts.txt")));
         QVERIFY(starts.open(QIODevice::ReadOnly));
         QCOMPARE(starts.readAll().count("started"), 4);
+        settings.setLocalModelsVramReserve(256);
         for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
             settings.setLocalModelsPrompt(model, QString());
             settings.setLocalModelsInstructions(model, QString());

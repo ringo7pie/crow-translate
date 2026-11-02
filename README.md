@@ -25,6 +25,10 @@ Local translation presets now have separately saved basic and additional
 instructions for each model. Codex translation also exposes its basic
 instructions alongside the existing additional preferences. Both can be edited
 in Settings > Translation; edits apply on OK and can be restored to defaults.
+GPU loading now uses a smaller configurable VRAM reserve, accounts for other
+NVIDIA workloads, and reduces resident RAM from model-file mappings. An optional
+sentence-ending line-break setting formats both input and translation requests.
+Codex discovery also supports installed launches with a stale or minimal PATH.
 Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
 PFN registration and other conditions for commercial use; the optional setup
 shows the full model licenses and checks consent before downloading any model.

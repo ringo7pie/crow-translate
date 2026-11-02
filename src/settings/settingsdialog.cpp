@@ -25,6 +25,7 @@
 #include "shortcutsmodel/shortcutsmodel.h"
 #include "translator/atranslationprovider.h"
 #include "translator/localmodelstranslationprovider.h"
+#include "translator/codextranslationprovider.h"
 #include "tts/attsprovider.h"
 
 #include <QButtonGroup>
@@ -124,6 +125,13 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
     buildOcrEngineUi();
     buildCodexUi();
     buildLocalModelsUi();
+    m_sentenceLineBreaks = new QCheckBox(tr("Break input into lines at sentence endings (. / 。)"), ui->translationPage);
+    m_sentenceLineBreaks->setObjectName(QStringLiteral("sentenceLineBreaksCheckBox"));
+    m_sentenceLineBreaks->setToolTip(tr("Preserves decimal numbers, URLs and common English abbreviations. Applies to the input display and text sent for translation. Takes priority over source simplification."));
+    ui->translationPageLayout->insertWidget(2, m_sentenceLineBreaks);
+    connect(m_sentenceLineBreaks, &QCheckBox::toggled, this, [this](bool enabled) {
+        ui->sourceSimplificationCheckBox->setEnabled(!enabled);
+    });
 
     // Adjust tab widgets to fit the scroll area viewport (sidebar occupies ~200 px).
     connect(ui->pagesStackedWidget, &QStackedWidget::currentChanged, this, [this](int /*idx*/) {
@@ -239,6 +247,16 @@ void SettingsDialog::buildCodexUi()
     });
     row->addWidget(m_codexExecutable, 1);
     row->addWidget(browse);
+    auto *detect = new QPushButton(tr("Find automatically"), executableRow);
+    detect->setObjectName(QStringLiteral("codexFindExecutableButton"));
+    connect(detect, &QPushButton::clicked, this, [this]() {
+        const QString found = CodexTranslationProvider::findCodexExecutable();
+        if (!found.isEmpty())
+            m_codexExecutable->setText(found);
+        else
+            QMessageBox::information(this, tr("Codex CLI"), tr("Codex executable was not found. Install Codex CLI or select its executable in Translation settings."));
+    });
+    row->addWidget(detect);
     form->addRow(tr("Codex executable:"), executableRow);
 
     m_codexModel = new QComboBox(group);
@@ -318,6 +336,13 @@ void SettingsDialog::buildLocalModelsUi()
     m_localModelsTimeout->setRange(1, 3600);
     m_localModelsTimeout->setSuffix(tr(" s"));
     form->addRow(tr("Timeout:"), m_localModelsTimeout);
+    m_localModelsVramReserve = new QSpinBox(group);
+    m_localModelsVramReserve->setObjectName(QStringLiteral("localModelsVramReserveSpinBox"));
+    m_localModelsVramReserve->setRange(128, 4096);
+    m_localModelsVramReserve->setSingleStep(128);
+    m_localModelsVramReserve->setSuffix(QStringLiteral(" MiB"));
+    m_localModelsVramReserve->setToolTip(tr("Smaller margins place more model layers on the GPU. If GPU allocation fails, loading retries with a larger margin."));
+    form->addRow(tr("Free VRAM to reserve:"), m_localModelsVramReserve);
     m_localModelsPrompt = new QPlainTextEdit(group);
     m_localModelsPrompt->setObjectName(QStringLiteral("localModelsPromptEdit"));
     m_localModelsPrompt->setFixedHeight(110);
@@ -452,6 +477,8 @@ void SettingsDialog::accept()
     settings.setLocalModelsRoot(m_localModelsRoot->text().trimmed());
     settings.setLocalModelsModel(m_localModelsModel->currentData().toString());
     settings.setLocalModelsTimeout(m_localModelsTimeout->value());
+    settings.setLocalModelsVramReserve(m_localModelsVramReserve->value());
+    settings.setSentenceLineBreaks(m_sentenceLineBreaks->isChecked());
     for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
         settings.setLocalModelsPrompt(model, m_localModelsPrompts.value(model));
         settings.setLocalModelsInstructions(model, m_localModelsInstructions.value(model));
@@ -1426,6 +1453,8 @@ void SettingsDialog::restoreDefaults()
     m_localModelsRoot->setText(LocalModelsTranslationProvider::defaultRoot());
     m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(QStringLiteral("index-translate-2b")));
     m_localModelsTimeout->setValue(300);
+    m_localModelsVramReserve->setValue(256);
+    m_sentenceLineBreaks->setChecked(false);
     switchLocalModelsPrompt();
     if (defaultTranslationBackendIndex != -1) {
         ui->translationProviderComboBox->setCurrentIndex(defaultTranslationBackendIndex);
@@ -1558,6 +1587,8 @@ void SettingsDialog::loadSettings()
     m_localModelsRoot->setText(settings.localModelsRoot());
     m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(settings.localModelsModel()));
     m_localModelsTimeout->setValue(settings.localModelsTimeout());
+    m_localModelsVramReserve->setValue(settings.localModelsVramReserve());
+    m_sentenceLineBreaks->setChecked(settings.sentenceLineBreaks());
     switchLocalModelsPrompt();
     updateLocalModelsStatus();
     const int translationBackendIndex = ui->translationProviderComboBox->findData(QVariant::fromValue(settings.translationProviderBackend()));

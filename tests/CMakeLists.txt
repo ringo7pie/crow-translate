@@ -12,6 +12,10 @@ find_package(Qt6 REQUIRED COMPONENTS Test Widgets Network)
 set(CMAKE_WIN32_EXECUTABLE OFF)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support)
 
+add_executable(test_sentenceformatter test_sentenceformatter.cpp)
+target_link_libraries(test_sentenceformatter PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+add_test(NAME SentenceFormatterTest COMMAND test_sentenceformatter)
+
 # Helper GUI process for e2e/manual selection and OCR scenarios (crow-flake's
 # e2e/ runner drives this via cua-driver; it is no longer spawned in-process
 # by any unit test, since those now drive text entry directly through QTest

@@ -49,6 +49,7 @@ private:
     QString m_prompt;
     QString m_instructions;
     int m_timeout = 300;
+    int m_vramReserve = 256;
     QProcess *m_process = nullptr;
     std::unique_ptr<QTemporaryDir> m_workerDirectory;
     QTimer m_timer;

@@ -249,6 +249,7 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/settings/autostartmanager/abstractautostartmanager.cpp
     src/sourcetextedit.h
     src/sourcetextedit.cpp
+    src/core/sentenceformatter.cpp
     src/translationedit.h
     src/translationedit.cpp
     src/trayicon.h

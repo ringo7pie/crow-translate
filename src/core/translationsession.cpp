@@ -4,6 +4,7 @@
  */
 
 #include "translationsession.h"
+#include "sentenceformatter.h"
 
 #include "modulestatus.h"
 #include "provideroptionsmanager.h"
@@ -224,8 +225,9 @@ void TranslationSession::requestTranslation(const QString &text, const Language 
         actualDestination = preferredDestination(source == Language::autoLanguage() ? Language(QLocale::system()) : source);
     }
 
-    Q_EMIT translationStarted(text, actualDestination, source);
-    m_translator->translate(text, actualDestination, source);
+    const QString prepared = AppSettings().sentenceLineBreaks() ? withSentenceLineBreaks(text) : text;
+    Q_EMIT translationStarted(prepared, actualDestination, source);
+    m_translator->translate(prepared, actualDestination, source);
 }
 
 void TranslationSession::requestTranslationOfSelection(const QString &text)

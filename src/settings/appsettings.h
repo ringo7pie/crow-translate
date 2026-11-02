@@ -166,6 +166,8 @@ public:
     bool isSimplifySource() const;
     void setSimplifySource(bool simplify);
     static bool defaultSimplifySource();
+    bool sentenceLineBreaks() const;
+    void setSentenceLineBreaks(bool enabled);
 
     Language primaryLanguage() const;
     void setPrimaryLanguage(const Language &lang);
@@ -265,6 +267,8 @@ public:
     void setLocalModelsModel(const QString &model);
     int localModelsTimeout() const;
     void setLocalModelsTimeout(int seconds);
+    int localModelsVramReserve() const;
+    void setLocalModelsVramReserve(int mib);
     QString localModelsPrompt(const QString &model) const;
     void setLocalModelsPrompt(const QString &model, const QString &prompt);
     QString localModelsInstructions(const QString &model) const;

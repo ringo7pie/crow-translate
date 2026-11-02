@@ -122,6 +122,24 @@ private:
     }
 
 private slots:
+    void testSentenceLineBreaksInCliJson()
+    {
+        QTemporaryDir configuration;
+        QVERIFY(QDir().mkpath(configuration.filePath(QStringLiteral("crow-translate"))));
+        const QString file = configuration.filePath(QStringLiteral("crow-translate/crow-translate.conf"));
+        QVERIFY(QFile::copy(m_configDir.filePath(QStringLiteral("crow-translate/crow-translate.conf")), file));
+        QSettings settings(file, QSettings::IniFormat);
+        settings.setValue(QStringLiteral("Translation/SentenceLineBreaks"), true);
+        settings.sync();
+        const auto result = runCrow({QStringLiteral("--tp"), QStringLiteral("copy"), QStringLiteral("--tts"), QStringLiteral("none"),
+            QStringLiteral("-s"), QStringLiteral("en"), QStringLiteral("-t"), QStringLiteral("en"), QStringLiteral("--json"), QStringLiteral("First. Second.")}, configuration.path());
+        QVERIFY(result.finished);
+        QCOMPARE(result.exitCode, 0);
+        const auto output = QJsonDocument::fromJson(result.out.toUtf8()).object();
+        QCOMPARE(output.value(QStringLiteral("source")).toString(), QStringLiteral("First.\nSecond."));
+        QCOMPARE(output.value(QStringLiteral("translations")).toArray().first().toObject().value(QStringLiteral("text")).toString(), QStringLiteral("First.\nSecond."));
+    }
+
     void testCodexProviderSelectionAndUtf8Json()
     {
         QTemporaryDir configDir;

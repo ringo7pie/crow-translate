@@ -2841,6 +2841,30 @@ msgid "Basic instructions:"
 msgstr "基本指示:"
 
 msgctxt "SettingsDialog|"
+msgid "Break input into lines at sentence endings (. / 。)"
+msgstr "入力を文末（. / 。）で改行する"
+
+msgctxt "SettingsDialog|"
+msgid "Preserves decimal numbers, URLs and common English abbreviations. Applies to the input display and text sent for translation. Takes priority over source simplification."
+msgstr "小数・URL・一般的な英文の略語を途中で切りません。入力欄の表示と翻訳へ送る文章に適用し、原文の簡略化より優先します。"
+
+msgctxt "SettingsDialog|"
+msgid "Free VRAM to reserve:"
+msgstr "空けておくVRAM:"
+
+msgctxt "SettingsDialog|"
+msgid "Smaller margins place more model layers on the GPU. If GPU allocation fails, loading retries with a larger margin."
+msgstr "小さくするとGPUへ多くのモデル層を配置します。GPUメモリーの確保に失敗した場合は、余白を増やして読み込み直します。"
+
+msgctxt "SettingsDialog|"
+msgid "Find automatically"
+msgstr "自動検出"
+
+msgctxt "SettingsDialog|"
+msgid "Codex executable was not found. Install Codex CLI or select its executable in Translation settings."
+msgstr "Codex 実行ファイルが見つかりません。Codex CLI をインストールするか、翻訳設定で実行ファイルを選択してください。"
+
+msgctxt "SettingsDialog|"
 msgid "Additional instructions:"
 msgstr "追加指示:"
 

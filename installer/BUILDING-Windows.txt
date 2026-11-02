@@ -1,4 +1,4 @@
-Windows release build information: 4.1.0-local.7
+Windows release build information: 4.1.0-local.8
 =============================================
 
 Managed local models now accept per-model basic prompt templates and additional
@@ -10,6 +10,21 @@ Codex receives editable basic and existing additional instructions as JSON
 fields; response-schema and execution restrictions remain outside both fields.
 The settings dialog stages drafts until OK; reset and model switches preserve
 the same transaction. Empty basic instructions use the corresponding default.
+
+GPU loading defaults to a 256 MiB reserve with automatic layer fitting. GPU
+weights use load-mode none and no-host to avoid resident file mappings and
+unnecessary host-pinned model buffers. On a single NVIDIA GPU, nvidia-smi's
+global free VRAM limits Vulkan's potentially larger per-process budget. A
+verified full-layer layout may promote the input embedding if measured spare
+capacity permits; normal fitting remains its fallback. Allocation failures
+retry with 512/1024 MiB reserve within one 120-second loading deadline.
+The sentence-line-break setting defaults off and applies a shared formatter to
+the editor and session/CLI. Source edits preserve undo, selection and IME input;
+the formatter protects decimals, addresses, common abbreviations and paragraphs.
+Codex discovery checks the native PATH, standard per-user standalone locations,
+refreshed Windows PATH and native npm package binaries. No shell shim is run.
+Explicit executable selections remain authoritative; authentication stays with
+the user's separately installed Codex CLI.
 
 Local translation validates English/Japanese by language code rather than
 full QLocale equality. System-locale territory/number-format differences no
@@ -62,7 +77,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.7
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.8
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:

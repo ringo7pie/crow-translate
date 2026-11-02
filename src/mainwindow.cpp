@@ -915,6 +915,7 @@ void MainWindow::loadAppSettings()
     m_trayIcon->setVisible(settings.isShowTrayIcon());
     QGuiApplication::setQuitOnLastWindowClosed(!m_trayIcon->isVisible());
     ui->sourceEdit->setSimplifySource(settings.isSimplifySource());
+    ui->sourceEdit->setSentenceLineBreaks(settings.sentenceLineBreaks());
 
     m_session->initTesseractFromSettings();
     if (const AppSettings::RegionRememberType type = settings.regionRememberType(); m_snippingArea->regionRememberType() != type) {

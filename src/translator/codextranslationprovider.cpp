@@ -13,6 +13,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QSettings>
+#include <QFileInfo>
 
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
@@ -20,6 +22,90 @@
 #include <signal.h>
 #include <unistd.h>
 #endif
+
+QString CodexTranslationProvider::findCodexExecutable(const QString &configured)
+{
+#ifdef Q_OS_WIN
+    const QString command = configured.trimmed().isEmpty() ? QStringLiteral("codex") : configured.trimmed();
+    const auto localPath = [](const QString &path) {
+        return !QDir::fromNativeSeparators(path).startsWith(QStringLiteral("//"));
+    };
+    const auto native = [&localPath](const QString &path) -> QString {
+        if (!localPath(path) || !path.endsWith(QLatin1String(".exe"), Qt::CaseInsensitive))
+            return {};
+        const QFileInfo file(path);
+        return file.isFile() && file.isExecutable() ? file.absoluteFilePath() : QString();
+    };
+    QStringList paths;
+    for (QString path : qEnvironmentVariable("PATH").split(QLatin1Char(';'), Qt::SkipEmptyParts)) {
+        path = path.trimmed();
+        if (path.startsWith(QLatin1Char('"')) && path.endsWith(QLatin1Char('"')))
+            path = path.mid(1, path.size() - 2);
+        if (localPath(path))
+            paths.append(path);
+    }
+    if (!localPath(command))
+        return {};
+    const QString direct = native(QStandardPaths::findExecutable(command, paths));
+    if (!direct.isEmpty())
+        return direct;
+    // An explicit path/name is authoritative. Only the automatic "codex"
+    // setting searches standard user locations and refreshed Windows PATH.
+    if (command.compare(QLatin1String("codex"), Qt::CaseInsensitive)
+        && command.compare(QLatin1String("codex.exe"), Qt::CaseInsensitive))
+        return {};
+    const QString local = qEnvironmentVariable("LOCALAPPDATA");
+    const QString roaming = qEnvironmentVariable("APPDATA");
+    QStringList extra;
+    const QString custom = qEnvironmentVariable("CODEX_INSTALL_DIR");
+    if (!custom.isEmpty())
+        extra.append(custom);
+    if (!local.isEmpty())
+        extra << local + QStringLiteral("/Programs/OpenAI/Codex/bin") << local + QStringLiteral("/Microsoft/WinGet/Links");
+    extra << QDir::homePath() + QStringLiteral("/.local/bin");
+    if (!roaming.isEmpty())
+        extra << roaming + QStringLiteral("/npm");
+    for (const QString &key : {QStringLiteral("HKEY_CURRENT_USER\\Environment"),
+                              QStringLiteral("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")}) {
+        const QSettings environment(key, QSettings::NativeFormat);
+        const QString value = environment.value(QStringLiteral("Path")).toString();
+        const DWORD size = ExpandEnvironmentStringsW(reinterpret_cast<LPCWSTR>(value.utf16()), nullptr, 0);
+        if (size && size < 32768) {
+            std::wstring expanded(size, L'\0');
+            if (ExpandEnvironmentStringsW(reinterpret_cast<LPCWSTR>(value.utf16()), expanded.data(), size))
+                extra.append(QString::fromWCharArray(expanded.c_str()).split(QLatin1Char(';'), Qt::SkipEmptyParts));
+        }
+    }
+    // npm command shims are not native executables. Resolve their packaged
+    // binary directly, so no shell interprets paths or translation text.
+#ifdef Q_PROCESSOR_ARM_64
+    const QString platform = QStringLiteral("arm64");
+    const QString triple = QStringLiteral("aarch64-pc-windows-msvc");
+#else
+    const QString platform = QStringLiteral("x64");
+    const QString triple = QStringLiteral("x86_64-pc-windows-msvc");
+#endif
+    paths.append(extra);
+    for (QString path : paths) {
+        path = path.trimmed();
+        if (path.startsWith(QLatin1Char('"')) && path.endsWith(QLatin1Char('"')))
+            path = path.mid(1, path.size() - 2);
+        if (path.isEmpty() || !localPath(path))
+            continue;
+        for (const QString &relative : {QStringLiteral("codex.exe"),
+                QStringLiteral("node_modules/@openai/codex/vendor/") + triple + QStringLiteral("/codex/codex.exe"),
+                QStringLiteral("node_modules/@openai/codex-win32-") + platform + QStringLiteral("/vendor/") + triple + QStringLiteral("/codex/codex.exe"),
+                QStringLiteral("node_modules/@openai/codex/node_modules/@openai/codex-win32-") + platform + QStringLiteral("/vendor/") + triple + QStringLiteral("/codex/codex.exe")}) {
+            const QString found = native(QDir(path).filePath(relative));
+            if (!found.isEmpty())
+                return found;
+        }
+    }
+    return {};
+#else
+    return QStandardPaths::findExecutable(configured);
+#endif
+}
 
 CodexTranslationProvider::CodexTranslationProvider(QObject *parent)
     : ATranslationProvider(parent)
@@ -111,7 +197,7 @@ void CodexTranslationProvider::startRequest(const QString &text, bool detectOnly
         return;
     }
 
-    const QString program = QStandardPaths::findExecutable(m_executable);
+    const QString program = findCodexExecutable(m_executable);
     if (program.isEmpty()) {
         fail(tr("Codex executable was not found. Install Codex CLI or select its executable in Translation settings."));
         return;

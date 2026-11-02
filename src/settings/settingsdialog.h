@@ -112,6 +112,8 @@ private:
     QComboBox *m_localModelsModel = nullptr;
     QLineEdit *m_localModelsRoot = nullptr;
     QSpinBox *m_localModelsTimeout = nullptr;
+    QSpinBox *m_localModelsVramReserve = nullptr;
+    QCheckBox *m_sentenceLineBreaks = nullptr;
     QLabel *m_localModelsStatus = nullptr;
     QPlainTextEdit *m_localModelsPrompt = nullptr;
     QPlainTextEdit *m_localModelsInstructionsEdit = nullptr;

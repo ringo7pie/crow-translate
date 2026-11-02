@@ -36,6 +36,7 @@ std::unique_ptr<ProviderOptions> ProviderOptionsManager::createTranslationOption
         options->setOption("root", settings.localModelsRoot());
         options->setOption("model", settings.localModelsModel());
         options->setOption("timeout", settings.localModelsTimeout());
+        options->setOption("vramReserve", settings.localModelsVramReserve());
         options->setOption("prompt", settings.localModelsPrompt(settings.localModelsModel()));
         options->setOption("instructions", settings.localModelsInstructions(settings.localModelsModel()));
         return options;

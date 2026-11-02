@@ -18,6 +18,7 @@
 #include "translator/localmodelstranslationprovider.h"
 
 #include <QComboBox>
+#include <QCheckBox>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
@@ -35,6 +36,42 @@ class SettingsDialogLocalAiTest : public QObject
     Q_OBJECT
 
 private slots:
+    void testMemoryAndSentenceSettingsAreTransactional()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setLocalModelsVramReserve(256);
+        settings.setSentenceLineBreaks(false);
+        MainWindow window;
+        for (bool accept : {false, true}) {
+            SettingsDialog dialog(&window);
+            auto *reserve = dialog.findChild<QSpinBox *>(QStringLiteral("localModelsVramReserveSpinBox"));
+            auto *sentences = dialog.findChild<QCheckBox *>(QStringLiteral("sentenceLineBreaksCheckBox"));
+            QVERIFY(reserve && sentences);
+            QCOMPARE(reserve->value(), 256);
+            QVERIFY(!sentences->isChecked());
+            reserve->setValue(384);
+            sentences->setChecked(true);
+            QVERIFY(!dialog.findChild<QCheckBox *>(QStringLiteral("sourceSimplificationCheckBox"))->isEnabled());
+            if (accept) dialog.accept(); else dialog.reject();
+            QCOMPARE(settings.localModelsVramReserve(), accept ? 384 : 256);
+            QCOMPARE(settings.sentenceLineBreaks(), accept);
+        }
+        {
+            SettingsDialog dialog(&window);
+            QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("localModelsVramReserveSpinBox"))->value(), 384);
+            QVERIFY(dialog.findChild<QCheckBox *>(QStringLiteral("sentenceLineBreaksCheckBox"))->isChecked());
+            QVERIFY(QMetaObject::invokeMethod(&dialog, "restoreDefaults", Qt::DirectConnection));
+            QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("localModelsVramReserveSpinBox"))->value(), 256);
+            QVERIFY(!dialog.findChild<QCheckBox *>(QStringLiteral("sentenceLineBreaksCheckBox"))->isChecked());
+            dialog.reject();
+            QCOMPARE(settings.localModelsVramReserve(), 384);
+            QVERIFY(settings.sentenceLineBreaks());
+        }
+        settings.setLocalModelsVramReserve(256);
+        settings.setSentenceLineBreaks(false);
+    }
+
     void testInstructionDraftsAreIndependentAndOnlySavedOnAccept()
     {
         AppSettings settings;
