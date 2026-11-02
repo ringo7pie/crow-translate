@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2026 Mauritius Clemens <gitlab@janitor.chat>
+ * SPDX-FileCopyrightText: 2026 ringo7pie
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
@@ -11,8 +12,16 @@
 
 #include "testisolation.h"
 #include "settings/appsettings.h"
+#include "translator/localmodelstranslationprovider.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QTest>
 
@@ -45,6 +54,74 @@ class AppSettingsPromptsTest : public QObject
     Q_OBJECT
 
 private slots:
+#ifdef Q_OS_WIN
+    void testInstallerDefaults_data()
+    {
+        QTest::addColumn<QString>("model");
+        QTest::addColumn<bool>("existing");
+        for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+            QTest::newRow(qPrintable(model + QStringLiteral("-new"))) << model << false;
+            QTest::newRow(qPrintable(model + QStringLiteral("-existing"))) << model << true;
+        }
+        QTest::newRow("keep-existing") << QString() << true;
+        QTest::newRow("invalid-model") << QStringLiteral("unknown-model") << true;
+    }
+
+    void testInstallerDefaults()
+    {
+        QFETCH(QString, model);
+        QFETCH(bool, existing);
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const QByteArray previousLocal = qgetenv("LOCALAPPDATA");
+        auto restore = qScopeGuard([&] { qputenv("LOCALAPPDATA", previousLocal); });
+        qputenv("LOCALAPPDATA", directory.path().toUtf8());
+        QSettings store;
+        store.clear(); store.sync();
+        if (existing) {
+            AppSettings settings;
+            settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+            settings.setLocalModelsModel(QStringLiteral("index-translate-2b"));
+            settings.setOcrEngine(AppSettings::OcrEngine::Tesseract);
+        }
+        const QString root = directory.path() + QStringLiteral("/components");
+        auto touch = [&](const QString &name) {
+            const QString path = root + QLatin1Char('/') + name;
+            QDir().mkpath(QFileInfo(path).absolutePath());
+            QFile file(path); return file.open(QIODevice::WriteOnly);
+        };
+        QVERIFY(touch(QStringLiteral("local-translation/venv/python.exe")));
+        QVERIFY(touch(QStringLiteral("local-translation/venv/Scripts/indra-ocr.exe")));
+        QVERIFY(touch(QStringLiteral("local-translation/runtime/llama-server.exe")));
+        QVERIFY(touch(QStringLiteral("indra-models/meta.json")));
+        const bool valid = LocalModelsTranslationProvider::modelIds().contains(model);
+        if (valid) {
+            QVERIFY(touch(QStringLiteral("local-translation/models/") + LocalModelsTranslationProvider::modelFile(model)));
+            QVERIFY(touch(QStringLiteral("local-translation/tokenizers/seed-x-ppo-7b/tokenizer.json")));
+        }
+        const QString descriptor = directory.path() + QStringLiteral("/Crow Translate/components.json");
+        QDir().mkpath(QFileInfo(descriptor).absolutePath());
+        QFile file(descriptor);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        const QJsonObject request{{"id", "unique-test-request"}, {"translation_model", model}, {"indra_if_new", true}};
+        file.write(QJsonDocument(QJsonObject{{"root", root}, {"installed", QJsonArray{model, "indra"}}, {"defaults_request", request}}).toJson());
+        file.close();
+        AppSettings settings;
+        QCOMPARE(settings.ocrEngine(), existing ? AppSettings::OcrEngine::Tesseract : AppSettings::OcrEngine::Indra);
+        QCOMPARE(settings.translationProviderBackend(), valid ? ATranslationProvider::ProviderBackend::LocalModels : ATranslationProvider::ProviderBackend::Copy);
+        if (valid) {
+            QCOMPARE(settings.localModelsModel(), model);
+            QCOMPARE(settings.localModelsRoot(), root + QStringLiteral("/local-translation"));
+        }
+        // Reopening settings must not reapply a request after a user's change.
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setOcrEngine(AppSettings::OcrEngine::Tesseract);
+        AppSettings reopened;
+        QCOMPARE(reopened.translationProviderBackend(), ATranslationProvider::ProviderBackend::Copy);
+        QCOMPARE(reopened.ocrEngine(), AppSettings::OcrEngine::Tesseract);
+        store.clear(); store.sync();
+    }
+#endif
     void init()
     {
         QSettings settings;

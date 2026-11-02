@@ -2,6 +2,7 @@
  * SPDX-FileCopyrightText: 2018 Hennadii Chernyshchyk <genaloner@gmail.com>
  * SPDX-FileCopyrightText: 2022 Volk Milit <javirrdar@gmail.com>
  * SPDX-FileCopyrightText: 2026 Oleksandr Mikriukov <ur3ley@gmail.com>
+ * SPDX-FileCopyrightText: 2026 ringo7pie
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -10,6 +11,7 @@
 
 #include "cmake.h"
 #include "languagebuttonswidget.h"
+#include "optionalcomponents.h"
 #include "trayicon.h"
 #include "translator/atranslationprovider.h"
 #include "translator/localmodelstranslationprovider.h"
@@ -19,6 +21,9 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QHotkey>
 #include <QKeySequence>
 #include <QLibraryInfo>
@@ -44,6 +49,36 @@ AppSettings::AppSettings(QObject *parent)
     , m_settings(QFile::exists(AppSettings::portableConfigName()) ? new QSettings(AppSettings::portableConfigName(), QSettings::IniFormat, this) : new QSettings(this))
 #endif
 {
+#ifdef Q_OS_WIN
+    // The installer records a request; Qt applies it to the active settings
+    // store (including portable INI files), once, without registry assumptions.
+    const QString local = qEnvironmentVariable("LOCALAPPDATA");
+    QFile descriptor(local + QStringLiteral("/Crow Translate/components.json"));
+    if (!local.isEmpty() && descriptor.open(QIODevice::ReadOnly)) {
+        const QJsonObject data = QJsonDocument::fromJson(descriptor.readAll()).object();
+        const QJsonObject request = data.value(QStringLiteral("defaults_request")).toObject();
+        const QString id = request.value(QStringLiteral("id")).toString();
+        if (!id.isEmpty() && id != m_settings->value(QStringLiteral("Installer/AppliedDefaults")).toString()) {
+            const bool newSettings = m_settings->allKeys().isEmpty();
+            const QString model = request.value(QStringLiteral("translation_model")).toString();
+            const QString modelRoot = OptionalComponents::root() + QStringLiteral("/local-translation");
+            if (LocalModelsTranslationProvider::modelIds().contains(model)
+                && data.value(QStringLiteral("installed")).toArray().contains(model)
+                && LocalModelsTranslationProvider::isInstalled(modelRoot, model)) {
+                setLocalModelsRoot(modelRoot);
+                setLocalModelsModel(model);
+                setTranslationProviderBackend(ATranslationProvider::ProviderBackend::LocalModels);
+            }
+            if (newSettings && request.value(QStringLiteral("indra_if_new")).toBool()
+                && data.value(QStringLiteral("installed")).toArray().contains(QStringLiteral("indra"))
+                && QFileInfo::exists(OptionalComponents::indraExecutable())
+                && QFileInfo::exists(OptionalComponents::indraModels() + QStringLiteral("/meta.json")))
+                setOcrEngine(OcrEngine::Indra);
+            m_settings->setValue(QStringLiteral("Installer/AppliedDefaults"), id);
+            m_settings->sync();
+        }
+    }
+#endif
 }
 
 void AppSettings::setupLocalization() const

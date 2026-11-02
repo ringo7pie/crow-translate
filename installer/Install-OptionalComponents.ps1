@@ -20,6 +20,10 @@ $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding utf8 | ConvertFr
 $catalogHash = (Get-FileHash -LiteralPath $catalogPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $defaultRoot = Join-Path $env:LOCALAPPDATA 'Crow Translate/Components'
 $descriptor = Join-Path $env:LOCALAPPDATA 'Crow Translate/components.json'
+$settingsKey = 'HKCU:\Software\crow-translate\crow-translate'
+$script:newInstallation = -not ((Test-Path -LiteralPath $settingsKey) -or
+    (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) 'settings.ini')) -or
+    (Test-Path -LiteralPath $descriptor))
 if ($DataRoot -eq '') {
     $DataRoot = $defaultRoot
     if (Test-Path -LiteralPath $descriptor) {
@@ -80,6 +84,11 @@ if ($Worker) {
             @($acceptance.components | Where-Object { $_ -notin $knownIds }).Count -gt 0) {
             throw '選択内容とライセンスへの明示的な同意を確認できません'
         }
+        $defaultProperty = $acceptance.PSObject.Properties['default_model']
+        if ($null -ne $defaultProperty -and (($defaultProperty.Value -isnot [string]) -or
+            ($defaultProperty.Value -ne '' -and ($defaultProperty.Value -eq 'indra' -or $defaultProperty.Value -notin $knownIds)))) {
+            throw '既定の翻訳モデルの指定が不正です'
+        }
         $DataRoot = [IO.Path]::GetFullPath($DataRoot)
         if ($DataRoot.TrimEnd('\','/') -eq [IO.Path]::GetPathRoot($DataRoot).TrimEnd('\','/')) { throw 'ドライブ直下は保存先に指定できません' }
         New-Item -ItemType Directory -Path $DataRoot -Force | Out-Null
@@ -115,9 +124,9 @@ if ($Worker) {
             Move-Item -LiteralPath $runtimeTemporary -Destination $runtimeTarget -Force
         }
         $pipPackage = Join-Path $downloads $catalog.pip.file
-        Get-VerifiedDownload $catalog.pip $pipPackage
         $pipModule = Join-Path $pythonRoot 'Lib/site-packages/pip/__main__.py'
         if (-not (Test-Path -LiteralPath (Join-Path $pythonRoot 'crow-pip.json'))) {
+            Get-VerifiedDownload $catalog.pip $pipPackage
             Expand-VerifiedArchive $pipPackage (Join-Path $pythonRoot 'Lib/site-packages')
             [IO.File]::WriteAllText((Join-Path $pythonRoot 'crow-pip.json'), ($catalog.pip | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
         }
@@ -150,7 +159,7 @@ $form.StartPosition = 'CenterScreen'
 $form.MinimumSize = $form.Size
 $form.MaximizeBox = $false
 $label = New-Object Windows.Forms.Label
-$label.Text = "導入する項目を選択してください。初期状態では何も選択していません。`n選択したモデルを配布元から取得します。共通環境は別途最大約2 GBです。"
+$label.Text = "導入する項目と、既定で使う翻訳モデルを選択してください。`nIndra・PLaMoを初期選択しています。共通環境は別途最大約2 GBです。"
 $label.SetBounds(18, 14, 770, 42)
 $form.Controls.Add($label)
 $choices = New-Object Windows.Forms.CheckedListBox
@@ -158,16 +167,47 @@ $choices.CheckOnClick = $true
 $choices.SetBounds(18, 62, 768, 112)
 foreach ($component in $catalog.components) {
     $extra = if ($component.id -eq 'plamo-2-translate') { ' / 変換時の空き容量80 GB以上' } else { '' }
-    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), $false)
+    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), ($component.id -in @('indra','plamo-2-translate')))
 }
 $form.Controls.Add($choices)
+$defaultLabel = New-Object Windows.Forms.Label
+$defaultLabel.Text = '既定で使う翻訳モデル（導入成功後、アプリの次回起動時に反映）'
+$defaultLabel.SetBounds(18, 180, 768, 22); $form.Controls.Add($defaultLabel)
+$defaultModel = New-Object Windows.Forms.ComboBox
+$defaultModel.DropDownStyle = 'DropDownList'
+$defaultModel.SetBounds(18, 204, 768, 28); $form.Controls.Add($defaultModel)
+$script:defaultIds = @()
+function Update-DefaultModels([int]$PendingIndex = -1, [bool]$PendingChecked = $false) {
+    $previous = if($defaultModel.SelectedIndex -ge 0){$script:defaultIds[$defaultModel.SelectedIndex]}else{$null}
+    $installedState = $null
+    try {
+        if(-not [string]::IsNullOrWhiteSpace($destination.Text)){
+            $statePath = Join-Path $destination.Text 'installed-components.json'
+            if(Test-Path -LiteralPath $statePath){$installedState=Get-Content -LiteralPath $statePath -Raw -Encoding utf8|ConvertFrom-Json}
+        }
+    }catch{}
+    $defaultModel.Items.Clear(); $script:defaultIds = @('')
+    [void]$defaultModel.Items.Add('既定を変更しない')
+    for($i=0;$i -lt $catalog.components.Count;$i++){
+        $component=$catalog.components[$i]
+        if($component.id -eq 'indra'){continue}
+        $checked=if($i -eq $PendingIndex){$PendingChecked}else{$choices.GetItemChecked($i)}
+        $already=($null -ne $installedState -and $null -ne $installedState.PSObject.Properties[$component.id] -and
+            (Test-Path -LiteralPath (Join-Path $destination.Text ('local-translation/models/'+$component.model_file))))
+        if($checked -or $already){
+            $script:defaultIds += $component.id
+            [void]$defaultModel.Items.Add($component.name + $(if($already){'（導入済み・実行時に検証）'}else{''}))
+        }
+    }
+    if($null -ne $previous){$defaultModel.SelectedIndex=[Array]::IndexOf($script:defaultIds,$previous)}
+}
 $licenseLabel = New-Object Windows.Forms.Label
 $licenseLabel.Text = '項目をクリックすると利用条件とライセンス全文を表示します。'
-$licenseLabel.SetBounds(18, 182, 768, 36)
+$licenseLabel.SetBounds(18, 238, 768, 32)
 $form.Controls.Add($licenseLabel)
 $license = New-Object Windows.Forms.TextBox
 $license.Multiline = $true; $license.ReadOnly = $true; $license.ScrollBars = 'Vertical'
-$license.SetBounds(18, 222, 768, 230)
+$license.SetBounds(18, 274, 768, 178)
 $form.Controls.Add($license)
 $choices.Add_SelectedIndexChanged({
     if ($choices.SelectedIndex -lt 0) { return }
@@ -189,7 +229,10 @@ $eligibility = New-Object Windows.Forms.CheckBox
 $eligibility.Text = "Indra / PLaMoを選ぶ場合、表示された用途・商用条件を満たすか、`n必要な登録・商用許諾を取得済みであることを確認しました。"
 $eligibility.SetBounds(18, 490, 768, 44)
 $form.Controls.Add($eligibility)
-$choices.Add_ItemCheck({ $accept.Checked=$false; $eligibility.Checked=$false })
+$choices.Add_ItemCheck({ param($sender,$eventArgs)
+    $accept.Checked=$false; $eligibility.Checked=$false
+    Update-DefaultModels $eventArgs.Index ($eventArgs.NewValue -eq [Windows.Forms.CheckState]::Checked)
+})
 $destinationLabel = New-Object Windows.Forms.Label
 $destinationLabel.Text = '追加機能の保存先（アプリ本体とは別に保存します）'
 $destinationLabel.SetBounds(18, 542, 760, 22)
@@ -197,6 +240,9 @@ $form.Controls.Add($destinationLabel)
 $destination = New-Object Windows.Forms.TextBox
 $destination.Text = $DataRoot; $destination.SetBounds(18, 568, 660, 24)
 $form.Controls.Add($destination)
+$destination.Add_TextChanged({Update-DefaultModels})
+Update-DefaultModels
+$defaultModel.SelectedIndex = if($script:newInstallation){[Array]::IndexOf($script:defaultIds,'plamo-2-translate')}else{0}
 $browse = New-Object Windows.Forms.Button
 $browse.Text = '参照...'; $browse.SetBounds(690, 566, 96, 28)
 $browse.Add_Click({ $dialog = New-Object Windows.Forms.FolderBrowserDialog; $dialog.SelectedPath=$destination.Text; if($dialog.ShowDialog() -eq 'OK'){$destination.Text=$dialog.SelectedPath}; $dialog.Dispose() })
@@ -219,6 +265,10 @@ $timer = New-Object Windows.Forms.Timer
 $timer.Interval = 300
 $install.Add_Click({
     $selected = @(); for($i=0; $i -lt $choices.Items.Count; $i++){ if($choices.GetItemChecked($i)){ $selected += $catalog.components[$i].id } }
+    if ($defaultModel.SelectedIndex -lt 0) {
+        [void][Windows.Forms.MessageBox]::Show('既定モデル、または「既定を変更しない」を選択してください。',$form.Text)
+        return
+    }
     if ($selected.Count -eq 0 -or -not $accept.Checked -or
         ((('indra' -in $selected) -or ('plamo-2-translate' -in $selected)) -and -not $eligibility.Checked)) {
         [void][Windows.Forms.MessageBox]::Show('導入する項目を選択し、ライセンスと必要な利用条件への同意を確認してください。', $form.Text)
@@ -231,7 +281,8 @@ $install.Add_Click({
         $runId = [guid]::NewGuid().ToString('N')
         $script:receiptPath = Join-Path $chosenRoot ('consent-' + $runId + '.json')
         $script:progressPath = Join-Path $chosenRoot ('progress-' + $runId + '.json')
-        $receiptData = @{ accepted=$true; catalog_sha256=$catalogHash; components=$selected; accepted_at=[DateTimeOffset]::UtcNow.ToString('o') }
+        $receiptData = @{ accepted=$true; catalog_sha256=$catalogHash; components=$selected; accepted_at=[DateTimeOffset]::UtcNow.ToString('o');
+                          default_model=$script:defaultIds[$defaultModel.SelectedIndex]; new_installation=$script:newInstallation }
         [IO.File]::WriteAllText($script:receiptPath, ($receiptData | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
         $arguments = @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File', $PSCommandPath,
                        '-Worker','-DataRoot',$chosenRoot,'-Receipt',$script:receiptPath,'-ProgressFile',$script:progressPath)
@@ -239,7 +290,7 @@ $install.Add_Click({
         $shell = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
         $script:setupJob = [CrowSetupJob]::new($shell, [string[]]$arguments, $PSScriptRoot)
         $script:finished = $false
-        foreach($control in @($choices,$accept,$eligibility,$destination,$browse,$install)){ $control.Enabled=$false }
+        foreach($control in @($choices,$defaultModel,$accept,$eligibility,$destination,$browse,$install)){ $control.Enabled=$false }
         $close.Text='中止'; $status.Text='共通環境を準備しています...'; $bar.Style='Marquee'; $timer.Start()
     } catch { [void][Windows.Forms.MessageBox]::Show($_.Exception.Message,$form.Text) }
 })
@@ -254,13 +305,20 @@ $timer.Add_Tick({
     }
     if (-not $script:setupJob.IsRunning) {
         $timer.Stop(); $exitCode=$script:setupJob.ExitCode; $script:setupJob.Dispose(); $script:setupJob=$null
-        if($exitCode -eq 0){$status.Text='導入が完了しました。Crow TranslateでOCRエンジン・翻訳モデルを選択してください。';$bar.Style='Continuous';$bar.Value=100}
+        if($exitCode -eq 0){
+            $bar.Style='Continuous';$bar.Value=100
+            try{
+                $finishedState=Get-Content -LiteralPath $script:progressPath -Raw -Encoding utf8|ConvertFrom-Json
+                $status.Text=$finishedState.message
+                if(@($finishedState.warnings).Count -gt 0){[void][Windows.Forms.MessageBox]::Show(($finishedState.warnings -join "`r`n"),$form.Text)}
+            }catch{$status.Text='導入が完了しました。既定設定はCrow Translateの次回起動時に反映されます。'}
+        }
         else{
             $details=$status.Text
-            try{$failed=Get-Content -LiteralPath $script:progressPath -Raw -Encoding utf8|ConvertFrom-Json; if($failed.failures){$details=($failed.failures.PSObject.Properties|ForEach-Object{$_.Name+': '+$_.Value}) -join "`r`n"}}catch{}
+            try{$failed=Get-Content -LiteralPath $script:progressPath -Raw -Encoding utf8|ConvertFrom-Json; if($failed.failures){$details=($failed.failures.PSObject.Properties|ForEach-Object{$_.Name+': '+$_.Value}) -join "`r`n"}; if($failed.PSObject.Properties['warnings']){$details+="`r`n"+($failed.warnings -join "`r`n")}}catch{}
             $status.Text='追加導入を完了できませんでした。導入済みの項目を残して再試行できます。'
             [void][Windows.Forms.MessageBox]::Show(($details+"`r`n保存先のoptional-install.log / optional-bootstrap.logも参照できます。"),$form.Text)
-            foreach($control in @($choices,$accept,$eligibility,$destination,$browse,$install)){ $control.Enabled=$true }
+            foreach($control in @($choices,$defaultModel,$accept,$eligibility,$destination,$browse,$install)){ $control.Enabled=$true }
             $install.Text='再試行'
         }
         $close.Text='閉じる'; $script:finished=$true

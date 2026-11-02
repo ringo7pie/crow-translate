@@ -1,8 +1,11 @@
-Windows release build information: 4.1.0-local.3
+Windows release build information: 4.1.0-local.4
 =============================================
 
-This release adds detection of the optional setup's data directory and private
-embeddable Python. Existing explicitly configured paths remain unchanged.
+This release adds selection of a default translation model and cleanup of verified
+download/conversion inputs. The installer writes a one-time defaults request to
+the per-user components.json descriptor. Qt applies it on the next application
+start to the active native or portable settings store. Existing OCR settings are
+preserved; a selected translation default explicitly changes the backend/model.
 The release tag contains application sources, installer and setup scripts,
 license manifests, and deployment documentation.
 
@@ -41,7 +44,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.3
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.4
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:

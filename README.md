@@ -17,6 +17,10 @@ Windows build/installer support, and replacement application icons.
 Modified on **2026-11-02**: added an optional installer for Indra OCR and each
 translation model, with license consent, private Python, resumable verified
 downloads, cancellation and automatic detection of the selected data directory.
+The setup now offers a default translation model selector and removes verified
+download archives and PLaMo conversion inputs after successful installation.
+Indra and PLaMo start selected; existing application settings stay unchanged
+unless a default translation model is explicitly chosen.
 Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
 PFN registration and other conditions for commercial use; the optional setup
 shows the full model licenses and checks consent before downloading any model.
@@ -377,10 +381,15 @@ Windows x64 installers for this unofficial fork are available on the
 Download the `crow-translate-*-setup.exe` asset. The installer includes Qt,
 Tesseract, English/Japanese OCR data, Visual C++ runtime DLLs and license notices.
 The installer asks whether to open the optional setup for Indra OCR and each local
-translation model. All optional items start unselected. Review the displayed
+translation model. Indra and PLaMo start selected; license consent starts unchecked.
+Choose a default translation model from selected or installed models, or keep
+the existing default. Settings apply on the next application start after the
+model has been verified. Review the displayed
 capacity, full licenses and eligibility conditions before agreeing to install.
 Python is provisioned privately; PLaMo is downloaded from PFN and converted on
-the recipient's PC (80 GB free space required). Select No to skip all model and
+the recipient's PC (80 GB free space required). Verified conversion inputs and
+download archives are removed after success; interrupted downloads are kept for
+retry. Runtime files, licenses and installation records remain. Select No to skip all model and
 Python downloads. The Start menu can reopen the optional setup later. Codex CLI
 remains a separate installation. See `README-Windows.txt` for details. Matching
 application and dependency source archives and SHA-256 checksums accompany each

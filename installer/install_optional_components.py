@@ -10,11 +10,13 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import time
+import uuid
 import urllib.error
 import urllib.request
 import zipfile
@@ -50,6 +52,7 @@ def safe_path(root, relative):
 
 def extract_zip(archive, destination, strip_root=False, include=None):
     destination.mkdir(parents=True, exist_ok=True)
+    extracted = []
     with zipfile.ZipFile(archive) as package:
         for item in package.infolist():
             if item.is_dir():
@@ -65,8 +68,15 @@ def extract_zip(archive, destination, strip_root=False, include=None):
                 raise ValueError('ZIPのシンボリックリンクは展開しません')
             path = safe_path(destination, relative)
             path.parent.mkdir(parents=True, exist_ok=True)
+            if path.exists():
+                with package.open(item) as source:
+                    expected = hashlib.file_digest(source, 'sha256').hexdigest()
+                if sha256(path) != expected:
+                    raise ValueError('変更された変換用ファイルを保持しました: ' + str(path))
             with package.open(item) as source, path.open('wb') as output:
                 shutil.copyfileobj(source, output)
+            extracted.append(path)
+    return extracted
 
 
 def download(record, target, progress=lambda *args: None, opener=urllib.request.urlopen):
@@ -130,25 +140,30 @@ class Installer:
         self.progress_path = Path(progress_path)
         self.configure = configure
         self.selected = receipt.get('components', [])
+        self.default_model = receipt.get('default_model', '')
         self.components = {c['id']: c for c in self.catalog['components']}
         if (not self.selected or len(set(self.selected)) != len(self.selected)
                 or set(self.selected) - self.components.keys()
                 or receipt.get('catalog_sha256') != sha256(self.catalog_path)
                 or receipt.get('accepted') is not True):
             raise ValueError('選択内容とライセンスへの明示的な同意を確認できません')
+        if not isinstance(self.default_model, str) or (self.default_model and
+                (self.default_model not in self.components or self.default_model == 'indra')):
+            raise ValueError('既定の翻訳モデルの指定が不正です')
         if self.root == Path(self.root.anchor):
             raise ValueError('ドライブ直下は保存先に指定できません')
         self.root.mkdir(parents=True, exist_ok=True)
         self.python = self.root/'local-translation/venv/python.exe'
         self.receipt = receipt
         self.prepared_packages = set()
+        self.warnings = []
         self.env = os.environ.copy()
         for key in list(self.env):
             if key.upper().startswith(('PIP_', 'PYTHON')):
                 self.env.pop(key)
-        self.env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8', PYTHONNOUSERSITE='1',
+        self.env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8', PYTHONNOUSERSITE='1', PYTHONDONTWRITEBYTECODE='1',
                         PIP_CONFIG_FILE=os.devnull, PIP_DISABLE_PIP_VERSION_CHECK='1',
-                        PIP_CACHE_DIR=str(self.root/'downloads/pip'))
+                        PIP_NO_CACHE_DIR='1')
         self.log = (self.root/'optional-install.log').open('a', encoding='utf-8')
 
     def status(self, message, percent=-1, **extra):
@@ -170,7 +185,95 @@ class Installer:
             self.prepared_packages.add(package_set)
 
     def get(self, record, relative=None):
+        path = relative or record['file']
+        if path.startswith(('downloads/', 'local-translation/sources/')):
+            self.remember_cleanup(path, record['sha256'])
         return download(record, safe_path(self.root, relative or record['file']), self.status)
+
+    def remember_cleanup(self, relative, digest):
+        self.remember_cleanup_files({relative: digest})
+
+    def remember_cleanup_files(self, files):
+        ledger = self.root/'cleanup-files.json'
+        records = json.loads(ledger.read_text(encoding='utf-8')) if ledger.exists() else {}
+        records.update(files)
+        write_json(ledger, records)
+
+    def cleanup(self, prefixes):
+        """Delete only inventoried, unchanged files, never through a reparse point."""
+        ledger = self.root/'cleanup-files.json'
+        records = json.loads(ledger.read_text(encoding='utf-8')) if ledger.exists() else {}
+        for relative, digest in list(records.items()):
+            if not any(relative == prefix or relative.startswith(prefix + '/') for prefix in prefixes):
+                continue
+            try:
+                if Path(relative).is_absolute() or '..' in Path(relative).parts:
+                    raise ValueError('削除対象の相対パスが不正です: ' + relative)
+                path = safe_path(self.root, relative)
+                lexical = self.root/relative
+                for parent in [lexical, *lexical.parents]:
+                    if parent == self.root:
+                        break
+                    if parent.is_symlink() or (hasattr(parent, 'is_junction') and parent.is_junction()):
+                        raise ValueError('リンク経由の削除は行いません: ' + relative)
+                if path.exists():
+                    if not path.is_file() or sha256(path) != digest:
+                        raise ValueError('変更されたファイルを保持しました: ' + relative)
+                    path.unlink()
+                del records[relative]
+                # Only remove empty directories under the verified installation root.
+                parent = path.parent
+                while parent != self.root and parent.is_relative_to(self.root):
+                    try:
+                        parent.rmdir()
+                    except OSError:
+                        break
+                    parent = parent.parent
+            except (OSError, ValueError) as error:
+                self.warnings.append(str(error))
+        write_json(ledger, records)
+
+    def cleanup_plamo(self):
+        # Migrate known leftovers from earlier releases, without removing other
+        # files placed in the source directory by the user.
+        files = {record['file']: record['sha256'] for record in self.components['plamo-2-translate']['files']}
+        record = self.catalog.get('llama_source')
+        archive = self.root/'downloads/llama-source.zip'
+        if record and archive.is_file() and sha256(archive) == record['sha256']:
+            with zipfile.ZipFile(archive) as package:
+                for item in package.infolist():
+                    name = item.filename.partition('/')[2]
+                    if not item.is_dir() and name:
+                        files['local-translation/sources/llama.cpp/' + name] = hashlib.sha256(package.read(item)).hexdigest()
+        self.remember_cleanup_files(files)
+        self.cleanup(['local-translation/sources', 'local-translation/models/plamo-2-translate-installer-F16.gguf'])
+
+    def cleanup_downloads(self):
+        for key in ('python', 'pip', 'torch_cpu', 'llama_source'):
+            record = self.catalog.get(key)
+            if record:
+                self.remember_cleanup('downloads/' + record['file'], record['sha256'])
+        # The previous installer owned this private pip cache. Only recognize
+        # pip's hashed cache layout; keep unrelated files in the same folder.
+        cache = self.root/'downloads/pip'
+        if cache.exists() and not cache.is_symlink() and not (hasattr(cache, 'is_junction') and cache.is_junction()):
+            for path in cache.rglob('*'):
+                name = path.relative_to(cache).as_posix()
+                if path.is_file() and re.fullmatch(r'http-v2/(?:[0-9a-f]/){5}[0-9a-f]{56}(?:\.body)?', name):
+                    self.remember_cleanup(path.relative_to(self.root).as_posix(), sha256(path))
+        self.cleanup(['downloads'])
+
+    def verified_model(self, cid, state):
+        component = self.components[cid]
+        if cid not in state:
+            return False
+        if component.get('format') == 'plamo':
+            path = safe_path(self.root, 'local-translation/models/' + component['model_file'])
+            expected = state[cid].get('generated_sha256')
+            return bool(expected and path.is_file() and sha256(path) == expected)
+        return all(safe_path(self.root, record['file']).is_file() and
+                   sha256(safe_path(self.root, record['file'])) == record['sha256']
+                   for record in component['files'])
 
     def runtime(self, python_only=False):
         runtime = json.loads((self.bundle/'runtime-manifest.json').read_text(encoding='utf-8'))
@@ -241,8 +344,9 @@ class Installer:
         source = self.root/'local-translation/sources/llama.cpp'
         # The web UI and test data are unnecessary for conversion and contain
         # filenames exceeding the Windows path limit under a long install path.
-        extract_zip(package, source, strip_root=True,
-                    include=('convert_hf_to_gguf.py', 'conversion', 'gguf-py/gguf', 'LICENSE'))
+        extracted = extract_zip(package, source, strip_root=True,
+                                include=('convert_hf_to_gguf.py', 'conversion', 'gguf-py/gguf', 'LICENSE'))
+        self.remember_cleanup_files({path.relative_to(self.root).as_posix(): sha256(path) for path in extracted})
         models = self.root/'local-translation/models'
         models.mkdir(parents=True, exist_ok=True)
         f16 = models/'plamo-2-translate-installer-F16.gguf'
@@ -261,8 +365,8 @@ class Installer:
             if stream.read(4) != b'GGUF' or partial.stat().st_size < 1_000_000_000:
                 raise ValueError('PLaMoの変換結果が不正です')
         digest = sha256(partial)
+        self.remember_cleanup(f16.relative_to(self.root).as_posix(), sha256(f16))
         partial.replace(output)
-        f16.unlink()
         return {'generated_sha256': digest, 'conversion': 'Q4_0-ssm-f16'}
 
     def install(self):
@@ -282,6 +386,10 @@ class Installer:
         failures, completed = {}, []
         state_path = self.root/'installed-components.json'
         state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
+        # A non-selected default must already be a verified installed model.
+        if self.default_model and self.default_model not in self.selected:
+            if not self.verified_model(self.default_model, state):
+                raise ValueError('既定モデルは導入対象または検証済み導入済みモデルから選択してください')
         for cid in self.selected:
             try:
                 extra = self.install_component(self.components[cid])
@@ -289,16 +397,46 @@ class Installer:
                               'accepted_at': self.receipt.get('accepted_at'),
                               'catalog_sha256': sha256(self.catalog_path), **extra}
                 write_json(state_path, state)
-                completed.append(cid)
                 if self.configure:
                     descriptor = Path(os.environ['LOCALAPPDATA'])/'Crow Translate/components.json'
-                    write_json(descriptor, {'root': str(self.root), 'installed': list(state)})
+                    previous = json.loads(descriptor.read_text(encoding='utf-8')) if descriptor.exists() else {}
+                    write_json(descriptor, {**previous, 'root': str(self.root), 'installed': list(state)})
+                completed.append(cid)
+                if cid == 'plamo-2-translate':
+                    try:
+                        self.cleanup_plamo()
+                    except (OSError, ValueError) as error:
+                        self.warnings.append('変換元ファイルの整理を完了できませんでした: ' + str(error))
             except Exception as error:
                 failures[cid] = str(error)
                 self.log.write('\nERROR ' + cid + ': ' + repr(error) + '\n')
                 self.log.flush()
-        self.status('完了しました' if not failures else '一部の追加機能をインストールできませんでした',
-                    100, done=True, completed=completed, failures=failures)
+        default_applied = False
+        if self.configure and completed:
+            descriptor = Path(os.environ['LOCALAPPDATA'])/'Crow Translate/components.json'
+            data = json.loads(descriptor.read_text(encoding='utf-8'))
+            model = self.default_model if self.default_model and self.default_model not in failures else ''
+            if model and not self.verified_model(model, state):
+                self.warnings.append('既定モデルの検証に失敗したため設定を維持しました')
+                model = ''
+            fresh_indra = self.receipt.get('new_installation') is True and 'indra' in completed
+            if model or fresh_indra:
+                data['defaults_request'] = {'id': str(uuid.uuid4()), 'translation_model': model,
+                                            'indra_if_new': fresh_indra}
+                write_json(descriptor, data)
+                default_applied = bool(model)
+        if self.default_model in failures:
+            self.warnings.append('選択した既定モデルの導入に失敗しました。現在の設定を維持します')
+        if not failures:
+            try:
+                self.cleanup_downloads()
+            except (OSError, ValueError) as error:
+                self.warnings.append('ダウンロードファイルの整理を完了できませんでした: ' + str(error))
+        message = '完了しました。既定設定はCrow Translateの次回起動時に反映されます。' if not failures else '一部の追加機能をインストールできませんでした'
+        if self.warnings:
+            message += ' 注意: ' + ' / '.join(self.warnings)
+        self.status(message, 100, done=True, completed=completed, failures=failures,
+                    warnings=self.warnings, default_model=model if default_applied else '')
         self.log.close()
         return 1 if failures else 0
 

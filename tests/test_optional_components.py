@@ -4,6 +4,8 @@ import hashlib
 from io import BytesIO
 import importlib.util
 import json
+import os
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -23,6 +25,14 @@ class Response(BytesIO):
 
 
 class OptionalSetupTest(unittest.TestCase):
+    def setup_installer(self, base, selected=None, default_model='', configure=False):
+        catalog=base/'catalog.json'
+        components=[{'id':cid,'free_bytes':0,'files':[],'revision':'test'} for cid in ['index','hy','indra']]
+        catalog.write_text(json.dumps({'components':components}),encoding='utf-8')
+        receipt={'accepted':True,'components':selected or ['index'],'catalog_sha256':module.sha256(catalog),
+                 'default_model':default_model,'new_installation':True}
+        return module.Installer(catalog,base/'models',receipt,base/'progress.json',configure=configure)
+
     def record(self, data=b'complete verified model'):
         return {'file':'model.gguf', 'size':len(data), 'url':'https://example.invalid/model',
                 'sha256':hashlib.sha256(data).hexdigest()}
@@ -124,6 +134,165 @@ class OptionalSetupTest(unittest.TestCase):
             self.assertIn('seed',progress['failures'])
             saved=json.loads((base/'models/installed-components.json').read_text(encoding='utf-8'))
             self.assertEqual(list(saved),['index'])
+
+    def test_selected_default_is_recorded_after_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory)
+            setup=self.setup_installer(base,['index','indra'],'index',True)
+            with patch.dict(os.environ,{'LOCALAPPDATA':str(base/'appdata')}), patch.object(setup,'install_component',return_value={}):
+                self.assertEqual(setup.install(),0)
+            descriptor=json.loads((base/'appdata/Crow Translate/components.json').read_text(encoding='utf-8'))
+            self.assertEqual(descriptor['defaults_request']['translation_model'],'index')
+            self.assertTrue(descriptor['defaults_request']['indra_if_new'])
+
+    def test_failed_default_does_not_replace_previous_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base,['index','hy'],'hy',True)
+            descriptor=base/'appdata/Crow Translate/components.json'
+            module.write_json(descriptor,{'defaults_request':{'id':'previous'}})
+            def install(component):
+                if component['id']=='hy': raise OSError('interrupted')
+                return {}
+            with patch.dict(os.environ,{'LOCALAPPDATA':str(base/'appdata')}), patch.object(setup,'install_component',side_effect=install):
+                self.assertEqual(setup.install(),1)
+            self.assertEqual(json.loads(descriptor.read_text())['defaults_request']['id'],'previous')
+
+    def test_unselected_default_requires_verified_installation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base,['index'],'hy')
+            try:
+                with patch.object(setup,'install_component',side_effect=AssertionError('must validate first')):
+                    with self.assertRaises(ValueError): setup.install()
+            finally: setup.log.close()
+
+    def test_existing_verified_default_can_be_selected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base,['index'],'hy',True)
+            module.write_json(setup.root/'installed-components.json',{'hy':{'revision':'test'}})
+            with patch.dict(os.environ,{'LOCALAPPDATA':str(base/'appdata')}), patch.object(setup,'install_component',return_value={}):
+                self.assertEqual(setup.install(),0)
+            descriptor=json.loads((base/'appdata/Crow Translate/components.json').read_text(encoding='utf-8'))
+            self.assertEqual(descriptor['defaults_request']['translation_model'],'hy')
+
+    def test_no_change_preserves_settings_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base,configure=True)
+            descriptor=base/'appdata/Crow Translate/components.json'
+            module.write_json(descriptor,{'defaults_request':{'id':'keep'}})
+            with patch.dict(os.environ,{'LOCALAPPDATA':str(base/'appdata')}), patch.object(setup,'install_component',return_value={}):
+                self.assertEqual(setup.install(),0)
+            self.assertEqual(json.loads(descriptor.read_text())['defaults_request']['id'],'keep')
+
+    def test_cleanup_removes_only_unchanged_managed_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            try:
+                downloads=setup.root/'downloads'; downloads.mkdir()
+                for name in ['archive.zip','changed.zip','user.txt']:
+                    (downloads/name).write_bytes(b'original')
+                setup.remember_cleanup('downloads/archive.zip',module.sha256(downloads/'archive.zip'))
+                setup.remember_cleanup('downloads/changed.zip',module.sha256(downloads/'changed.zip'))
+                (downloads/'changed.zip').write_bytes(b'user changes')
+                setup.cleanup(['downloads'])
+                self.assertFalse((downloads/'archive.zip').exists())
+                self.assertEqual((downloads/'changed.zip').read_bytes(),b'user changes')
+                self.assertTrue((downloads/'user.txt').exists())
+                self.assertEqual(len(setup.warnings),1)
+            finally: setup.log.close()
+
+    def test_cleanup_rejects_paths_outside_installation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            try:
+                outside=base/'outside'; outside.write_bytes(b'user data')
+                setup.remember_cleanup('../outside',module.sha256(outside))
+                setup.cleanup(['../outside'])
+                self.assertTrue(outside.exists())
+                self.assertTrue(setup.warnings)
+            finally: setup.log.close()
+
+    def test_cleanup_failure_is_warning_and_retries_later(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            try:
+                target=setup.root/'archive'; target.write_bytes(b'archive')
+                setup.remember_cleanup('archive',module.sha256(target))
+                with patch.object(Path,'unlink',side_effect=PermissionError('locked')):
+                    setup.cleanup(['archive'])
+                self.assertTrue(target.exists()); self.assertTrue(setup.warnings)
+                setup.cleanup(['archive'])
+                self.assertFalse(target.exists())
+            finally: setup.log.close()
+
+    def test_failed_install_keeps_downloads_for_resume(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            downloads=setup.root/'downloads'; downloads.mkdir(); target=downloads/'archive.zip'; target.write_bytes(b'cached')
+            setup.remember_cleanup('downloads/archive.zip',module.sha256(target))
+            with patch.object(setup,'install_component',side_effect=OSError('offline')):
+                self.assertEqual(setup.install(),1)
+            self.assertTrue(target.exists())
+
+    def test_success_removes_downloads_but_preserves_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            target=setup.root/'downloads/archive.zip'; target.parent.mkdir(); target.write_bytes(b'cached')
+            runtime=setup.root/'local-translation/venv/python.exe'; runtime.parent.mkdir(parents=True); runtime.write_bytes(b'python')
+            setup.remember_cleanup('downloads/archive.zip',module.sha256(target))
+            with patch.object(setup,'install_component',return_value={}): self.assertEqual(setup.install(),0)
+            self.assertFalse(target.exists()); self.assertTrue(runtime.exists())
+
+    def test_cleanup_keeps_model_inputs_until_conversion_is_committed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            source=setup.root/'local-translation/sources/plamo-weights/model.safetensors'
+            source.parent.mkdir(parents=True); source.write_bytes(b'original weights')
+            record={'file':source.relative_to(setup.root).as_posix(),'sha256':module.sha256(source)}
+            setup.components['plamo-2-translate']={'id':'plamo-2-translate','free_bytes':0,'files':[record],'revision':'test','model_file':'final.gguf'}
+            setup.selected=['plamo-2-translate']
+            setup.remember_cleanup(record['file'],record['sha256'])
+            with patch.object(setup,'install_component',side_effect=OSError('quantization failed')):
+                self.assertEqual(setup.install(),1)
+            self.assertTrue(source.exists())
+
+    def test_completed_conversion_cleans_known_legacy_inputs_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            try:
+                source=setup.root/'local-translation/sources/plamo-weights/model.safetensors'
+                source.parent.mkdir(parents=True); source.write_bytes(b'original weights')
+                note=source.with_name('my-note.txt'); note.write_text('keep')
+                record={'file':source.relative_to(setup.root).as_posix(),'sha256':module.sha256(source)}
+                setup.components['plamo-2-translate']={'files':[record]}
+                setup.cleanup_plamo()
+                self.assertFalse(source.exists()); self.assertEqual(note.read_text(),'keep')
+            finally: setup.log.close()
+
+    def test_cleanup_removes_legacy_pip_cache_but_keeps_unrelated_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            try:
+                cache=setup.root/'downloads/pip'
+                target=cache/('http-v2/a/b/c/d/e/'+'abcde'+'0'*51+'.body')
+                target.parent.mkdir(parents=True); target.write_bytes(b'cached wheel')
+                note=cache/'my-note.txt'; note.write_text('keep')
+                setup.cleanup_downloads()
+                self.assertFalse(target.exists()); self.assertTrue(note.exists())
+            finally: setup.log.close()
+
+    @unittest.skipUnless(os.name=='nt','Windows junction protection')
+    def test_cleanup_cannot_follow_junction_outside_installation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory); setup=self.setup_installer(base)
+            outside=base/'user-files'; outside.mkdir(); target=outside/'model'; target.write_bytes(b'keep')
+            link=setup.root/'linked'
+            subprocess.run(['cmd.exe','/d','/c','mklink','/J',str(link),str(outside)],check=True,capture_output=True)
+            try:
+                setup.remember_cleanup('linked/model',module.sha256(target))
+                setup.cleanup(['linked'])
+                self.assertTrue(target.exists()); self.assertTrue(setup.warnings)
+            finally:
+                setup.log.close(); os.rmdir(link)
 
 
 if __name__ == '__main__':
