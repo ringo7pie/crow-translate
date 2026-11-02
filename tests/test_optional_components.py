@@ -25,6 +25,41 @@ class Response(BytesIO):
 
 
 class OptionalSetupTest(unittest.TestCase):
+    @unittest.skipUnless(os.name=='nt','Windows CUDA driver')
+    def test_cuda_extracts_only_pinned_members_and_cleans_verified_downloads(self):
+        import ctypes
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);setup=self.setup_installer(base)
+            contents=b'pinned backend'
+            archive_path=setup.root/'downloads/cuda.zip';archive_path.parent.mkdir()
+            with zipfile.ZipFile(archive_path,'w') as archive:
+                archive.writestr('ggml-cuda.dll',contents)
+                archive.writestr('unneeded.exe',b'never extract')
+            record={'file':'cuda.zip','sha256':module.sha256(archive_path),'size':archive_path.stat().st_size,
+                    'members':[{'archive_file':'ggml-cuda.dll','file':'local-translation/runtime/cuda/ggml-cuda.dll',
+                                'sha256':hashlib.sha256(contents).hexdigest()}]}
+            setup.catalog['cuda']={'archives':[record]}
+            def devices(count): count._obj.value=1;return 0
+            driver=SimpleNamespace(cuInit=lambda flags:0,cuDeviceGetCount=devices)
+            try:
+                with patch.object(ctypes,'WinDLL',return_value=driver):setup.cuda_runtime()
+                self.assertEqual((setup.root/'local-translation/runtime/cuda/ggml-cuda.dll').read_bytes(),contents)
+                self.assertFalse((setup.root/'local-translation/runtime/cuda/unneeded.exe').exists())
+                setup.cleanup_downloads();self.assertFalse(archive_path.exists())
+                self.assertTrue((setup.root/'local-translation/runtime/cuda/ggml-cuda.dll').exists())
+            finally:setup.log.close()
+
+    @unittest.skipUnless(os.name=='nt','Windows CUDA driver')
+    def test_missing_nvidia_driver_never_downloads_cuda(self):
+        import ctypes
+        with tempfile.TemporaryDirectory() as directory:
+            setup=self.setup_installer(Path(directory));setup.catalog['cuda']={'archives':[{}]}
+            try:
+                with patch.object(ctypes,'WinDLL',side_effect=OSError('no driver')),patch.object(setup,'get',side_effect=AssertionError('unexpected download')):
+                    setup.cuda_runtime()
+            finally:setup.log.close()
+
     def setup_installer(self, base, selected=None, default_model='', configure=False):
         catalog=base/'catalog.json'
         components=[{'id':cid,'free_bytes':0,'files':[],'revision':'test'} for cid in ['index','hy','indra']]

@@ -120,7 +120,8 @@ bool LocalModelsTranslationProvider::isInstalled(const QString &root, const QStr
     const QString file = modelFile(id);
     return !file.isEmpty() && QFileInfo::exists(OptionalComponents::python(root)) && QFileInfo::exists(root + server)
         && QFileInfo::exists(root + QStringLiteral("/models/") + file)
-        && (id != QLatin1String("seed-x-ppo-7b") || QFileInfo::exists(root + QStringLiteral("/tokenizers/seed-x-ppo-7b/tokenizer.json")));
+        && ((id != QLatin1String("seed-x-ppo-7b") && id != QLatin1String("cat-translate-3.3b"))
+            || QFileInfo::exists(root + QStringLiteral("/tokenizers/") + id + QStringLiteral("/tokenizer.json")));
 }
 
 LocalModelsTranslationProvider::LocalModelsTranslationProvider(QObject *parent)

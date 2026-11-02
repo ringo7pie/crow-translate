@@ -98,6 +98,7 @@ private slots:
         if (valid) {
             QVERIFY(touch(QStringLiteral("local-translation/models/") + LocalModelsTranslationProvider::modelFile(model)));
             QVERIFY(touch(QStringLiteral("local-translation/tokenizers/seed-x-ppo-7b/tokenizer.json")));
+            QVERIFY(touch(QStringLiteral("local-translation/tokenizers/cat-translate-3.3b/tokenizer.json")));
         }
         const QString descriptor = directory.path() + QStringLiteral("/Crow Translate/components.json");
         QDir().mkpath(QFileInfo(descriptor).absolutePath());

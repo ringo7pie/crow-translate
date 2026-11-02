@@ -79,16 +79,20 @@ def models():
         if model["format"] == "plamo":
             snapshot_download(model["repo"], revision=model["revision"], local_dir=str(ROOT / "sources/plamo-weights"),
                               allow_patterns=["*.safetensors", "*.json", "*.jsonl", "*.py", "*.model", "*.txt", "*.md", "LICENSE*"], max_workers=4)
+        elif model.get('download_url'):
+            target = download(model['download_url'], ROOT/'models'/model['file'])
+            if hashlib.file_digest(target.open('rb'), 'sha256').hexdigest() != model['sha256']:
+                raise ValueError('Model checksum mismatch: ' + model['id'])
         else:
             hf_hub_download(model["repo"], model["file"], revision=model["revision"], local_dir=str(ROOT / "models"))
-            if model.get("tokenizer_repo"):
-                hf_hub_download(model["tokenizer_repo"], "tokenizer.json", revision=model["tokenizer_revision"],
-                                local_dir=str(ROOT / "tokenizers" / model["id"]))
             for name in ["README.md", "LICENSE"]:
                 try:
                     hf_hub_download(model["repo"], name, revision=model["revision"], local_dir=str(ROOT / "licenses" / model["id"]))
                 except Exception:
                     pass  # Not all repositories have a standalone license file.
+        if model.get("tokenizer_repo"):
+            hf_hub_download(model["tokenizer_repo"], "tokenizer.json", revision=model["tokenizer_revision"],
+                            local_dir=str(ROOT / "tokenizers" / model["id"]))
         print("Fetched", model["id"], flush=True)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -106,6 +110,22 @@ def runtime():
         content = content.replace(anchor, "    hparams.n_rot_full = hparams.n_embd_head_k_full;\n"
                                   "    ml.get_key(LLM_KV_ROPE_DIMENSION_COUNT, hparams.n_rot_full, false);\n\n" + anchor, 1)
         model_cpp.write_text(content)
+    server_cpp = source/'tools/server/server-context.cpp'
+    content = server_cpp.read_text()
+    marker = '// Independent translations must start from zero recurrent data.'
+    if marker not in content:
+        anchor = '                            if (slot.task->params.cache_prompt && !is_stateless_task) {'
+        assert anchor in content
+        block = '''                            // Independent translations must start from zero recurrent data.
+                            if (slots.size() == 1 && !slot.task->params.cache_prompt &&
+                                (llama_model_is_recurrent(llama_get_model(ctx_tgt)) ||
+                                 llama_model_is_hybrid(llama_get_model(ctx_tgt)))) {
+                                llama_memory_clear(llama_get_memory(ctx_tgt), true);
+                                slot.prompt.clear();
+                            }
+
+'''
+        server_cpp.write_text(content.replace(anchor, block + anchor, 1))
     gpu_archive = download("https://github.com/ggml-org/llama.cpp/releases/download/b11318/llama-b11318-bin-win-vulkan-x64.zip",
                            ROOT / "downloads/vulkan-runtime.zip")
     (ROOT / "runtime").mkdir(exist_ok=True)
@@ -133,7 +153,7 @@ def convert():
     source = ROOT / "sources/llama.cpp"
     subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(source / "gguf-py")], check=True)
     from huggingface_hub import hf_hub_download
-    plamo = CATALOG["models"][0]
+    plamo = next(model for model in CATALOG["models"] if model["format"] == "plamo")
     hf_hub_download(plamo["repo"], "tokenizer.jsonl", revision=plamo["revision"], local_dir=str(ROOT / "sources/plamo-weights"))
     output = ROOT / "models"
     output.mkdir(exist_ok=True)
@@ -153,6 +173,28 @@ def convert():
         print("Converted", destination, flush=True)
 
 
+def cuda():
+    """Install the optional matching NVIDIA backend after reading its EULA.
+
+    CUDA 12.4 EULA: https://docs.nvidia.com/cuda/archive/12.4.1/eula/index.html
+    Running this explicitly requested step accepts those CUDA runtime terms.
+    The GPL Crow executable communicates with the separate MIT llama server.
+    """
+    catalog = json.loads((PROJECT/'installer/optional-components.json').read_text(encoding='utf-8'))
+    destination = ROOT/'runtime/cuda'; destination.mkdir(parents=True,exist_ok=True)
+    for record in catalog['cuda']['archives']:
+        package = download(record['url'], ROOT/'downloads'/record['file'])
+        if hashlib.file_digest(package.open('rb'), 'sha256').hexdigest() != record['sha256']:
+            raise ValueError('CUDA archive checksum mismatch')
+        with zipfile.ZipFile(package) as archive:
+            for member in record['members']:
+                data=archive.read(member['archive_file'])
+                if hashlib.sha256(data).hexdigest()!=member['sha256']:
+                    raise ValueError('CUDA member checksum mismatch')
+                (destination/Path(member['file']).name).write_bytes(data)
+    shutil.copy2(PROJECT/'installer/licenses/NVIDIA-CUDA-12.4-EULA.txt',destination/'NVIDIA-CUDA-12.4-EULA.txt')
+
+
 def manifest():
     records = []
     for model in CATALOG["models"]:
@@ -161,7 +203,10 @@ def manifest():
             raise FileNotFoundError(path)
         with path.open("rb") as f:
             digest = hashlib.file_digest(f, "sha256").hexdigest()
-        if model["format"] != "plamo":
+        if model.get('download_url'):
+            if digest != model['sha256']:
+                raise ValueError('Model checksum mismatch: ' + model['id'])
+        elif model["format"] != "plamo":
             url = f"https://huggingface.co/api/models/{model['repo']}/revision/{model['revision']}?blobs=true"
             info = json.load(urllib.request.urlopen(url, timeout=30))
             original = next(f for f in info["siblings"] if f["rfilename"] == model["file"])
@@ -187,7 +232,7 @@ def manifest():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--step", required=True, choices=["dependencies", "models", "runtime", "convert", "manifest"])
+    parser.add_argument("--step", required=True, choices=["dependencies", "models", "runtime", "cuda", "convert", "manifest"])
     args = parser.parse_args()
     ROOT.mkdir(parents=True, exist_ok=True)
     globals()[args.step]()

@@ -71,7 +71,7 @@ private slots:
         }
         QFile starts(directory.filePath(QStringLiteral("starts.txt")));
         QVERIFY(starts.open(QIODevice::ReadOnly));
-        QCOMPARE(starts.readAll().count("started"), 4);
+        QCOMPARE(starts.readAll().count("started"), LocalModelsTranslationProvider::modelIds().size());
         settings.setLocalModelsVramReserve(256);
         for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
             settings.setLocalModelsPrompt(model, QString());
@@ -182,10 +182,11 @@ private slots:
 #endif
     }
 
-    void catalogHasExactlyFourDistinctModels()
+    void catalogIncludesCatAndTheExistingModels()
     {
         const auto ids = LocalModelsTranslationProvider::modelIds();
-        QCOMPARE(ids.size(), 4);
+        QCOMPARE(ids.size(), 5);
+        QVERIFY(ids.contains(QStringLiteral("cat-translate-3.3b")));
         for (const auto &id : ids) {
             QVERIFY(!LocalModelsTranslationProvider::modelName(id).isEmpty());
             QVERIFY(LocalModelsTranslationProvider::modelFile(id).endsWith(QStringLiteral(".gguf")));

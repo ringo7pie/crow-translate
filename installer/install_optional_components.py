@@ -298,6 +298,48 @@ class Installer:
             shutil.copy2(source, temporary)
             temporary.replace(destination)
 
+    def cuda_runtime(self):
+        """Optional MIT llama backend and NVIDIA redistributables, after consent.
+
+        Keep them separate from the GPL application and the Vulkan runtime.
+        A missing/old driver leaves the existing Vulkan/CPU path available.
+        """
+        cuda = self.catalog.get('cuda')
+        if not cuda or getattr(self, 'cuda_prepared', False):
+            return
+        self.cuda_prepared = True
+        if os.name != 'nt':
+            return
+        try:
+            import ctypes
+            driver = ctypes.WinDLL('nvcuda.dll')
+            count = ctypes.c_int()
+            if driver.cuInit(0) or driver.cuDeviceGetCount(ctypes.byref(count)) or count.value < 1:
+                return
+        except (OSError, AttributeError):
+            return
+        self.status('NVIDIA向けCUDAランタイムを準備しています')
+        for record in cuda['archives']:
+            if all(safe_path(self.root, member['file']).is_file() and
+                   sha256(safe_path(self.root, member['file'])) == member['sha256']
+                   for member in record['members']):
+                continue
+            package = self.get(record, 'downloads/' + record['file'])
+            with zipfile.ZipFile(package) as archive:
+                for member in record['members']:
+                    destination = safe_path(self.root, member['file'])
+                    if destination.exists():
+                        if sha256(destination) == member['sha256']:
+                            continue
+                        raise ValueError('保存済みCUDAファイルの検証に失敗しました: ' + str(destination))
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    temporary = destination.with_suffix(destination.suffix + '.partial')
+                    with archive.open(member['archive_file']) as source, temporary.open('wb') as target:
+                        shutil.copyfileobj(source, target)
+                    if sha256(temporary) != member['sha256']:
+                        raise ValueError('CUDAランタイムのチェックサムが一致しません')
+                    temporary.replace(destination)
+
     def install_component(self, component):
         cid = component['id']
         self.status(component['name'] + ' を準備しています')
@@ -315,6 +357,7 @@ class Installer:
             self.pip(self.catalog['packages']['indra'])
         else:
             self.runtime()
+            self.cuda_runtime()
             self.pip(self.catalog['packages']['translation'])
         if component.get('format') == 'plamo':
             output = self.root/'local-translation/models'/component['model_file']
@@ -371,6 +414,10 @@ class Installer:
 
     def install(self):
         required = sum(self.components[c]['free_bytes'] for c in self.selected)
+        if self.catalog.get('cuda') and any(cid != 'indra' for cid in self.selected):
+            # Include archive + extracted DLL peak space for the optional GPU
+            # runtime rather than counting only model/pip storage.
+            required += 2_000_000_000
         if 'plamo-2-translate' in self.selected:
             c = self.components['plamo-2-translate']
             if (self.root/'local-translation/models'/c['model_file']).exists():

@@ -1,9 +1,58 @@
 {
   "runtime_revision": "db33d3cb89d8b0d954df66047b13e9cc22df8f10",
   "models": [
-    {"id":"plamo-2-translate","name":"PLaMo-2-translate","file":"plamo-2-translate-Q4_0-ssm-f16.gguf","format":"plamo","repo":"pfnet/plamo-2-translate","revision":"7546b474fc8eba5e8354d4634770130428e9dd68","prompt":"<|plamo:op|>dataset\ntranslation\n<|plamo:op|>input lang={source_lang}\n{text}\n<|plamo:op|>output lang={target_lang}\n"},
-    {"id":"index-translate-2b","name":"Index-Translate 2B","file":"Index-Translate-2B.Q4_K_M.gguf","format":"index","repo":"IndexTeam/Index-Translate-2B-GGUF","revision":"3a0eca6ce931d88d00614d427ab3ed8ff0743902","prompt":"Translate the following text into {target_lang}. Output the translation directly, without any explanation:\n\n{text}"},
-    {"id":"hy-mt2-7b","name":"Hy-MT2 7B","file":"Hy-MT2-7B-Q4_K_M.gguf","format":"hy","repo":"tencent/Hy-MT2-7B-GGUF","revision":"ab8472660ac61fac25f1af43fac2599d52a8a775","prompt":"Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:\n{text}"},
-    {"id":"seed-x-ppo-7b","name":"Seed-X-PPO 7B","file":"Seed-X-PPO-7B.Q4_K_M.gguf","format":"seed","repo":"mradermacher/Seed-X-PPO-7B-GGUF","revision":"c9166f2c073d3219fe22e1f35910a41e666e971f","tokenizer_repo":"ByteDance-Seed/Seed-X-PPO-7B","tokenizer_revision":"6ef78fc034ec86c0036d7a7ca2bfc24607f48050","tokenizer_sha256":"35e68fc21e58581cff0ff98d9ca54fccbd8d0f0dd72c05a5bca8510eaf072ee1","prompt":"Translate the following {source_lang} sentence into {target_lang}:\n{text} <{target_code}>"}
+    {
+      "id": "plamo-2-translate",
+      "name": "PLaMo-2-translate",
+      "file": "plamo-2-translate-Q4_0-ssm-f16.gguf",
+      "format": "plamo",
+      "repo": "pfnet/plamo-2-translate",
+      "revision": "7546b474fc8eba5e8354d4634770130428e9dd68",
+      "prompt": "<|plamo:op|>dataset\ntranslation\n<|plamo:op|>input lang={source_lang}\n{text}\n<|plamo:op|>output lang={target_lang}\n"
+    },
+    {
+      "id": "index-translate-2b",
+      "name": "Index-Translate 2B",
+      "file": "Index-Translate-2B.Q4_K_M.gguf",
+      "format": "index",
+      "repo": "IndexTeam/Index-Translate-2B-GGUF",
+      "revision": "3a0eca6ce931d88d00614d427ab3ed8ff0743902",
+      "prompt": "Translate the following text into {target_lang}. Output the translation directly, without any explanation:\n\n{text}"
+    },
+    {
+      "id": "hy-mt2-7b",
+      "name": "Hy-MT2 7B",
+      "file": "Hy-MT2-7B-Q4_K_M.gguf",
+      "format": "hy",
+      "repo": "tencent/Hy-MT2-7B-GGUF",
+      "revision": "ab8472660ac61fac25f1af43fac2599d52a8a775",
+      "prompt": "Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:\n{text}"
+    },
+    {
+      "id": "seed-x-ppo-7b",
+      "name": "Seed-X-PPO 7B",
+      "file": "Seed-X-PPO-7B.Q4_K_M.gguf",
+      "format": "seed",
+      "repo": "mradermacher/Seed-X-PPO-7B-GGUF",
+      "revision": "c9166f2c073d3219fe22e1f35910a41e666e971f",
+      "tokenizer_repo": "ByteDance-Seed/Seed-X-PPO-7B",
+      "tokenizer_revision": "6ef78fc034ec86c0036d7a7ca2bfc24607f48050",
+      "tokenizer_sha256": "35e68fc21e58581cff0ff98d9ca54fccbd8d0f0dd72c05a5bca8510eaf072ee1",
+      "prompt": "Translate the following {source_lang} sentence into {target_lang}:\n{text} <{target_code}>"
+    },
+    {
+      "id": "cat-translate-3.3b",
+      "name": "CAT-Translate-3.3B",
+      "file": "CAT-Translate-3.3b-Q4_K_M.gguf",
+      "format": "cat",
+      "tokenizer_repo": "cyberagent/CAT-Translate-3.3b",
+      "tokenizer_revision": "47e382331d005acd54a42cdf088a76aa88788e0c",
+      "tokenizer_sha256": "7d59e63a3188c11f74698e68ecb2360471536f1218ca3a01b13e619e8d19f18a",
+      "repo": "cyberagent/CAT-Translate-3.3b",
+      "revision": "47e382331d005acd54a42cdf088a76aa88788e0c",
+      "prompt": "Translate the following {source_lang} text into {target_lang}.\n\n{text}",
+      "download_url": "https://github.com/ringo7pie/crow-translate/releases/download/v4.1.0-local.9/CAT-Translate-3.3b-Q4_K_M.gguf",
+      "sha256": "8d5ad6bad74ab6a797e704b182077d251a9a78635c5dda49672e4d88f8e707de"
+    }
   ]
 }

@@ -30,8 +30,14 @@ def prepare(runtime, output):
     for component in catalog['components']:
         for record in component.get('licenses', []) + component.get('notices', []):
             target = notices/record['file']
-            with urllib.request.urlopen(record['url'], timeout=60) as response:
-                data = response.read()
+            if record.get('bundled_file'):
+                original = (source/record['bundled_file']).resolve()
+                if not original.is_relative_to(source.resolve()):
+                    raise ValueError('License path outside the installer source')
+                data = original.read_bytes()
+            else:
+                with urllib.request.urlopen(record['url'], timeout=60) as response:
+                    data = response.read()
             if hashlib.sha256(data).hexdigest() != record['sha256']:
                 raise ValueError('License checksum mismatch: ' + record['file'])
             target.write_bytes(data)
@@ -78,11 +84,11 @@ def prepare(runtime, output):
                 target = runtime_notices/'llama.cpp'/relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(archive.read(item))
-    (runtime_notices/'CHANGES.txt').write_text('llama.cpp b11318, db33d3cb89d8b0d954df66047b13e9cc22df8f10.\nPLaMo 2 RoPE dimensions initialized; see tools/setup_local_models.py.\n',encoding='utf-8')
+    (runtime_notices/'CHANGES.txt').write_text('llama.cpp b11318, db33d3cb89d8b0d954df66047b13e9cc22df8f10.\nPLaMo 2 RoPE dimensions initialized. Single-slot uncached hybrid/recurrent requests clear recurrent data; see tools/setup_local_models.py.\n',encoding='utf-8')
     notice_files = [{'file':path.relative_to(runtime_notices).as_posix(), 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
                     for path in sorted(runtime_notices.rglob('*')) if path.is_file()]
     (output/'runtime-manifest.json').write_text(json.dumps({'revision':'db33d3cb89d8b0d954df66047b13e9cc22df8f10',
-        'changes':'PLaMo 2 RoPE dimensions initialized; see tools/setup_local_models.py',
+        'changes':'PLaMo 2 RoPE dimensions initialized; single-slot uncached recurrent data cleared; see tools/setup_local_models.py',
         'files':files, 'notices':notice_files},indent=2)+'\n',encoding='utf-8')
 
 

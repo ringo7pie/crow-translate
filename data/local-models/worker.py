@@ -61,6 +61,13 @@ def payload(kind, source, target, text, template=None, instructions=""):
         return "/v1/chat/completions", {"messages": [{"role": "user", "content": prompt}],
                                          "temperature": 0, "max_tokens": 2048, "stream": False,
                                          "chat_template_kwargs": {"enable_thinking": False}, "cache_prompt": False}
+    if kind == "cat":
+        # Exact single-user rendering of the official Sarashina chat template.
+        # The original fast tokenizer is used below; GGUF SentencePiece
+        # tokenization does not reproduce its English BPE merges.
+        return "/completion", {"prompt": "<|user|>" + prompt + "</s><|assistant|>",
+                                "temperature": 0, "n_predict": 2048, "stream": False,
+                                "return_tokens": True, "repeat_penalty": 1.0, "cache_prompt": False}
     if kind == "hy":
         return "/v1/chat/completions", {"messages": [{"role": "user", "content": prompt}],
                                          "temperature": 0.7, "top_p": 0.6, "top_k": 20,
@@ -95,7 +102,7 @@ class Worker:
         self.key = uuid.uuid4().hex
         self.log = deque(maxlen=200)
         self.detector = None
-        self.seed_tokenizer = None
+        self.tokenizer = None
         self.vram_reserve = 256
         self.log_thread = None
         # Avoid an inherited proxy redirecting a local request elsewhere.
@@ -129,24 +136,37 @@ class Worker:
             detail = error.read(8192).decode("utf-8", errors="replace")
             raise RuntimeError(f"Local model HTTP {error.code}: {detail}") from error
 
-    def seed_tokens(self, text):
+    def official_tokens(self, text):
         # This GGUF's SentencePiece metadata does not reproduce the original
         # tokenizer.json's BPE merges, especially for English. Send official
         # token IDs directly so llama.cpp does not tokenize the prompt again.
-        if self.seed_tokenizer is None:
+        if self.tokenizer is None:
             from tokenizers import Tokenizer
             path = self.root / "tokenizers" / self.profile["id"] / "tokenizer.json"
             if not path.is_file():
-                raise FileNotFoundError("The official Seed-X tokenizer is not installed. Run the local model setup models step.")
+                raise FileNotFoundError("The official " + self.profile["name"] + " tokenizer is not installed. Run the local model setup models step.")
             import hashlib
             if hashlib.sha256(path.read_bytes()).hexdigest() != self.profile["tokenizer_sha256"]:
-                raise ValueError("The Seed-X tokenizer checksum is incorrect. Reinstall the local models.")
-            self.seed_tokenizer = Tokenizer.from_file(str(path))
-        return self.seed_tokenizer.encode(text).ids
+                raise ValueError("The official tokenizer checksum is incorrect. Reinstall the local models.")
+            self.tokenizer = Tokenizer.from_file(str(path))
+        return self.tokenizer.encode(text).ids
 
     def ensure_server(self, emit):
         if self.process and self.process.poll() is None:
             return
+        deadline = time.monotonic() + 120
+        self.using_cuda = False
+        try:
+            self._ensure_server(emit, deadline, True)
+        except (RuntimeError, OSError, subprocess.TimeoutExpired) as error:
+            if not self.using_cuda or time.monotonic() >= deadline:
+                raise
+            self.close()
+            print("CUDA unavailable; retrying the installed Vulkan/CPU runtime: " + str(error)[-500:],
+                  file=sys.stderr, flush=True)
+            self._ensure_server(emit, deadline, False)
+
+    def _ensure_server(self, emit, deadline, allow_cuda):
         model = self.root / "models" / self.profile["file"]
         executable = self.root / "runtime" / ("llama-server.exe" if os.name == "nt" else "llama-server")
         if not executable.is_file() or not model.is_file():
@@ -160,7 +180,12 @@ class Worker:
         for name in ("N_GPU_LAYERS", "DEVICE", "OVERRIDE_TENSOR", "KV_OFFLOAD", "FIT", "FIT_TARGET", "FIT_CTX", "LOAD_MODE", "FLASH_ATTN"):
             environment.pop("LLAMA_ARG_" + name, None)
         environment["PATH"] = str(executable.parent) + os.pathsep + environment.get("PATH", "")
-        deadline = time.monotonic() + 120
+        cuda = executable.parent / "cuda"
+        backend = cuda / "ggml-cuda.dll"
+        if allow_cuda and os.name == "nt" and backend.is_file():
+            environment["GGML_BACKEND_PATH"] = str(backend)
+            environment["PATH"] = str(cuda) + os.pathsep + environment["PATH"]
+            self.using_cuda = True
         nvidia_gpu = False
         def gpu_devices():
             nonlocal nvidia_gpu
@@ -171,7 +196,11 @@ class Worker:
             if devices.returncode:
                 raise RuntimeError("Could not enumerate local translation devices:\n" + device_text[-3000:])
             nvidia_gpu = bool(re.search(r"^\s*(?:Vulkan|CUDA)\w*:\s+.*NVIDIA", device_text, re.M))
-            return re.findall(r"^\s*((?:Vulkan|CUDA|HIP|Metal|SYCL|OpenCL)\w*):\s+.*\((\d+) MiB, (\d+) MiB free\)", device_text, re.M)
+            found = re.findall(r"^\s*((?:Vulkan|CUDA|HIP|Metal|SYCL|OpenCL)\w*):\s+.*\((\d+) MiB, (\d+) MiB free\)", device_text, re.M)
+            # One physical NVIDIA device may be exposed twice. Never split a
+            # model across its CUDA and Vulkan aliases or double its budget.
+            cuda_devices = [item for item in found if item[0].startswith("CUDA")]
+            return cuda_devices or found
         gpus = gpu_devices()
         has_gpu = bool(gpus)
         def global_free_mib():
@@ -190,11 +219,13 @@ class Worker:
                 return None
         arguments = [str(executable), "--model", str(model), "--host", "127.0.0.1", "--port", str(port),
                      "--api-key", self.key, "--ctx-size", "4096", "--parallel", "1", "--threads", "8",
-                     "--batch-size", "512", "--ubatch-size", "128", "--fit", "on", "--gpu-layers", "auto",
+                     "--batch-size", "512", "--ubatch-size",
+                     "16" if self.profile["format"] == "plamo" and any(g[0].startswith("CUDA") for g in gpus) else "128",
+                     "--fit", "on", "--gpu-layers", "auto",
                      "--kv-offload", "--flash-attn", "auto", "--load-mode", "none" if has_gpu else "auto",
                      "--log-verbosity", "4", "--jinja"]
         if has_gpu:
-            arguments.append("--no-host")
+            arguments += ["--no-host", "--device", ",".join(item[0] for item in gpus)]
         margins = list(dict.fromkeys([self.vram_reserve, max(self.vram_reserve, 512), max(self.vram_reserve, 1024)])) if has_gpu else [self.vram_reserve]
         attempts = [(margin, False) for margin in margins]
         embedding_tried = False
@@ -310,13 +341,19 @@ class Worker:
             return
         endpoint, body = payload(self.profile["format"], source, target, text,
                                  command.get("prompt"), command.get("instructions", ""))
-        if self.profile["format"] == "seed":
-            body["prompt"] = self.seed_tokens(body["prompt"])
+        if self.profile["format"] in ("seed", "cat"):
+            body["prompt"] = self.official_tokens(body["prompt"])
         self.ensure_server(emit)
         emit("stage", stage="translating")
         if endpoint != "/completion":
             body["model"] = self.profile["id"]
-        translated = parse_result(endpoint, self.request(endpoint, body, command.get("timeout", 300)))
+        response = self.request(endpoint, body, command.get("timeout", 300))
+        if self.profile["format"] == "cat":
+            tokens = response.get("tokens")
+            if not isinstance(tokens, list) or not all(type(token) is int and token >= 0 for token in tokens):
+                raise ValueError("The CAT runtime returned no valid output token IDs.")
+            response["content"] = self.tokenizer.decode(tokens, skip_special_tokens=True)
+        translated = parse_result(endpoint, response)
         emit("result", source=source, text=translated)
 
     def close(self):

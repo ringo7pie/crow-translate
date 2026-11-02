@@ -1,5 +1,22 @@
-Windows release build information: 4.1.0-local.8
+Windows release build information: 4.1.0-local.9
 =============================================
+
+RTX 3070 support: the optional setup installs the matching official b11318
+CUDA 12.4 backend and NVIDIA runtime DLLs separately after license consent.
+Their archives and extracted members are SHA256-pinned in optional-components.json.
+The GPL Crow executable communicates over private JSON/loopback with the separate
+MIT llama server; NVIDIA binaries retain their own EULA and third-party notices.
+The NVIDIA driver and developer toolkit are not installed. CUDA is selected once
+per physical GPU; Vulkan/CPU remains available when CUDA cannot initialize.
+PLaMo CUDA uses a physical batch of 16 tokens to avoid nonfinite generation in
+larger prefill batches. The server also clears recurrent data for independent,
+uncached single-slot requests. Both source adjustments are in setup_local_models.py.
+CAT-Translate-3.3B uses the official CyberAgent revision from catalog.json, its
+original tokenizer/chat template, and a reproducible F16 -> Q4_K_M conversion.
+The worker sends official fast-tokenizer IDs with the single-user chat wrapper
+and decodes returned IDs with that tokenizer; the GGUF SentencePiece path does
+not reproduce the official English BPE merges. The tokenizer is pinned separately.
+Use tools/convert_cat_model.py to reproduce the separately released model.
 
 Managed local models now accept per-model basic prompt templates and additional
 instructions from the active settings store. Defaults come from catalog.json,

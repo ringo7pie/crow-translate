@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: none
+# SPDX-License-Identifier: CC0-1.0
+# Preserve the exact bytes verified by the optional setup license manifest.
+installer/licenses/NVIDIA-CUDA-12.4-EULA.txt -text
+LICENSES/LicenseRef-NVIDIA-CUDA-12.4.txt -text

@@ -64,6 +64,16 @@ Update-InstallButton
 Assert-InstallState $false 'retry cannot bypass missing consent'
 $eligibility.Checked=$true
 Assert-InstallState $true 'retry enables once requirements are met'
+for($i=0;$i -lt $choices.Items.Count;$i++){$choices.SetItemChecked($i,$false)}
+$catIndex=[Array]::IndexOf(@($catalog.components | ForEach-Object {$_.id}),'cat-translate-3.3b')
+if($catIndex -lt 0){throw 'CAT model is missing from setup'}
+$choices.SetItemChecked($catIndex,$true)
+$defaultModel.SelectedIndex=[Array]::IndexOf($script:defaultIds,'cat-translate-3.3b')
+Assert-InstallState $false 'CAT requires license consent'
+$accept.Checked=$true
+Assert-InstallState $true 'CAT can be installed and selected as default without Indra/Plamo eligibility'
+$choices.SetItemChecked($catIndex,$false)
+Assert-InstallState $false 'removing CAT disables its installation'
 '@
     $source = Get-Content -LiteralPath (Join-Path $repository 'installer/Install-OptionalComponents.ps1') -Raw -Encoding utf8
     $needle = 'try { [void]$form.ShowDialog() }'

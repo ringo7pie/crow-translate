@@ -168,7 +168,7 @@ private slots:
             auto *timeout = dialog.findChild<QSpinBox *>(QStringLiteral("localModelsTimeoutSpinBox"));
             auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("localModelsGroupBox"));
             QVERIFY(backend && models && root && timeout && group);
-            QCOMPARE(models->count(), 4);
+            QCOMPARE(models->count(), LocalModelsTranslationProvider::modelIds().size());
             QCOMPARE(models->currentData().toString(), QStringLiteral("index-translate-2b"));
             const int index = backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels));
             QVERIFY(index >= 0);
@@ -194,7 +194,7 @@ private slots:
         QCOMPARE(settings.localModelsModel(), QStringLiteral("seed-x-ppo-7b"));
         MainWindow reloaded;
         auto *combo = reloaded.getEngineComboBox();
-        QCOMPARE(combo->count(), 4);
+        QCOMPARE(combo->count(), LocalModelsTranslationProvider::modelIds().size());
         QCOMPARE(combo->currentData().toString(), QStringLiteral("seed-x-ppo-7b"));
         combo->setCurrentIndex(combo->findData(QStringLiteral("hy-mt2-7b")));
         QCOMPARE(settings.localModelsModel(), QStringLiteral("hy-mt2-7b"));

@@ -29,6 +29,12 @@ GPU loading now uses a smaller configurable VRAM reserve, accounts for other
 NVIDIA workloads, and reduces resident RAM from model-file mappings. An optional
 sentence-ending line-break setting formats both input and translation requests.
 Codex discovery also supports installed launches with a stale or minimal PATH.
+Added RTX 3070 support through an optional CUDA 12.4 runtime, with Vulkan/CPU
+fallback. PLaMo uses smaller physical batches on CUDA to avoid invalid generation.
+CAT-Translate-3.3B is available as a separately downloadable Q4_K_M model converted
+from the official CyberAgent release, retaining its MIT notices and chat format.
+Run the additional-components setup and select a translation model to add CUDA
+to an existing installation; verified existing model files are reused.
 Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
 PFN registration and other conditions for commercial use; the optional setup
 shows the full model licenses and checks consent before downloading any model.
@@ -73,6 +79,15 @@ Index-Translate 2B through Crow's CLI. Dates, numbers and paragraph samples were
 also checked in both translation directions. These are smoke checks, not a
 translation-quality benchmark.
 
+On 2026-11-02, the unchanged PLaMo Q4_0-ssm-f16 model was compared on the same
+RTX 3070 using Vulkan and CUDA with a physical batch of 16 for CUDA. Four short
+and multi-paragraph English/Japanese samples took 2.40/2.09/21.57/15.99 seconds
+with Vulkan and 0.66/0.55/5.30/4.07 seconds with CUDA, excluding initial loading.
+Initial loading took 14.39 and 11.12 seconds respectively. These are measurements
+of those samples with about 1.1 GiB already in use on the GPU; available VRAM,
+other applications and input length affect results. CAT is checked with its
+official fast tokenizer for both input and output, including numbers and times.
+
 Regression tests cover provider state and cancellation, timeouts, Windows child
 process cleanup, settings persistence, and model-specific prompt/token handling.
 The model setup scripts use pinned revisions and record checksums in a local
@@ -108,7 +123,7 @@ without errors. The test run also verified that the user's settings were unchang
 - **Provider System**: Modular translation and TTS providers with runtime switching
 - **Multiple Translation Engines**: [Multiple engines](https://codeberg.org/aryak/mozhi#supported-engines) provided by Mozhi (some instances can disable specific engines)*
 - **LocalAI Backend**: Translate through any OpenAI-compatible endpoint - Ollama, LM Studio, FastFlowLM, Anthropic or a custom server - with model discovery and configurable prompts
-- **Managed Local Translation**: Switch between PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B, with local English/Japanese detection and automatic model loading
+- **Managed Local Translation**: Switch between PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B, Seed-X-PPO 7B and CAT-Translate-3.3B, with local English/Japanese detection and automatic model loading
 - **Codex CLI Backend**: Translate with your existing Codex CLI login, automatic source-language detection and editable translation instructions
 - **LibreTranslate**: Use a LibreTranslate instance through Mozhi or directly, with an optional API key
 - **Advanced TTS Options**:
@@ -193,7 +208,7 @@ engine can recognize an image and pass its text to the Codex translation provide
 ### Managed local translation models (Windows)
 
 In **Settings → Translation**, select **Local translation models**. Choose
-PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B or Seed-X-PPO 7B there, or use
+PLaMo-2-translate, Index-Translate 2B, Hy-MT2 7B, Seed-X-PPO 7B or CAT-Translate-3.3B there, or use
 the model selector in the main window. Models load on the first translation;
 switching models unloads the previous one. English and Japanese are supported,
 including local automatic source-language detection and text recognized by OCR.

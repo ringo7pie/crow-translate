@@ -16,6 +16,53 @@ spec.loader.exec_module(worker)
 
 
 class WorkerContractTest(unittest.TestCase):
+    def test_cat_uses_official_user_instruction_and_chat_endpoint(self):
+        endpoint, body = worker.payload('cat', 'en', 'ja', 'Hello.\n\n123')
+        self.assertEqual(endpoint, '/completion')
+        self.assertEqual(body['prompt'], '<|user|>Translate the following English text into Japanese.\n\nHello.\n\n123</s><|assistant|>')
+        self.assertTrue(body['return_tokens'])
+        self.assertEqual(body['temperature'], 0)
+
+    def test_cuda_alias_is_preferred_without_counting_vulkan_twice(self):
+        catalog = json.loads((ROOT / 'data/local-models/catalog.json').read_text())
+        with tempfile.TemporaryDirectory() as root:
+            instance = worker.Worker(root, 'plamo-2-translate', catalog)
+            model = Path(root)/'models'/instance.profile['file']
+            server = Path(root)/'runtime'/('llama-server.exe' if worker.os.name=='nt' else 'llama-server')
+            model.parent.mkdir();model.touch();server.parent.mkdir();server.touch()
+            backend=server.parent/'cuda/ggml-cuda.dll';backend.parent.mkdir();backend.touch()
+            arguments=[]; environments=[]
+            def process(args, **kwargs):
+                arguments.append(args);environments.append(kwargs['env'])
+                return SimpleNamespace(stderr=io.BytesIO(),poll=lambda:None,terminate=lambda:None,wait=lambda timeout:0)
+            instance.request=lambda *args,**kwargs:{'status':'ok'}
+            devices=b'Vulkan0: NVIDIA RTX 3070 (8192 MiB, 7200 MiB free)\nCUDA0: NVIDIA RTX 3070 (8192 MiB, 5000 MiB free)'
+            with patch.object(worker.subprocess,'run',return_value=SimpleNamespace(stdout=devices,stderr=b'',returncode=0)), patch.object(worker.subprocess,'Popen',side_effect=process), patch.object(worker.shutil,'which',return_value=None):
+                instance.ensure_server(lambda *args,**kwargs:None);instance.close()
+            self.assertEqual(arguments[0][arguments[0].index('--device')+1],'CUDA0')
+            self.assertEqual(arguments[0][arguments[0].index('--ubatch-size')+1],'16')
+            self.assertEqual(arguments[0][-1],'256')
+            if worker.os.name=='nt':self.assertEqual(environments[0]['GGML_BACKEND_PATH'],str(backend))
+
+    @unittest.skipUnless(worker.os.name == 'nt', 'Windows optional CUDA backend')
+    def test_broken_optional_cuda_falls_back_to_vulkan(self):
+        catalog=json.loads((ROOT/'data/local-models/catalog.json').read_text())
+        with tempfile.TemporaryDirectory() as root:
+            instance=worker.Worker(root,'cat-translate-3.3b',catalog)
+            model=Path(root)/'models'/instance.profile['file'];model.parent.mkdir();model.touch()
+            server=Path(root)/'runtime/llama-server.exe';server.parent.mkdir();server.touch()
+            backend=server.parent/'cuda/ggml-cuda.dll';backend.parent.mkdir();backend.touch()
+            environments=[]
+            def run(args,**kwargs):
+                environments.append(kwargs['env'])
+                broken='GGML_BACKEND_PATH' in kwargs['env']
+                return SimpleNamespace(stdout=b'' if broken else b'Vulkan0: Test GPU (8192 MiB, 7200 MiB free)',stderr=b'CUDA initialization failed' if broken else b'',returncode=1 if broken else 0)
+            process=SimpleNamespace(stderr=io.BytesIO(),poll=lambda:None,terminate=lambda:None,wait=lambda timeout:0)
+            instance.request=lambda *args,**kwargs:{'status':'ok'}
+            with patch.object(worker.subprocess,'run',side_effect=run), patch.object(worker.subprocess,'Popen',return_value=process):
+                instance.ensure_server(lambda *args,**kwargs:None);instance.close()
+            self.assertIn('GGML_BACKEND_PATH',environments[0]);self.assertNotIn('GGML_BACKEND_PATH',environments[1])
+
     def test_gpu_fit_retry_and_cpu_loading_policy(self):
         catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
         for gpu, failure in [(True, ""), (True, "vk::OutOfDeviceMemoryError"), (True, "invalid model"), (False, "")]:
@@ -107,7 +154,8 @@ class WorkerContractTest(unittest.TestCase):
             with self.subTest(model=kind):
                 endpoint, body = worker.payload(kind, "ja", "en", text, template, extra)
                 actual = body["prompt"] if endpoint == "/completion" else body["messages"][0]["content"]
-                self.assertEqual(actual, extra + "\n\nJapanese (ja) -> English (en)\n" + text + "\nLiteral {unknown}")
+                expected = extra + "\n\nJapanese (ja) -> English (en)\n" + text + "\nLiteral {unknown}"
+                self.assertEqual(actual, '<|user|>' + expected + '</s><|assistant|>' if kind=='cat' else expected)
 
     def test_empty_basic_instructions_restore_the_model_default(self):
         for kind in worker.DEFAULT_PROMPTS:
@@ -152,7 +200,7 @@ class WorkerContractTest(unittest.TestCase):
         catalog = json.loads((ROOT / "data/local-models/catalog.json").read_text())
         instance = worker.Worker(ROOT, "seed-x-ppo-7b", catalog)
         prompts = []
-        instance.seed_tokenizer = SimpleNamespace(encode=lambda text: (prompts.append(text) or SimpleNamespace(ids=[1, 4335, 10020, 28767])))
+        instance.tokenizer = SimpleNamespace(encode=lambda text: (prompts.append(text) or SimpleNamespace(ids=[1, 4335, 10020, 28767])))
         instance.ensure_server = lambda emit: None
         requests = []
         instance.request = lambda endpoint, body, timeout: (requests.append((endpoint, body)) or {"content": "会議は明日の朝9時に始まります。", "stop_type": "eos"})
@@ -176,6 +224,24 @@ class WorkerContractTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "checksum"):
                 instance.handle({"source": "en", "target": "ja", "text": "Hello"}, lambda *args, **kwargs: None)
             self.assertIsNone(instance.process)
+
+    def test_cat_sends_official_chat_token_ids_and_decodes_output_with_the_same_tokenizer(self):
+        catalog = json.loads((ROOT/'data/local-models/catalog.json').read_text())
+        instance = worker.Worker(ROOT, 'cat-translate-3.3b', catalog)
+        prompts=[]
+        def decode(tokens, skip_special_tokens):
+            self.assertEqual(tokens,[323,2136,298,2]);self.assertTrue(skip_special_tokens)
+            return 'The meeting begins at 9.'
+        instance.tokenizer=SimpleNamespace(encode=lambda text:(prompts.append(text) or SimpleNamespace(ids=[9,17443,298,2,8])),decode=decode)
+        instance.ensure_server=lambda emit:None
+        requests=[]
+        instance.request=lambda endpoint,body,timeout:(requests.append((endpoint,body)) or {'content':'incorrect GGUF decoding</s>','tokens':[323,2136,298,2],'stop_type':'eos'})
+        events=[]
+        instance.handle({'source':'ja','target':'en','text':'午前9時に会議が始まります。'},lambda event,**fields:events.append((event,fields)))
+        self.assertTrue(prompts[0].startswith('<|user|>Translate the following Japanese'))
+        self.assertTrue(prompts[0].endswith('</s><|assistant|>'))
+        self.assertEqual(requests[0][1]['prompt'],[9,17443,298,2,8])
+        self.assertEqual(events[-1],('result',{'source':'ja','text':'The meeting begins at 9.'}))
 
     def test_hy_uses_official_sampling_defaults(self):
         _, body = worker.payload("hy", "ja", "en", "こんにちは")

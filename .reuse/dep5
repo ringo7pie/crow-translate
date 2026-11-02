@@ -19,6 +19,10 @@ Files: data/icons/app/*-apps-* data/icons/app/application-icon.jpg data/icons/ap
 Copyright: 2026 ringo7pie
 License: CC-BY-SA-4.0
 
-Files: data/local-models/catalog.json
+Files: data/local-models/catalog.json data/local-models/cat-conversion.json
 Copyright: 2026 Crow Translate contributors
 License: GPL-3.0-or-later
+
+Files: installer/licenses/NVIDIA-CUDA-12.4-EULA.txt
+Copyright: NVIDIA Corporation
+License: LicenseRef-NVIDIA-CUDA-12.4

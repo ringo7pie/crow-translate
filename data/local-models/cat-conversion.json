@@ -1,0 +1,84 @@
+{
+  "source": {
+    "repo": "cyberagent/CAT-Translate-3.3b",
+    "revision": "47e382331d005acd54a42cdf088a76aa88788e0c",
+    "files": [
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/LICENSE",
+        "file": "LICENSE",
+        "sha256": "b117dfdeb28b464adf227207c9129bdd6a1ec9de5852a01bd0ffaa6a7ab0d4f0",
+        "size": 1074
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/README.md",
+        "file": "README.md",
+        "sha256": "580ab8d49483e7be29885a26596f49c3ce770e03db8089f4f5d3aaed6677622f",
+        "size": 10859
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/chat_template.jinja",
+        "file": "chat_template.jinja",
+        "sha256": "037114fd990645ecdb1a75c802e9d25e4ddce2489e9476268221627e50055999",
+        "size": 2512
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/config.json",
+        "file": "config.json",
+        "sha256": "d0c6ed07dec6ceeb0025d74ec893366d81df9866cbc35674066e1c89bbde5e9d",
+        "size": 692
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/generation_config.json",
+        "file": "generation_config.json",
+        "sha256": "d09ffa8e771d749f1d3033dfa80b3ef9bf830f6f1a9724a4d5f0bfca9a9d1b84",
+        "size": 142
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/model-00001-of-00002.safetensors",
+        "file": "model-00001-of-00002.safetensors",
+        "sha256": "04ae20e8c181825ac6051ec3b301fbdc9b13850577567db4dc196b63b7476bce",
+        "size": 4987572280
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/model-00002-of-00002.safetensors",
+        "file": "model-00002-of-00002.safetensors",
+        "sha256": "2c65c0cac567eab6215dc843d266e67ab98c758ed13fb581c6bd5d846095a4f7",
+        "size": 1723680640
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/model.safetensors.index.json",
+        "file": "model.safetensors.index.json",
+        "sha256": "58779efec3a9705f1b3effdb604246f6c30b726ac20325ba43529f29bb5b8844",
+        "size": 23985
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/special_tokens_map.json",
+        "file": "special_tokens_map.json",
+        "sha256": "30bf8256f9a1eb3287af2a9b7940465e29a38aad4a459a3e773bb3a14bd34c0f",
+        "size": 968
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/tokenizer.json",
+        "file": "tokenizer.json",
+        "sha256": "7d59e63a3188c11f74698e68ecb2360471536f1218ca3a01b13e619e8d19f18a",
+        "size": 6724260
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/tokenizer.model",
+        "file": "tokenizer.model",
+        "sha256": "008293028e1a9d9a1038d9b63d989a2319797dfeaa03f171093a57b33a3a8277",
+        "size": 1831879
+      },
+      {
+        "url": "https://huggingface.co/cyberagent/CAT-Translate-3.3b/resolve/47e382331d005acd54a42cdf088a76aa88788e0c/tokenizer_config.json",
+        "file": "tokenizer_config.json",
+        "sha256": "d7c6896cce71d6e942bd957ad1a31addaa3d4d74df7a31a5eb87dc68da9354b1",
+        "size": 3807
+      }
+    ]
+  },
+  "quantization": "Q4_K_M",
+  "runtime_revision": "db33d3cb89d8b0d954df66047b13e9cc22df8f10",
+  "size": 2066390496,
+  "sha256": "8d5ad6bad74ab6a797e704b182077d251a9a78635c5dda49672e4d88f8e707de"
+}
