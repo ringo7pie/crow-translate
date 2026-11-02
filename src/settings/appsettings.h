@@ -256,12 +256,19 @@ public:
     void setCodexTimeout(int seconds);
     QString codexInstructions() const;
     void setCodexInstructions(const QString &instructions);
+    QString codexPrompt() const;
+    void setCodexPrompt(const QString &prompt);
+    static QString defaultCodexPrompt();
     QString localModelsRoot() const;
     void setLocalModelsRoot(const QString &root);
     QString localModelsModel() const;
     void setLocalModelsModel(const QString &model);
     int localModelsTimeout() const;
     void setLocalModelsTimeout(int seconds);
+    QString localModelsPrompt(const QString &model) const;
+    void setLocalModelsPrompt(const QString &model, const QString &prompt);
+    QString localModelsInstructions(const QString &model) const;
+    void setLocalModelsInstructions(const QString &model, const QString &instructions);
 
     ATranslationProvider::ProviderBackend translationProviderBackend() const;
     void setTranslationProviderBackend(ATranslationProvider::ProviderBackend newBackend);

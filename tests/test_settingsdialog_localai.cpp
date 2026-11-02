@@ -35,6 +35,88 @@ class SettingsDialogLocalAiTest : public QObject
     Q_OBJECT
 
 private slots:
+    void testInstructionDraftsAreIndependentAndOnlySavedOnAccept()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+            settings.setLocalModelsPrompt(id, QString());
+            settings.setLocalModelsInstructions(id, QString());
+        }
+        settings.setCodexPrompt(QString());
+        settings.setCodexInstructions(QStringLiteral("Existing preference"));
+        MainWindow window;
+        {
+            SettingsDialog dialog(&window);
+            auto *models = dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"));
+            auto *basic = dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsPromptEdit"));
+            auto *extra = dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsInstructionsEdit"));
+            auto *codex = dialog.findChild<QPlainTextEdit *>(QStringLiteral("codexPromptEdit"));
+            QVERIFY(models && basic && extra && codex);
+            QCOMPARE(codex->toPlainText(), AppSettings::defaultCodexPrompt());
+            QCOMPARE(dialog.findChild<QPlainTextEdit *>(QStringLiteral("codexInstructionsEdit"))->toPlainText(), QStringLiteral("Existing preference"));
+            for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+                models->setCurrentIndex(models->findData(id));
+                QCOMPARE(basic->toPlainText(), LocalModelsTranslationProvider::defaultPrompt(id));
+                QVERIFY(extra->toPlainText().isEmpty());
+                basic->setPlainText(id + QStringLiteral(" {text} {target_lang}"));
+                extra->setPlainText(QString::fromUtf8("用語を保持 ") + id);
+                QCOMPARE(settings.localModelsPrompt(id), LocalModelsTranslationProvider::defaultPrompt(id));
+                QVERIFY(settings.localModelsInstructions(id).isEmpty());
+            }
+            for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+                models->setCurrentIndex(models->findData(id));
+                QCOMPARE(basic->toPlainText(), id + QStringLiteral(" {text} {target_lang}"));
+                QCOMPARE(extra->toPlainText(), QString::fromUtf8("用語を保持 ") + id);
+            }
+            codex->setPlainText(QStringLiteral("Faithful translation."));
+            dialog.accept();
+            QCOMPARE(dialog.result(), int(QDialog::Accepted));
+        }
+        {
+            SettingsDialog dialog(&window);
+            auto *models = dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"));
+            auto *basic = dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsPromptEdit"));
+            auto *extra = dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsInstructionsEdit"));
+            for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+                models->setCurrentIndex(models->findData(id));
+                QCOMPARE(basic->toPlainText(), id + QStringLiteral(" {text} {target_lang}"));
+                QCOMPARE(extra->toPlainText(), QString::fromUtf8("用語を保持 ") + id);
+            }
+            QCOMPARE(dialog.findChild<QPlainTextEdit *>(QStringLiteral("codexPromptEdit"))->toPlainText(), QStringLiteral("Faithful translation."));
+            dialog.findChild<QPushButton *>(QStringLiteral("localModelsResetPromptButton"))->click();
+            QCOMPARE(basic->toPlainText(), LocalModelsTranslationProvider::defaultPrompt(models->currentData().toString()));
+            QVERIFY(!extra->toPlainText().isEmpty());
+            dialog.findChild<QPushButton *>(QStringLiteral("codexResetPromptButton"))->click();
+            QCOMPARE(dialog.findChild<QPlainTextEdit *>(QStringLiteral("codexPromptEdit"))->toPlainText(), AppSettings::defaultCodexPrompt());
+            dialog.reject();
+        }
+        QCOMPARE(settings.codexPrompt(), QStringLiteral("Faithful translation."));
+        for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+            QCOMPARE(settings.localModelsPrompt(id), id + QStringLiteral(" {text} {target_lang}"));
+            QCOMPARE(settings.localModelsInstructions(id), QString::fromUtf8("用語を保持 ") + id);
+        }
+        // A global restore is also provisional, and clears both instruction fields.
+        {
+            SettingsDialog dialog(&window);
+            QVERIFY(QMetaObject::invokeMethod(&dialog, "restoreDefaults", Qt::DirectConnection));
+            auto *models = dialog.findChild<QComboBox *>(QStringLiteral("localModelsModelComboBox"));
+            for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+                models->setCurrentIndex(models->findData(id));
+                QCOMPARE(dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsPromptEdit"))->toPlainText(), LocalModelsTranslationProvider::defaultPrompt(id));
+                QVERIFY(dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsInstructionsEdit"))->toPlainText().isEmpty());
+            }
+            dialog.accept();
+        }
+        for (const QString &id : LocalModelsTranslationProvider::modelIds()) {
+            QCOMPARE(settings.localModelsPrompt(id), LocalModelsTranslationProvider::defaultPrompt(id));
+            QVERIFY(settings.localModelsInstructions(id).isEmpty());
+        }
+        QCOMPARE(settings.codexPrompt(), AppSettings::defaultCodexPrompt());
+        QVERIFY(settings.codexInstructions().isEmpty());
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
     void testLocalModelsSettingsAndMainWindowSelection()
     {
         AppSettings settings;
@@ -159,7 +241,7 @@ private slots:
         QVERIFY2(page->isAncestorOf(group), "Codex settings must belong to the Translation page");
         QTRY_VERIFY(group->isVisible());
         QTRY_VERIFY(group->visibleRegion().contains(group->rect()));
-        for (const auto *name : {"codexExecutableEdit", "codexModelComboBox", "codexReasoningEffortComboBox", "codexTimeoutSpinBox", "codexInstructionsEdit"}) {
+        for (const auto *name : {"codexExecutableEdit", "codexModelComboBox", "codexReasoningEffortComboBox", "codexTimeoutSpinBox", "codexPromptEdit", "codexInstructionsEdit"}) {
             auto *control = group->findChild<QWidget *>(QString::fromLatin1(name));
             QVERIFY(control);
             QVERIFY(control->isVisible());
@@ -175,6 +257,17 @@ private slots:
         QVERIFY(group->isHidden());
         backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex)));
         QTRY_VERIFY(group->isVisible());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels)));
+        auto *localGroup = dialog.findChild<QGroupBox *>(QStringLiteral("localModelsGroupBox"));
+        QTRY_VERIFY(localGroup->isVisible());
+        for (const auto *name : {"localModelsPromptEdit", "localModelsInstructionsEdit", "localModelsResetPromptButton"}) {
+            auto *control = localGroup->findChild<QWidget *>(QString::fromLatin1(name));
+            QVERIFY(control && control->isVisible());
+            QTRY_VERIFY(control->visibleRegion().contains(control->rect()));
+        }
+        const QString localScreenshot = qEnvironmentVariable("CROW_LOCALMODELS_SETTINGS_SCREENSHOT");
+        if (!localScreenshot.isEmpty())
+            QVERIFY(dialog.grab().save(localScreenshot));
         settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
     }
 

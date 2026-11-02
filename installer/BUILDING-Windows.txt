@@ -1,7 +1,17 @@
-Windows release build information: 4.1.0-local.6
+Windows release build information: 4.1.0-local.7
 =============================================
 
-Local translation now validates English/Japanese by language code rather than
+Managed local models now accept per-model basic prompt templates and additional
+instructions from the active settings store. Defaults come from catalog.json,
+shared by the Qt UI and embedded Python worker. Known placeholders are replaced
+once; source text and additional instructions remain literal. Additional
+instructions are prefixed without adding a chat wrapper to PLaMo/Seed.
+Codex receives editable basic and existing additional instructions as JSON
+fields; response-schema and execution restrictions remain outside both fields.
+The settings dialog stages drafts until OK; reset and model switches preserve
+the same transaction. Empty basic instructions use the corresponding default.
+
+Local translation validates English/Japanese by language code rather than
 full QLocale equality. System-locale territory/number-format differences no
 longer reject an automatic destination or a regional source. The requested
 destination locale is preserved for the session's language display.
@@ -52,7 +62,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.6
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.7
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:

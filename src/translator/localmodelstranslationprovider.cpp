@@ -92,6 +92,11 @@ QString LocalModelsTranslationProvider::modelFile(const QString &id)
     return profile(id).value(QStringLiteral("file")).toString();
 }
 
+QString LocalModelsTranslationProvider::defaultPrompt(const QString &id)
+{
+    return profile(id).value(QStringLiteral("prompt")).toString();
+}
+
 QString LocalModelsTranslationProvider::defaultRoot()
 {
     const QString development = QDir::cleanPath(QCoreApplication::applicationDirPath() + QStringLiteral("/../third_party/local-translation"));
@@ -197,7 +202,8 @@ void LocalModelsTranslationProvider::startRequest(const QString &text, bool dete
     m_command = {{QStringLiteral("id"), m_requestId}, {QStringLiteral("text"), text},
                  {QStringLiteral("source"), (detectOnly || m_sourceWasAuto) ? QStringLiteral("auto") : sourceLanguage.toCode()},
                  {QStringLiteral("target"), translationLanguage.toCode()}, {QStringLiteral("detect_only"), detectOnly},
-                 {QStringLiteral("timeout"), m_timeout}};
+                 {QStringLiteral("timeout"), m_timeout}, {QStringLiteral("prompt"), m_prompt},
+                 {QStringLiteral("instructions"), m_instructions}};
     m_timer.start((m_timeout + (detectOnly ? 0 : 120)) * 1000);
     if (detectOnly)
         emit detectionStarted();
@@ -410,8 +416,14 @@ void LocalModelsTranslationProvider::applyOptions(const ProviderOptions &options
             reset();
     }
     m_root = root;
+    if (model != m_model) {
+        m_prompt.clear();
+        m_instructions.clear();
+    }
     m_model = model;
     m_timeout = qBound(1, options.getOption(QStringLiteral("timeout"), m_timeout).toInt(), 3600);
+    m_prompt = options.getOption(QStringLiteral("prompt"), m_prompt).toString();
+    m_instructions = options.getOption(QStringLiteral("instructions"), m_instructions).toString();
 }
 
 std::unique_ptr<ProviderOptions> LocalModelsTranslationProvider::getDefaultOptions() const
@@ -420,11 +432,13 @@ std::unique_ptr<ProviderOptions> LocalModelsTranslationProvider::getDefaultOptio
     options->setOption(QStringLiteral("root"), defaultRoot());
     options->setOption(QStringLiteral("model"), QStringLiteral("index-translate-2b"));
     options->setOption(QStringLiteral("timeout"), 300);
+    options->setOption(QStringLiteral("prompt"), QString());
+    options->setOption(QStringLiteral("instructions"), QString());
     return options;
 }
 QStringList LocalModelsTranslationProvider::getAvailableOptions() const
 {
-    return {QStringLiteral("root"), QStringLiteral("model"), QStringLiteral("timeout")};
+    return {QStringLiteral("root"), QStringLiteral("model"), QStringLiteral("timeout"), QStringLiteral("prompt"), QStringLiteral("instructions")};
 }
 void LocalModelsTranslationProvider::saveOptionToSettings(const QString &key, const QVariant &value)
 {
@@ -435,4 +449,8 @@ void LocalModelsTranslationProvider::saveOptionToSettings(const QString &key, co
         settings.setLocalModelsModel(value.toString());
     else if (key == QLatin1String("timeout"))
         settings.setLocalModelsTimeout(value.toInt());
+    else if (key == QLatin1String("prompt"))
+        settings.setLocalModelsPrompt(m_model, value.toString());
+    else if (key == QLatin1String("instructions"))
+        settings.setLocalModelsInstructions(m_model, value.toString());
 }

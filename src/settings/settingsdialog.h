@@ -104,15 +104,23 @@ private:
     void buildCodexUi();
     void buildLocalModelsUi();
     void updateLocalModelsStatus();
+    void switchLocalModelsPrompt();
+    void storeLocalModelsPromptDraft();
+    QString m_localModelsPromptId;
+    QMap<QString, QString> m_localModelsPrompts;
+    QMap<QString, QString> m_localModelsInstructions;
     QComboBox *m_localModelsModel = nullptr;
     QLineEdit *m_localModelsRoot = nullptr;
     QSpinBox *m_localModelsTimeout = nullptr;
     QLabel *m_localModelsStatus = nullptr;
+    QPlainTextEdit *m_localModelsPrompt = nullptr;
+    QPlainTextEdit *m_localModelsInstructionsEdit = nullptr;
     QLineEdit *m_codexExecutable = nullptr;
     QComboBox *m_codexModel = nullptr;
     QComboBox *m_codexReasoningEffort = nullptr;
     QSpinBox *m_codexTimeout = nullptr;
     QPlainTextEdit *m_codexInstructions = nullptr;
+    QPlainTextEdit *m_codexPrompt = nullptr;
 
     // OCR engine selection — dynamic widgets on the OCR page.
     // The LLM engine carries a complete endpoint of its own (URL, key, model

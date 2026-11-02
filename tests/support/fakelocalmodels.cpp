@@ -36,6 +36,11 @@ int main(int argc, char **argv)
     std::string line;
     while (std::getline(std::cin, line)) {
         const auto command = QJsonDocument::fromJson(QByteArray::fromStdString(line)).object();
+        QFile record(root + QStringLiteral("/request.json"));
+        if (!record.open(QIODevice::WriteOnly))
+            return 5;
+        record.write(QJsonDocument(command).toJson());
+        record.close();
         const auto emitEvent = [&command](QJsonObject event) {
             event.insert(QStringLiteral("id"), command.value(QStringLiteral("id")));
             std::cout << QJsonDocument(event).toJson(QJsonDocument::Compact).constData() << std::endl;

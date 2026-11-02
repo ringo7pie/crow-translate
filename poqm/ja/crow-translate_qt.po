@@ -2837,6 +2837,26 @@ msgid "Additional translation instructions:"
 msgstr "翻訳への追加指示:"
 
 msgctxt "SettingsDialog|"
+msgid "Basic instructions:"
+msgstr "基本指示:"
+
+msgctxt "SettingsDialog|"
+msgid "Additional instructions:"
+msgstr "追加指示:"
+
+msgctxt "SettingsDialog|"
+msgid "Restore default basic instructions"
+msgstr "基本指示を既定に戻す"
+
+msgctxt "SettingsDialog|"
+msgid "Saved separately for each model. {text}: source text (required); {source_lang}/{target_lang}: English language names; {source_code}/{target_code}: language codes. Additional instructions are placed before the basic instructions. Models differ in how well they follow them."
+msgstr "モデルごとに保存します。{text}: 原文（必須）、{source_lang}/{target_lang}: 英語の言語名、{source_code}/{target_code}: 言語コード。追加指示は基本指示の前に付けます。指示への対応はモデルにより異なります。"
+
+msgctxt "SettingsDialog|"
+msgid "The basic instructions for %1 must include {text} for the source text."
+msgstr "%1 の基本指示には、原文を挿入する {text} が必要です。"
+
+msgctxt "SettingsDialog|"
 msgid "Optional style and terminology preferences, e.g. use polite Japanese."
 msgstr "口調や用語の指定（任意）。例: 丁寧な日本語で翻訳する。"
 

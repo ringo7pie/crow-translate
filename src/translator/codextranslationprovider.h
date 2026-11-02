@@ -49,6 +49,7 @@ private:
     QString m_model;
     QString m_reasoningEffort;
     QString m_instructions;
+    QString m_prompt;
     int m_timeout = 300;
     QProcess *m_process = nullptr;
     QTimer m_timer;

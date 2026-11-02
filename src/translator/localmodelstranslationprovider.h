@@ -34,6 +34,7 @@ public:
     static QStringList modelIds();
     static QString modelName(const QString &id);
     static QString modelFile(const QString &id);
+    static QString defaultPrompt(const QString &id);
     static QString defaultRoot();
     static bool isInstalled(const QString &root, const QString &id);
 
@@ -45,6 +46,8 @@ private:
     void fail(const QString &message);
     QString m_root;
     QString m_model = QStringLiteral("index-translate-2b");
+    QString m_prompt;
+    QString m_instructions;
     int m_timeout = 300;
     QProcess *m_process = nullptr;
     std::unique_ptr<QTemporaryDir> m_workerDirectory;

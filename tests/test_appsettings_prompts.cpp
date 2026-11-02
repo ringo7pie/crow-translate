@@ -135,6 +135,31 @@ private slots:
         QCOMPARE(prompt, AppSettings::defaultLocalAiPrompt());
     }
 
+    void testManagedModelInstructionsSurviveSettingsReload()
+    {
+        AppSettings settings;
+        for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+            settings.setLocalModelsPrompt(model, model + QStringLiteral(" {text}"));
+            settings.setLocalModelsInstructions(model, QString::fromUtf8("敬語\n") + model);
+        }
+        AppSettings reloaded;
+        for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+            QCOMPARE(reloaded.localModelsPrompt(model), model + QStringLiteral(" {text}"));
+            QCOMPARE(reloaded.localModelsInstructions(model), QString::fromUtf8("敬語\n") + model);
+            settings.setLocalModelsPrompt(model, QStringLiteral(" \n"));
+            QCOMPARE(reloaded.localModelsPrompt(model), LocalModelsTranslationProvider::defaultPrompt(model));
+            settings.setLocalModelsInstructions(model, QString());
+            QVERIFY(reloaded.localModelsInstructions(model).isEmpty());
+        }
+        settings.setCodexPrompt(QStringLiteral("Basic instructions"));
+        settings.setCodexInstructions(QStringLiteral("Existing additional instructions"));
+        QCOMPARE(reloaded.codexPrompt(), QStringLiteral("Basic instructions"));
+        QCOMPARE(reloaded.codexInstructions(), QStringLiteral("Existing additional instructions"));
+        settings.setCodexPrompt(QStringLiteral(" \n"));
+        QCOMPARE(reloaded.codexPrompt(), AppSettings::defaultCodexPrompt());
+        QCOMPARE(reloaded.codexInstructions(), QStringLiteral("Existing additional instructions"));
+    }
+
     // The reported bug, at the level it actually lives: a stored copy of the
     // superseded default must not win over the current default.
     void testSupersededDefaultDoesNotOverrideCurrentDefault()

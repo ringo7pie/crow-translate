@@ -21,6 +21,10 @@ The setup now offers a default translation model selector and removes verified
 download archives and PLaMo conversion inputs after successful installation.
 Indra and PLaMo start selected; existing application settings stay unchanged
 unless a default translation model is explicitly chosen.
+Local translation presets now have separately saved basic and additional
+instructions for each model. Codex translation also exposes its basic
+instructions alongside the existing additional preferences. Both can be edited
+in Settings > Translation; edits apply on OK and can be restored to defaults.
 Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
 PFN registration and other conditions for commercial use; the optional setup
 shows the full model licenses and checks consent before downloading any model.

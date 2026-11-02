@@ -329,6 +329,8 @@ void Cli::process(const QCoreApplication &app)
             exitWithUsage(parser, tr("--local-model requires --translation-provider local-models."));
         ProviderOptions options;
         options.setOption(QStringLiteral("model"), parser.value(localModel));
+        options.setOption(QStringLiteral("prompt"), settings.localModelsPrompt(parser.value(localModel)));
+        options.setOption(QStringLiteral("instructions"), settings.localModelsInstructions(parser.value(localModel)));
         m_session->translator()->applyOptions(options);
     }
 

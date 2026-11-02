@@ -9,6 +9,7 @@ import argparse
 from collections import deque
 import json
 import os
+import re
 from pathlib import Path
 import socket
 import subprocess
@@ -20,31 +21,46 @@ import urllib.request
 import uuid
 
 LANGUAGES = {"en": "English", "ja": "Japanese"}
+DEFAULT_PROMPTS = {entry["format"]: entry["prompt"] for entry in
+                   json.loads(Path(__file__).with_name("catalog.json").read_text(encoding="utf-8"))["models"]}
 
 
-def payload(kind, source, target, text):
+def render_prompt(template, instructions, source, target, text):
+    if not isinstance(template, str) or not isinstance(instructions, str):
+        raise ValueError("Translation instructions must be text.")
+    if "{text}" not in template:
+        raise ValueError("The basic instructions must include {text} for the source text.")
+    values = {"text": text, "source_lang": LANGUAGES[source], "source_code": source,
+              "target_lang": LANGUAGES[target], "target_code": target}
+    # Replace only known placeholders once. Braces in source text and additional
+    # instructions are literal, never another template or Python expression.
+    prompt = re.sub(r"\{(text|source_lang|source_code|target_lang|target_code)\}",
+                    lambda match: values[match.group(1)], template)
+    return instructions + "\n\n" + prompt if instructions.strip() else prompt
+
+
+def payload(kind, source, target, text, template=None, instructions=""):
     """Return (endpoint, body). Raw translation models never receive chat wrappers."""
     if source not in LANGUAGES or target not in LANGUAGES:
         raise ValueError("These presets currently support English and Japanese. Select the source language explicitly.")
+    if kind not in DEFAULT_PROMPTS:
+        raise ValueError("Unknown translation preset")
+    if template is None or (isinstance(template, str) and not template.strip()):
+        template = DEFAULT_PROMPTS[kind]
+    prompt = render_prompt(template, instructions, source, target, text)
     if kind == "plamo":
-        prompt = ("<|plamo:op|>dataset\ntranslation\n"
-                  f"<|plamo:op|>input lang={LANGUAGES[source]}\n{text}\n"
-                  f"<|plamo:op|>output lang={LANGUAGES[target]}\n")
         return "/completion", {"prompt": prompt, "temperature": 0, "repeat_penalty": 1.0,
                                 "repeat_last_n": 0, "cache_prompt": False, "seed": 0,
                                 "stop": ["<|plamo:op|>", "<|plamo:bos|>", "<|plamo:eos|>"],
                                 "n_predict": 2048, "stream": False}
     if kind == "seed":
-        prompt = f"Translate the following {LANGUAGES[source]} sentence into {LANGUAGES[target]}:\n{text} <{target}>"
         return "/completion", {"prompt": prompt, "temperature": 0, "n_predict": 2048,
                                 "repeat_penalty": 1.0, "stream": False, "cache_prompt": False}
     if kind == "index":
-        prompt = f"Translate the following text into {LANGUAGES[target]}. Output the translation directly, without any explanation:\n\n{text}"
         return "/v1/chat/completions", {"messages": [{"role": "user", "content": prompt}],
                                          "temperature": 0, "max_tokens": 2048, "stream": False,
                                          "chat_template_kwargs": {"enable_thinking": False}, "cache_prompt": False}
     if kind == "hy":
-        prompt = f"Translate the following text into {LANGUAGES[target]}. Note that you should only output the translated result without any additional explanation:\n{text}"
         return "/v1/chat/completions", {"messages": [{"role": "user", "content": prompt}],
                                          "temperature": 0.7, "top_p": 0.6, "top_k": 20,
                                          "repeat_penalty": 1.05, "max_tokens": 2048, "stream": False,
@@ -189,7 +205,8 @@ class Worker:
         if source == target:
             emit("result", source=source, text=text)
             return
-        endpoint, body = payload(self.profile["format"], source, target, text)
+        endpoint, body = payload(self.profile["format"], source, target, text,
+                                 command.get("prompt"), command.get("instructions", ""))
         if self.profile["format"] == "seed":
             body["prompt"] = self.seed_tokens(body["prompt"])
         self.ensure_server(emit)

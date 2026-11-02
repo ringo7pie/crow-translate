@@ -581,6 +581,23 @@ void AppSettings::setCodexInstructions(const QString &instructions)
     m_settings->setValue(QStringLiteral("Codex/Instructions"), instructions);
 }
 
+QString AppSettings::defaultCodexPrompt()
+{
+    return QStringLiteral("You are a translation service. Preserve meaning, names, numbers, line breaks and formatting. "
+                          "Do not add explanations or Markdown fences.");
+}
+
+QString AppSettings::codexPrompt() const
+{
+    const QString prompt = m_settings->value(QStringLiteral("Codex/Prompt")).toString();
+    return prompt.trimmed().isEmpty() ? defaultCodexPrompt() : prompt;
+}
+
+void AppSettings::setCodexPrompt(const QString &prompt)
+{
+    m_settings->setValue(QStringLiteral("Codex/Prompt"), prompt);
+}
+
 ATranslationProvider::ProviderBackend AppSettings::translationProviderBackend() const
 {
     uint8_t settingOrDefault = m_settings->value(QStringLiteral("Translation/Backend"),
@@ -1001,6 +1018,27 @@ int AppSettings::localModelsTimeout() const
 void AppSettings::setLocalModelsTimeout(int seconds)
 {
     m_settings->setValue(QStringLiteral("LocalModels/Timeout"), qBound(1, seconds, 3600));
+}
+
+QString AppSettings::localModelsPrompt(const QString &model) const
+{
+    const QString prompt = m_settings->value(QStringLiteral("LocalModels/Prompts/") + promptKey(model)).toString();
+    return prompt.trimmed().isEmpty() ? LocalModelsTranslationProvider::defaultPrompt(model) : prompt;
+}
+
+void AppSettings::setLocalModelsPrompt(const QString &model, const QString &prompt)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/Prompts/") + promptKey(model), prompt);
+}
+
+QString AppSettings::localModelsInstructions(const QString &model) const
+{
+    return m_settings->value(QStringLiteral("LocalModels/Instructions/") + promptKey(model)).toString();
+}
+
+void AppSettings::setLocalModelsInstructions(const QString &model, const QString &instructions)
+{
+    m_settings->setValue(QStringLiteral("LocalModels/Instructions/") + promptKey(model), instructions);
 }
 
 QString AppSettings::localAiPrompt(const QString &model) const

@@ -62,15 +62,20 @@ private slots:
         opts.setOption("executable", spacedPath);
 #endif
         opts.setOption("instructions", QString::fromUtf8("敬語で翻訳"));
+        const QString basic = QString::fromUtf8("意味を保って翻訳する。\nBraces {text}, quotes \" and $() stay literal.");
+        opts.setOption("prompt", basic);
         provider.applyOptions(opts);
         const QString text = QString::fromUtf8("  日本語\n\"quotes\" ` $() <tag>\n") + QString(100000, QLatin1Char('x')) + QStringLiteral("\n ");
         provider.translate(text, Language(QStringLiteral("en")), Language(QStringLiteral("ja")));
-        QTRY_COMPARE(provider.getState(), ATranslationProvider::State::Processed);
+        QTRY_VERIFY2(provider.getState() == ATranslationProvider::State::Processed, qPrintable(provider.getErrorString()));
         QCOMPARE(provider.result.translation, text);
         const QJsonObject capture = record();
         const QJsonObject request = capture.value(QStringLiteral("input")).toObject();
         QCOMPARE(request.value(QStringLiteral("text")).toString(), text);
         QCOMPARE(request.value(QStringLiteral("translation_preferences")).toString(), QString::fromUtf8("敬語で翻訳"));
+        QCOMPARE(request.value(QStringLiteral("translation_instructions")).toString(), basic);
+        QVERIFY(capture.value(QStringLiteral("prompt")).toString().startsWith(QStringLiteral("Do not use tools")));
+        QVERIFY(capture.value(QStringLiteral("prompt")).toString().contains(QStringLiteral("never change the output schema")));
         const QJsonArray args = capture.value(QStringLiteral("arguments")).toArray();
         QVERIFY(args.contains(QStringLiteral("--ignore-user-config")));
         QVERIFY(args.contains(QStringLiteral("--ephemeral")));
@@ -256,6 +261,7 @@ private slots:
         settings.setCodexReasoningEffort(QStringLiteral("high"));
         settings.setCodexTimeout(42);
         settings.setCodexInstructions(QString::fromUtf8("用語を保持\n敬語"));
+        settings.setCodexPrompt(QStringLiteral("Translate faithfully."));
         settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Codex);
         AppSettings reloaded;
         QCOMPARE(reloaded.translationProviderBackend(), ATranslationProvider::ProviderBackend::Codex);
@@ -268,6 +274,9 @@ private slots:
         QCOMPARE(opts->getOption("executable").toString(), QStringLiteral("my-codex"));
         QCOMPARE(opts->getOption("timeout").toInt(), 42);
         QCOMPARE(opts->getOption("instructions").toString(), settings.codexInstructions());
+        QCOMPARE(opts->getOption("prompt").toString(), QStringLiteral("Translate faithfully."));
+        provider.saveOptionToSettings(QStringLiteral("prompt"), QString());
+        QCOMPARE(reloaded.codexPrompt(), AppSettings::defaultCodexPrompt());
         provider.saveOptionToSettings(QStringLiteral("reasoningEffort"), QStringLiteral("max"));
         QCOMPARE(reloaded.codexReasoningEffort(), QStringLiteral("max"));
     }

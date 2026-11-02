@@ -4,12 +4,14 @@
 #include "core/translationsession.h"
 #include "modulestatus.h"
 #include "optionalcomponents.h"
+#include "provideroptionsmanager.h"
 #include "testisolation.h"
 #include <QScopeGuard>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -34,6 +36,46 @@ class LocalModelsProviderTest : public QObject
         provider.applyOptions(options);
     }
 private slots:
+    void modelInstructionsReachTheWorkerAndCanChangeWithoutReloading()
+    {
+        AppSettings settings;
+        QTemporaryDir directory;
+        LocalModelsTranslationProvider provider;
+        configure(provider, directory.path());
+        settings.setLocalModelsRoot(directory.path());
+        ProviderOptionsManager manager;
+        for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+            const QString prompt = QStringLiteral("Translate {text} into {target_lang}. ") + model;
+            const QString extra = QString::fromUtf8("用語を保持\n") + model;
+            settings.setLocalModelsModel(model);
+            settings.setLocalModelsPrompt(model, prompt);
+            settings.setLocalModelsInstructions(model, extra);
+            manager.applySettingsToTranslationProvider(&provider);
+            for (int request = 0; request < 2; ++request) {
+                if (request) {
+                    ProviderOptions update;
+                    update.setOption("instructions", extra + QStringLiteral(" updated"));
+                    provider.applyOptions(update);
+                }
+                provider.translate(QStringLiteral("Hello {text}"), Language(QStringLiteral("ja")), Language::autoLanguage());
+                QTRY_COMPARE(provider.getState(), ATranslationProvider::State::Processed);
+                QFile file(directory.filePath(QStringLiteral("request.json")));
+                QVERIFY(file.open(QIODevice::ReadOnly));
+                const auto command = QJsonDocument::fromJson(file.readAll()).object();
+                QCOMPARE(command.value("prompt").toString(), prompt);
+                QCOMPARE(command.value("instructions").toString(), extra + (request ? QStringLiteral(" updated") : QString()));
+                QCOMPARE(command.value("text").toString(), QStringLiteral("Hello {text}"));
+            }
+        }
+        QFile starts(directory.filePath(QStringLiteral("starts.txt")));
+        QVERIFY(starts.open(QIODevice::ReadOnly));
+        QCOMPARE(starts.readAll().count("started"), 4);
+        for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+            settings.setLocalModelsPrompt(model, QString());
+            settings.setLocalModelsInstructions(model, QString());
+        }
+    }
+
     void localeVariants_data()
     {
         QTest::addColumn<Language>("source");

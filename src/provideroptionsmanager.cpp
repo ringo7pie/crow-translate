@@ -36,6 +36,8 @@ std::unique_ptr<ProviderOptions> ProviderOptionsManager::createTranslationOption
         options->setOption("root", settings.localModelsRoot());
         options->setOption("model", settings.localModelsModel());
         options->setOption("timeout", settings.localModelsTimeout());
+        options->setOption("prompt", settings.localModelsPrompt(settings.localModelsModel()));
+        options->setOption("instructions", settings.localModelsInstructions(settings.localModelsModel()));
         return options;
     } else if (providerType == "CodexTranslationProvider") {
         const AppSettings settings;
@@ -45,6 +47,7 @@ std::unique_ptr<ProviderOptions> ProviderOptionsManager::createTranslationOption
         options->setOption("reasoningEffort", settings.codexReasoningEffort());
         options->setOption("timeout", settings.codexTimeout());
         options->setOption("instructions", settings.codexInstructions());
+        options->setOption("prompt", settings.codexPrompt());
         return options;
     }
 

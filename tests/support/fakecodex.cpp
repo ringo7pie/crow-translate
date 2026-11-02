@@ -28,6 +28,7 @@ int main(int argc, char **argv)
     const QString mode = qEnvironmentVariable("CROW_CODEX_TEST_MODE");
     const QString recordPath = qEnvironmentVariable("CROW_CODEX_TEST_RECORD");
     QJsonObject record{{QStringLiteral("arguments"), QJsonArray::fromStringList(args)},
+                       {QStringLiteral("prompt"), QString::fromUtf8(prompt)},
                        {QStringLiteral("input"), request},
                        {QStringLiteral("directory"), QDir::currentPath()}};
     QProcess child;

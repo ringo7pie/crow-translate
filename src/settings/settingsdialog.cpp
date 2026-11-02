@@ -262,11 +262,21 @@ void SettingsDialog::buildCodexUi()
     m_codexTimeout->setRange(1, 3600);
     m_codexTimeout->setSuffix(tr(" s"));
     form->addRow(tr("Codex timeout:"), m_codexTimeout);
+    m_codexPrompt = new QPlainTextEdit(group);
+    m_codexPrompt->setObjectName(QStringLiteral("codexPromptEdit"));
+    m_codexPrompt->setFixedHeight(90);
+    form->addRow(tr("Basic instructions:"), m_codexPrompt);
+    auto *resetPrompt = new QPushButton(tr("Restore default basic instructions"), group);
+    resetPrompt->setObjectName(QStringLiteral("codexResetPromptButton"));
+    connect(resetPrompt, &QPushButton::clicked, this, [this]() {
+        m_codexPrompt->setPlainText(AppSettings::defaultCodexPrompt());
+    });
+    form->addRow(resetPrompt);
     m_codexInstructions = new QPlainTextEdit(group);
     m_codexInstructions->setObjectName(QStringLiteral("codexInstructionsEdit"));
     m_codexInstructions->setPlaceholderText(tr("Optional style and terminology preferences, e.g. use polite Japanese."));
-    m_codexInstructions->setMaximumHeight(100);
-    form->addRow(tr("Additional translation instructions:"), m_codexInstructions);
+    m_codexInstructions->setFixedHeight(65);
+    form->addRow(tr("Additional instructions:"), m_codexInstructions);
     // Keep the controls on the Translation page, immediately below the
     // provider selector. translationLayout belongs to the separate Mozhi page.
     ui->translationPageLayout->insertWidget(2, group);
@@ -308,6 +318,25 @@ void SettingsDialog::buildLocalModelsUi()
     m_localModelsTimeout->setRange(1, 3600);
     m_localModelsTimeout->setSuffix(tr(" s"));
     form->addRow(tr("Timeout:"), m_localModelsTimeout);
+    m_localModelsPrompt = new QPlainTextEdit(group);
+    m_localModelsPrompt->setObjectName(QStringLiteral("localModelsPromptEdit"));
+    m_localModelsPrompt->setFixedHeight(110);
+    form->addRow(tr("Basic instructions:"), m_localModelsPrompt);
+    auto *resetPrompt = new QPushButton(tr("Restore default basic instructions"), group);
+    resetPrompt->setObjectName(QStringLiteral("localModelsResetPromptButton"));
+    connect(resetPrompt, &QPushButton::clicked, this, [this]() {
+        m_localModelsPrompt->setPlainText(LocalModelsTranslationProvider::defaultPrompt(m_localModelsModel->currentData().toString()));
+    });
+    form->addRow(resetPrompt);
+    m_localModelsInstructionsEdit = new QPlainTextEdit(group);
+    m_localModelsInstructionsEdit->setObjectName(QStringLiteral("localModelsInstructionsEdit"));
+    m_localModelsInstructionsEdit->setPlaceholderText(tr("Optional style and terminology preferences, e.g. use polite Japanese."));
+    m_localModelsInstructionsEdit->setFixedHeight(65);
+    form->addRow(tr("Additional instructions:"), m_localModelsInstructionsEdit);
+    auto *promptHelp = new QLabel(tr("Saved separately for each model. {text}: source text (required); {source_lang}/{target_lang}: English language names; {source_code}/{target_code}: language codes. Additional instructions are placed before the basic instructions. Models differ in how well they follow them."), group);
+    promptHelp->setWordWrap(true);
+    form->addRow(promptHelp);
+    connect(m_localModelsModel, &QComboBox::currentIndexChanged, this, &SettingsDialog::switchLocalModelsPrompt);
     m_localModelsStatus = new QLabel(group);
     m_localModelsStatus->setObjectName(QStringLiteral("localModelsStatusLabel"));
     m_localModelsStatus->setWordWrap(true);
@@ -335,8 +364,40 @@ void SettingsDialog::updateLocalModelsStatus()
     m_localModelsStatus->setText(lines.join(QLatin1Char('\n')));
 }
 
+void SettingsDialog::storeLocalModelsPromptDraft()
+{
+    if (m_localModelsPromptId.isEmpty())
+        return;
+    m_localModelsPrompts[m_localModelsPromptId] = m_localModelsPrompt->toPlainText();
+    m_localModelsInstructions[m_localModelsPromptId] = m_localModelsInstructionsEdit->toPlainText();
+}
+
+void SettingsDialog::switchLocalModelsPrompt()
+{
+    storeLocalModelsPromptDraft();
+    m_localModelsPromptId = m_localModelsModel->currentData().toString();
+    m_localModelsPrompt->setPlainText(m_localModelsPrompts.value(m_localModelsPromptId,
+                                      LocalModelsTranslationProvider::defaultPrompt(m_localModelsPromptId)));
+    m_localModelsInstructionsEdit->setPlainText(m_localModelsInstructions.value(m_localModelsPromptId));
+}
+
 void SettingsDialog::accept()
 {
+    storeLocalModelsPromptDraft();
+    for (auto it = m_localModelsPrompts.cbegin(); it != m_localModelsPrompts.cend(); ++it) {
+        if (!it.value().trimmed().isEmpty() && !it.value().contains(QStringLiteral("{text}"))) {
+            const QString model = it.key();
+            ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->translationPage));
+            ui->translationProviderComboBox->setCurrentIndex(ui->translationProviderComboBox->findData(
+                QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels)));
+            m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(model));
+            m_localModelsPrompt->setFocus();
+            QMessageBox::warning(this, tr("Basic instructions:"),
+                                 tr("The basic instructions for %1 must include {text} for the source text.")
+                                     .arg(LocalModelsTranslationProvider::modelName(model)));
+            return;
+        }
+    }
     if (!ui->tesseractParametersTableWidget->validateParameters()) {
         QMessageBox msgBox;
         msgBox.setText(tr("The OCR parameter fields can not be empty."));
@@ -387,9 +448,14 @@ void SettingsDialog::accept()
     settings.setCodexReasoningEffort(m_codexReasoningEffort->currentData().toString());
     settings.setCodexTimeout(m_codexTimeout->value());
     settings.setCodexInstructions(m_codexInstructions->toPlainText());
+    settings.setCodexPrompt(m_codexPrompt->toPlainText());
     settings.setLocalModelsRoot(m_localModelsRoot->text().trimmed());
     settings.setLocalModelsModel(m_localModelsModel->currentData().toString());
     settings.setLocalModelsTimeout(m_localModelsTimeout->value());
+    for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+        settings.setLocalModelsPrompt(model, m_localModelsPrompts.value(model));
+        settings.setLocalModelsInstructions(model, m_localModelsInstructions.value(model));
+    }
     const ATranslationProvider::ProviderBackend currentBackend = settings.translationProviderBackend();
     const ATranslationProvider::ProviderBackend newBackend = ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>();
     settings.setTranslationProviderBackend(newBackend);
@@ -1353,9 +1419,14 @@ void SettingsDialog::restoreDefaults()
     m_codexReasoningEffort->setCurrentIndex(m_codexReasoningEffort->findData(AppSettings::defaultCodexReasoningEffort()));
     m_codexTimeout->setValue(AppSettings::defaultLocalAiTimeout());
     m_codexInstructions->clear();
+    m_codexPrompt->setPlainText(AppSettings::defaultCodexPrompt());
+    m_localModelsPromptId.clear();
+    m_localModelsPrompts.clear();
+    m_localModelsInstructions.clear();
     m_localModelsRoot->setText(LocalModelsTranslationProvider::defaultRoot());
     m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(QStringLiteral("index-translate-2b")));
     m_localModelsTimeout->setValue(300);
+    switchLocalModelsPrompt();
     if (defaultTranslationBackendIndex != -1) {
         ui->translationProviderComboBox->setCurrentIndex(defaultTranslationBackendIndex);
     }
@@ -1478,9 +1549,16 @@ void SettingsDialog::loadSettings()
     m_codexReasoningEffort->setCurrentIndex(m_codexReasoningEffort->findData(settings.codexReasoningEffort()));
     m_codexTimeout->setValue(settings.codexTimeout());
     m_codexInstructions->setPlainText(settings.codexInstructions());
+    m_codexPrompt->setPlainText(settings.codexPrompt());
+    m_localModelsPromptId.clear();
+    for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
+        m_localModelsPrompts[model] = settings.localModelsPrompt(model);
+        m_localModelsInstructions[model] = settings.localModelsInstructions(model);
+    }
     m_localModelsRoot->setText(settings.localModelsRoot());
     m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(settings.localModelsModel()));
     m_localModelsTimeout->setValue(settings.localModelsTimeout());
+    switchLocalModelsPrompt();
     updateLocalModelsStatus();
     const int translationBackendIndex = ui->translationProviderComboBox->findData(QVariant::fromValue(settings.translationProviderBackend()));
     if (translationBackendIndex != -1) {
