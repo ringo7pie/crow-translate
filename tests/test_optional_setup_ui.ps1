@@ -17,8 +17,22 @@ function Assert-InstallState([bool]$Expected, [string]$Scenario) {
     Write-Output ('PASS: ' + $Scenario)
 }
 Assert-InstallState $false 'initial unchecked consent'
+$ids=@($catalog.components|ForEach-Object{$_.id})
+$catPosition=[Array]::IndexOf($ids,'cat-translate-3.3b')
+$plamoPosition=[Array]::IndexOf($ids,'plamo-2-translate')
+if(-not $choices.GetItemChecked($catPosition) -or $choices.GetItemChecked($plamoPosition)){throw 'CAT must be selected and PLaMo unselected initially'}
+if(-not $choices.Items[$catPosition].Contains(([string][char]0x63A8 + [char]0x5968))){throw 'CAT recommendation label is missing'}
+$originalNewInstallation=$script:newInstallation
+try{
+    $script:newInstallation=$true;Select-InitialDefaultModel
+    if($script:defaultIds[$defaultModel.SelectedIndex] -ne 'cat-translate-3.3b'){throw 'New installations must default to CAT'}
+    Write-Output 'PASS: CAT is recommended and the default for new installations'
+    $script:newInstallation=$false;Select-InitialDefaultModel
+    if($script:defaultIds[$defaultModel.SelectedIndex] -ne ''){throw 'Updates must preserve the existing default'}
+    Write-Output 'PASS: updates keep the existing default'
+}finally{$script:newInstallation=$originalNewInstallation;Select-InitialDefaultModel}
 $accept.Checked=$true
-Assert-InstallState $false 'Indra/PLaMo need eligibility consent too'
+Assert-InstallState $false 'Indra needs eligibility consent too'
 $eligibility.Checked=$true
 Assert-InstallState $true 'all required consent enables install'
 $accept.Checked=$false

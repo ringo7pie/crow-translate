@@ -36,7 +36,9 @@
 #include <QKeyEvent>
 #include <QSignalSpy>
 #include <QLocale>
+#include <QMessageBox>
 #include <QTest>
+#include <QTimer>
 #include <QTextEdit>
 #include <QToolButton>
 
@@ -69,6 +71,7 @@ void pinLocalAiSettings(const MockHttpServer &server)
     settings.setLocalProviderUrl(QStringLiteral("openai_custom"), server.baseUrl());
     settings.setLocalProviderModel(QStringLiteral("openai_custom"), QStringLiteral("mock-model"));
     settings.setLocalAiTimeout(QStringLiteral("openai_custom"), 300);
+    settings.setGlobalShortcutsEnabled(false);
     // Each mock server has a different port. A detection endpoint retained
     // from an earlier test otherwise talks to a server that no longer exists.
     settings.setDetectProvider(QString());
@@ -390,7 +393,19 @@ void MainWindowFeaturesTest::testEscapeCancelsSourceImage()
 // reset it - the four-point pattern minus the two UI-only touch points.
 void MainWindowFeaturesTest::testShowStatusBarSettingsRoundTrip()
 {
+    AppSettings().setGlobalShortcutsEnabled(false);
     MainWindow window;
+    QTimer modalGuard;
+    modalGuard.setInterval(250);
+    connect(&modalGuard, &QTimer::timeout, this, []() {
+        for (QWidget *widget : QApplication::topLevelWidgets()) {
+            if (auto *box = qobject_cast<QMessageBox *>(widget); box && box->isVisible()) {
+                QTest::qFail(qPrintable(box->text()), __FILE__, __LINE__);
+                box->reject();
+            }
+        }
+    });
+    modalGuard.start();
 
     {
         SettingsDialog dialog(&window);
@@ -412,6 +427,9 @@ void MainWindowFeaturesTest::testShowStatusBarSettingsRoundTrip()
         // Private slot - reachable through the meta-object by name.
         QVERIFY(QMetaObject::invokeMethod(&dialog, "restoreDefaults", Qt::DirectConnection));
         QVERIFY(box->isChecked());
+        // Global registration has separate tests. Do not claim the desktop's
+        // real key bindings while checking an unrelated settings checkbox.
+        dialog.findChild<QCheckBox *>(QStringLiteral("globalShortcutsCheckBox"))->setChecked(false);
         dialog.accept();
     }
     QCOMPARE(AppSettings().isShowStatusBar(), true);
@@ -1201,7 +1219,24 @@ void MainWindowFeaturesTest::testDelayedCaptureAndTranslate()
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
     QSignalSpy translated(&window, &MainWindow::translationRequested);
-    window.delayedTranslateScreenArea();
+    // Exercise the configured action, including its signal-to-slot
+    // wiring: Ctrl+Shift+Z must delay+translate, never toggle image inversion.
+    // Registration/rollback has a separate test with reserved fixture keys;
+    // do not depend on another desktop application's ownership of this key.
+    auto bindings = settings.globalShortcutSequences();
+    for (int i = 0; i < bindings.size(); ++i)
+        if (i != 10)
+            bindings[i] = {};
+    QString error;
+    QVERIFY2(window.applyGlobalShortcuts(bindings, false, &error), qPrintable(error));
+    QHotkey *captureKey = nullptr;
+    for (QHotkey *hotkey : window.findChildren<QHotkey *>())
+        if (hotkey->shortcut() == QKeySequence("Ctrl+Shift+Z"))
+            captureKey = hotkey;
+    QVERIFY(captureKey);
+    const bool invertedBefore = settings.isOcrNegate();
+    QVERIFY(QMetaObject::invokeMethod(captureKey, "activated", Qt::DirectConnection));
+    QCOMPARE(settings.isOcrNegate(), invertedBefore);
     QVERIFY(window.isVisible());
     window.recognizeScreenArea(); // may not replace the pending translate capture
     auto *snip = window.findChild<SnippingArea *>();

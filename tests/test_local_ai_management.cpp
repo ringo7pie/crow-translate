@@ -106,6 +106,7 @@ private slots:
         auto *eligibility = dialog.findChild<QCheckBox *>("componentEligibility");
         root->setText(fixture.path() + "/components");
         QCOMPARE(choices->topLevelItemCount(), 6);
+        QVERIFY(choices->topLevelItem(5)->text(0).contains(QStringLiteral("recommended")));
         choices->topLevelItem(0)->setCheckState(0, Qt::Checked);
         QVERIFY(!install->isEnabled());
         consent->setChecked(true);
@@ -178,21 +179,70 @@ private slots:
     }
 #endif
 
-    void shortcutMigrationPreservesCustomAndOccupiedKeys()
+    void shortcutMigrationRepairsOldBindings_data()
     {
+        QTest::addColumn<QString>("recognize");
+        QTest::addColumn<QString>("invert");
+        QTest::addColumn<QString>("delayed");
+        QTest::addColumn<QString>("playPause");
+        QTest::addColumn<QString>("occupied");
+        QTest::addColumn<QString>("expectedRecognize");
+        QTest::addColumn<QString>("expectedInvert");
+        QTest::addColumn<QString>("expectedPlayPause");
+        const auto row = [](const char *name, const QStringList &values) {
+            auto &data = QTest::newRow(name);
+            for (const auto &value : values)
+                data << value;
+        };
+        row("v10-ocr-default", {"Ctrl+Shift+Z", "", "", "Ctrl+Alt+G", "", "Ctrl+Alt+I", "", "Ctrl+Alt+D"});
+        row("inversion-on-z", {"Ctrl+Alt+I", "Ctrl+Shift+Z", "", "Ctrl+Alt+G", "", "Ctrl+Alt+I", "", "Ctrl+Alt+D"});
+        row("already-correct", {"Ctrl+Alt+I", "", "Ctrl+Shift+Z", "", "", "Ctrl+Alt+I", "", ""});
+        row("custom-keys", {"Alt+F8", "Alt+F9", "Alt+F10", "Alt+F11", "", "Alt+F8", "Alt+F9", "Alt+F11"});
+        row("disabled-keys", {"", "", "", "", "", "", "", ""});
+        row("occupied-play-pause", {"Ctrl+Shift+Z", "", "", "Ctrl+Alt+G", "Ctrl+Alt+D", "Ctrl+Alt+I", "", ""});
+        row("occupied-ocr-fallback", {"Ctrl+Shift+Z", "", "", "Ctrl+Alt+D", "Ctrl+Alt+I", "", "", "Ctrl+Alt+D"});
+        row("other-action-on-z", {"Ctrl+Alt+I", "", "", "Ctrl+Alt+D", "Ctrl+Shift+Z", "Ctrl+Alt+I", "", "Ctrl+Alt+D"});
+        row("other-action-duplicates-stop", {"Ctrl+Alt+I", "", "", "Ctrl+Alt+D", "Ctrl+Alt+G", "Ctrl+Alt+I", "", "Ctrl+Alt+D"});
+    }
+
+    void shortcutMigrationRepairsOldBindings()
+    {
+        QFETCH(QString, recognize);
+        QFETCH(QString, invert);
+        QFETCH(QString, delayed);
+        QFETCH(QString, playPause);
+        QFETCH(QString, occupied);
+        QFETCH(QString, expectedRecognize);
+        QFETCH(QString, expectedInvert);
+        QFETCH(QString, expectedPlayPause);
         QSettings store;
-        for (const auto &key : {QString("Ctrl+Alt+I"), QString("Alt+F8"), QString()}) {
-            store.setValue("Shortcuts/RecognizeScreenAreaShortcut", QKeySequence(key));
-            store.remove("Shortcuts/OcrCaptureV2");
-            AppSettings settings;
-            QCOMPARE(settings.recognizeScreenAreaShortcut(), QKeySequence(key == "Ctrl+Alt+I" ? "Ctrl+Shift+Z" : key));
-        }
-        store.setValue("Shortcuts/OpenSettings", QKeySequence("Ctrl+Shift+Z"));
-        store.setValue("Shortcuts/RecognizeScreenAreaShortcut", QKeySequence("Ctrl+Alt+I"));
-        store.remove("Shortcuts/OcrCaptureV2");
+        store.setValue("Shortcuts/OcrCaptureV2", true);
+        store.remove("Shortcuts/CaptureTranslationV3");
+        store.setValue("Shortcuts/RecognizeScreenAreaShortcut", QKeySequence(recognize));
+        store.setValue("Shortcuts/ToggleOcrNegate", QKeySequence(invert));
+        store.setValue("Shortcuts/DelayedTranslateScreenAreaShortcut", QKeySequence(delayed));
+        store.setValue("Shortcuts/StopSelection", QKeySequence("Ctrl+Alt+G"));
+        store.setValue("Shortcuts/PlayPauseSpeakingSelection", QKeySequence(playPause));
+        store.setValue("Shortcuts/OpenSettings", QKeySequence(occupied));
         AppSettings settings;
-        QCOMPARE(settings.recognizeScreenAreaShortcut(), QKeySequence("Ctrl+Alt+I"));
-        QCOMPARE(settings.playPauseSpeakingShortcut(), QKeySequence("Ctrl+Alt+D"));
+        QCOMPARE(settings.recognizeScreenAreaShortcut(), QKeySequence(expectedRecognize));
+        QCOMPARE(settings.toggleOcrNegateShortcut(), QKeySequence(expectedInvert));
+        QCOMPARE(settings.delayedTranslateScreenAreaShortcut(), QKeySequence("Ctrl+Shift+Z"));
+        QCOMPARE(settings.stopSpeakingShortcut(), QKeySequence("Ctrl+Alt+G"));
+        QCOMPARE(settings.playPauseSpeakingShortcut(), QKeySequence(expectedPlayPause));
+        ShortcutsModel model;
+        model.loadShortcuts(settings);
+        QVERIFY2(model.conflictDescription().isEmpty(), qPrintable(model.conflictDescription()));
+        // A later user edit must survive every subsequent AppSettings read.
+        settings.setDelayedTranslateScreenAreaShortcut(QKeySequence("Alt+F10"));
+        QCOMPARE(AppSettings().delayedTranslateScreenAreaShortcut(), QKeySequence("Alt+F10"));
+    }
+
+    void shortcutDefaultsAndExistingCustomKeys()
+    {
+        QCOMPARE(AppSettings::defaultDelayedTranslateScreenAreaShortcut(), QKeySequence("Ctrl+Shift+Z"));
+        QCOMPARE(AppSettings::defaultRecognizeScreenAreaShortcut(), QKeySequence("Ctrl+Alt+I"));
+        QSettings store;
         store.setValue("Shortcuts/Swap", QKeySequence("Ctrl+Shift+M"));
         store.remove("Shortcuts/OcrCaptureV2");
         AppSettings migrated;

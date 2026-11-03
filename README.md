@@ -19,7 +19,7 @@ translation model, with license consent, private Python, resumable verified
 downloads, cancellation and automatic detection of the selected data directory.
 The setup now offers a default translation model selector and removes verified
 download archives and PLaMo conversion inputs after successful installation.
-Indra and PLaMo start selected; existing application settings stay unchanged
+Indra and the recommended CAT model start selected; existing application settings stay unchanged
 unless a default translation model is explicitly chosen.
 Local translation presets now have separately saved basic and additional
 instructions for each model. Codex translation also exposes its basic
@@ -51,8 +51,11 @@ different directory can be selected without downloading its models again.
 
 日本語: 「ローカルAIの管理」で未導入のOCR・翻訳モデルを選び、ライセンスに
 同意してインストールできます。導入後は「この保存先・モデルを使用」で反映します。
-**Ctrl+Shift+Z** はキャプチャーした文字を入力欄に取り込み、自動翻訳がONでも
-翻訳を開始しません。**Ctrl+Alt+O** でキャプチャーから翻訳まで実行できます。
+**Ctrl+Shift+Z** は設定した遅延の後に画面の領域を選択し、OCRして翻訳します。
+遅延は「設定 → OCR」で変更できます。**Ctrl+Alt+I** はOCRのみ、
+**Ctrl+Alt+O** は遅延なしでキャプチャーから翻訳まで実行します。
+インストール時の推奨モデルは **CAT-Translate-3.3B** です。IndraとCATを初期選択し、
+新規導入時はCATを既定にします。更新時は既存モデルの設定を維持します。
 「設定 → OCR」の「キャプチャー中はCrowのウィンドウを隠す」は初期状態でONです。
 成功するとOCR結果を表示し、キャンセル・失敗時は元のウィンドウ状態に戻ります。
 キーの割り当ては「設定 → ショートカット」で編集・解除・初期化できます。
@@ -177,7 +180,8 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> | Stop speaking                      |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd> | Speak / pause                      |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>C</kbd> | Show main window                   |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Recognize screen area into input (OCR only) |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>I</kbd> | Recognize screen area into input (OCR only) |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Translate screen area after the configured delay |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>O</kbd> | Translate text in screen area      |
 
 ### In main window
@@ -197,10 +201,12 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Edit current local model / Codex instructions |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd> | Manage local AI |
 
-Custom bindings are retained. The previous default OCR key, Ctrl+Alt+I, is
-migrated to Ctrl+Shift+Z once if the new key is free in Crow's settings. Conflicts
-must be resolved before saving; a failed global registration restores previous
-bindings. Global shortcuts depend on OS support and keys claimed by other apps.
+Ctrl+Shift+Z is migrated once to delayed capture+translate, removing old OCR or
+inversion bindings of that key. Saved Ctrl+Alt+G duplicates are also repaired:
+G stops speech, and D plays/pauses it when available. Other custom bindings and
+edits made after migration are retained. Conflicts must be resolved before saving;
+a failed global registration restores previous bindings. Global shortcuts depend
+on OS support and keys claimed by other apps.
 
 ## CLI commands
 
@@ -434,7 +440,8 @@ Windows x64 installers for this unofficial fork are available on the
 Download the `crow-translate-*-setup.exe` asset. The installer includes Qt,
 Tesseract, English/Japanese OCR data, Visual C++ runtime DLLs and license notices.
 The installer asks whether to open the optional setup for Indra OCR and each local
-translation model. Indra and PLaMo start selected; license consent starts unchecked.
+translation model. Indra and CAT-Translate-3.3B start selected; license consent starts unchecked.
+CAT is recommended and is the default for new installations; updates keep the current model.
 Choose a default translation model from selected or installed models, or keep
 the existing default. Settings apply on the next application start after the
 model has been verified. Review the displayed

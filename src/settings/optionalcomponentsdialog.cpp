@@ -160,7 +160,9 @@ OptionalComponentsDialog::OptionalComponentsDialog(const QString &modelRoot, QWi
     for (const auto &value : m_components) {
         const auto component = value.toObject();
         auto *item = new QTreeWidgetItem(m_choices);
-        item->setText(0, component.value(QStringLiteral("name")).toString());
+        const QString name = component.value(QStringLiteral("name")).toString();
+        item->setText(0, component.value(QStringLiteral("id")).toString() == QStringLiteral("cat-translate-3.3b")
+                             ? tr("%1 (recommended)").arg(name) : name);
         item->setData(0, Qt::UserRole, component.value(QStringLiteral("id")).toString());
         item->setCheckState(0, Qt::Unchecked);
         item->setText(2, QStringLiteral("%1 GB").arg(component.value(QStringLiteral("download_bytes")).toDouble() / 1e9, 0, 'f', 2));

@@ -36,6 +36,11 @@ class SettingsDialogLocalAiTest : public QObject
     Q_OBJECT
 
 private slots:
+    void init()
+    {
+        AppSettings().setGlobalShortcutsEnabled(false);
+    }
+
     void testMemoryAndSentenceSettingsAreTransactional()
     {
         AppSettings settings;
@@ -143,6 +148,7 @@ private slots:
                 QCOMPARE(dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsPromptEdit"))->toPlainText(), LocalModelsTranslationProvider::defaultPrompt(id));
                 QVERIFY(dialog.findChild<QPlainTextEdit *>(QStringLiteral("localModelsInstructionsEdit"))->toPlainText().isEmpty());
             }
+            dialog.findChild<QCheckBox *>(QStringLiteral("globalShortcutsCheckBox"))->setChecked(false);
             dialog.accept();
         }
         for (const QString &id : LocalModelsTranslationProvider::modelIds()) {

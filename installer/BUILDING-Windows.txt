@@ -1,4 +1,4 @@
-Windows release build information: 4.1.0-local.10
+Windows release build information: 4.1.0-local.11
 =============================================
 
 The Qt local-AI manager reuses the prepared optional/ installer payload via
@@ -10,8 +10,12 @@ The UI polls atomic progress JSON and retains resumable partial downloads.
 Installing files does not change the application settings or defaults request.
 Explicit Use actions apply a root/model immediately from the main window, or
 stage a draft until the enclosing Settings dialog is accepted.
-OCR-only capture uses Ctrl+Shift+Z by default and suppresses auto-translation for
-that result. Hiding Crow's top-level windows defaults on, with a 150 ms desktop
+Delayed capture+translate uses Ctrl+Shift+Z; OCR-only capture uses Ctrl+Alt+I and
+suppresses auto-translation for that result. A one-time migration removes old
+OCR/inversion bindings of Ctrl+Shift+Z and repairs saved Ctrl+Alt+G duplicates.
+CAT-Translate-3.3B is recommended and selected alongside Indra in optional setup;
+fresh installations default to CAT, while updates preserve the existing model.
+Hiding Crow's top-level windows defaults on, with a 150 ms desktop
 redraw delay before grabbing. Cancellation and failures restore visibility and
 window states. Shortcut validation includes duplicates/prefixes; registration
 failure rolls back previous global bindings. tests/test_local_ai_management.cpp

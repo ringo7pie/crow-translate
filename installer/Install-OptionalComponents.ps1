@@ -159,15 +159,15 @@ $form.StartPosition = 'CenterScreen'
 $form.MinimumSize = $form.Size
 $form.MaximizeBox = $false
 $label = New-Object Windows.Forms.Label
-$label.Text = "導入する項目と、既定で使う翻訳モデルを選択してください。`nIndra・PLaMoを初期選択しています。共通環境は別途最大約2 GBです。"
+$label.Text = "導入する項目と、既定で使う翻訳モデルを選択してください。`n推奨: CAT-Translate-3.3B。Indra・CATを初期選択。共通環境は別途最大約2 GBです。"
 $label.SetBounds(18, 14, 770, 42)
 $form.Controls.Add($label)
 $choices = New-Object Windows.Forms.CheckedListBox
 $choices.CheckOnClick = $true
 $choices.SetBounds(18, 62, 768, 112)
 foreach ($component in $catalog.components) {
-    $extra = if ($component.id -eq 'plamo-2-translate') { ' / 変換時の空き容量80 GB以上' } else { '' }
-    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), ($component.id -in @('indra','plamo-2-translate')))
+    $extra = if ($component.id -eq 'plamo-2-translate') { ' / 変換時の空き容量80 GB以上' } elseif ($component.id -eq 'cat-translate-3.3b') { '（推奨）' } else { '' }
+    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), ($component.id -in @('indra','cat-translate-3.3b')))
 }
 $form.Controls.Add($choices)
 $defaultLabel = New-Object Windows.Forms.Label
@@ -196,7 +196,8 @@ function Update-DefaultModels([int]$PendingIndex = -1, [bool]$PendingChecked = $
             (Test-Path -LiteralPath (Join-Path $destination.Text ('local-translation/models/'+$component.model_file))))
         if($checked -or $already){
             $script:defaultIds += $component.id
-            [void]$defaultModel.Items.Add($component.name + $(if($already){'（導入済み・実行時に検証）'}else{''}))
+            $recommended = if($component.id -eq 'cat-translate-3.3b'){'（推奨）'}else{''}
+            [void]$defaultModel.Items.Add($component.name + $recommended + $(if($already){'（導入済み・実行時に検証）'}else{''}))
         }
     }
     if($null -ne $previous){$defaultModel.SelectedIndex=[Array]::IndexOf($script:defaultIds,$previous)}
@@ -242,7 +243,10 @@ $destination.Text = $DataRoot; $destination.SetBounds(18, 568, 660, 24)
 $form.Controls.Add($destination)
 $destination.Add_TextChanged({Update-DefaultModels})
 Update-DefaultModels
-$defaultModel.SelectedIndex = if($script:newInstallation){[Array]::IndexOf($script:defaultIds,'plamo-2-translate')}else{0}
+function Select-InitialDefaultModel {
+    $defaultModel.SelectedIndex = if($script:newInstallation){[Array]::IndexOf($script:defaultIds,'cat-translate-3.3b')}else{0}
+}
+Select-InitialDefaultModel
 $browse = New-Object Windows.Forms.Button
 $browse.Text = '参照...'; $browse.SetBounds(690, 566, 96, 28)
 $browse.Add_Click({ $dialog = New-Object Windows.Forms.FolderBrowserDialog; $dialog.SelectedPath=$destination.Text; if($dialog.ShowDialog() -eq 'OK'){$destination.Text=$dialog.SelectedPath}; $dialog.Dispose() })

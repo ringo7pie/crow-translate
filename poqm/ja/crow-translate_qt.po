@@ -3057,6 +3057,10 @@ msgid "%1 s"
 msgstr "%1 秒"
 
 msgctxt "OptionalComponentsDialog|"
+msgid "%1 (recommended)"
+msgstr "%1（推奨）"
+
+msgctxt "OptionalComponentsDialog|"
 msgid "Browse..."
 msgstr "参照…"
 

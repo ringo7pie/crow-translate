@@ -87,7 +87,7 @@ begin
     'Indra OCR・翻訳モデルの追加導入',
     '追加機能をインストールしますか？',
     '「はい」を選ぶと、本体の配置後に追加セットアップを開きます。' + #13#10 +
-    'Indra OCR、PLaMo、Index、Hy-MT2、Seed-X、CATを個別に選択でき、容量と利用条件を確認してから取得します。' + #13#10 +
+    '推奨モデルはCAT-Translate-3.3Bです。Indra OCR、PLaMo、Index、Hy-MT2、Seed-X、CATを個別に選択し、容量と利用条件を確認してから取得します。' + #13#10 +
     '「いいえ」の場合、モデルやPythonのダウンロードは行いません。後からアプリ内の「ローカルAIの管理」やスタートメニューで追加できます。',
     True, False);
   OptionalSetupPage.Add('はい：追加セットアップを開く');
