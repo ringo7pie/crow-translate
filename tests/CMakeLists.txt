@@ -5,6 +5,16 @@
 
 find_package(Qt6 REQUIRED COMPONENTS Test Widgets Network)
 
+add_executable(test_local_ai_management test_local_ai_management.cpp)
+target_link_libraries(test_local_ai_management PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+set_target_properties(test_local_ai_management PROPERTIES WIN32_EXECUTABLE FALSE)
+add_test(NAME LocalAiManagementTest COMMAND test_local_ai_management)
+add_executable(hotkeyholder support/hotkeyholder.cpp)
+target_link_libraries(hotkeyholder PRIVATE QHotkey::QHotkey)
+set_target_properties(hotkeyholder PROPERTIES WIN32_EXECUTABLE FALSE)
+target_compile_definitions(test_local_ai_management PRIVATE HOTKEY_HOLDER_PATH="$<TARGET_FILE:hotkeyholder>")
+add_dependencies(test_local_ai_management hotkeyholder)
+
 # support/ holds header-only test helpers (testisolation.h) alongside the
 # compiled MockHttpServer - available to every target in this directory.
 # QtTest and CLI helpers require working stdout/stderr on Windows. The
@@ -375,6 +385,8 @@ add_dependencies(test_translation_provider_contract fake_codex)
 # When using static ONNX Runtime, also configure test executables that link
 # the app library (they pull in Piper TTS transitively through it).
 if(WITH_PIPER_TTS AND ONNXRuntime_USE_STATIC)
+    configure_onnxruntime_static(test_local_ai_management)
+    add_dependencies(test_local_ai_management onnxruntime_ready)
     configure_onnxruntime_static(test_localmodels_provider)
     add_dependencies(test_localmodels_provider onnxruntime_ready)
     configure_onnxruntime_static(test_indraocr)
@@ -396,6 +408,7 @@ endif()
 # configuration (see build.zsh's build-test/build-test-nopiper) still builds
 # and runs them.
 if(NOT BUILD_TESTING)
+    set_target_properties(test_local_ai_management hotkeyholder PROPERTIES EXCLUDE_FROM_ALL TRUE)
     set_target_properties(fake_localmodels test_localmodels_provider PROPERTIES EXCLUDE_FROM_ALL TRUE)
     set_target_properties(fake_indra test_indraocr PROPERTIES EXCLUDE_FROM_ALL TRUE)
     set_target_properties(fake_codex PROPERTIES EXCLUDE_FROM_ALL TRUE)

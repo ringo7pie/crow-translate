@@ -39,6 +39,24 @@ Optional PLaMo integration: **Built with PLaMo**. Its Community License requires
 PFN registration and other conditions for commercial use; the optional setup
 shows the full model licenses and checks consent before downloading any model.
 
+Modified on **2026-11-03**: added an in-app local AI manager, editable shortcuts
+for common actions, and an option to hide Crow's windows during OCR capture.
+Open **Manage local AI** from the settings-button menu, tray menu, or Translation
+and OCR settings to install or repair any of the six existing components. Read
+the full licenses and confirm eligibility where required before downloading.
+Choose **Use this directory / selected model** to activate an installed component;
+when opened from Settings this choice is provisional until OK. Cancel keeps
+installed files while discarding setting changes. A detected installation in a
+different directory can be selected without downloading its models again.
+
+日本語: 「ローカルAIの管理」で未導入のOCR・翻訳モデルを選び、ライセンスに
+同意してインストールできます。導入後は「この保存先・モデルを使用」で反映します。
+**Ctrl+Shift+Z** はキャプチャーした文字を入力欄に取り込み、自動翻訳がONでも
+翻訳を開始しません。**Ctrl+Alt+O** でキャプチャーから翻訳まで実行できます。
+「設定 → OCR」の「キャプチャー中はCrowのウィンドウを隠す」は初期状態でONです。
+成功するとOCR結果を表示し、キャンセル・失敗時は元のウィンドウ状態に戻ります。
+キーの割り当ては「設定 → ショートカット」で編集・解除・初期化できます。
+
 The application code and these code additions are distributed under
 [GPL-3.0-or-later](LICENSES/GPL-3.0-or-later.txt). The replacement application
 icons and their JPEG sources are Copyright 2026 ringo7pie, licensed under
@@ -157,8 +175,9 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd> | Speak selected text                |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd> | Speak translation of selected text |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>G</kbd> | Stop speaking                      |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd> | Speak / pause                      |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>C</kbd> | Show main window                   |
-| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>I</kbd> | Recognize text in screen area      |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Recognize screen area into input (OCR only) |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>O</kbd> | Translate text in screen area      |
 
 ### In main window
@@ -171,6 +190,17 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 | <kbd>Ctrl</kbd> + <kbd>S</kbd>                    | Speak source / pause text speaking      |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Speak translation / pause text speaking |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> | Copy translation to clipboard           |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> | Cancel translation                      |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> | Paste clipboard text into input         |
+| <kbd>Ctrl</kbd> + <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Previous / next installed local model |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Open settings |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Edit current local model / Codex instructions |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd> | Manage local AI |
+
+Custom bindings are retained. The previous default OCR key, Ctrl+Alt+I, is
+migrated to Ctrl+Shift+Z once if the new key is free in Crow's settings. Conflicts
+must be resolved before saving; a failed global registration restores previous
+bindings. Global shortcuts depend on OS support and keys claimed by other apps.
 
 ## CLI commands
 

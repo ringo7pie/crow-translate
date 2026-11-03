@@ -3055,3 +3055,183 @@ msgstr "Indra OCR に失敗しました（終了コード %1）: %2"
 msgctxt "TranslationActivityWidget|"
 msgid "%1 s"
 msgstr "%1 秒"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Browse..."
+msgstr "参照…"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Cancel installation"
+msgstr "インストールを中止"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Close"
+msgstr "閉じる"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Component"
+msgstr "項目"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Component directory:"
+msgstr "追加機能の保存先:"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Could not create the installation consent file."
+msgstr "インストールの同意記録を作成できませんでした。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Could not create the installation process group."
+msgstr "インストール用のプロセスグループを作成できませんでした。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "For Indra / PLaMo, I meet the stated usage and commercial conditions,\nor have obtained the required registration / permission."
+msgstr "Indra／PLaMoは、表示された用途・商用条件を満たすか、\n必要な登録・利用許諾を取得済みであることを確認しました。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Free space required"
+msgstr "必要な空き容量"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "I have read and agree to all licenses for the selected components."
+msgstr "選択したすべての項目のライセンスを読み、同意します。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Install or repair local OCR and translation models. Downloads are verified and can be resumed. Installing files does not change the active model; choose Use to apply it."
+msgstr "ローカルOCR・翻訳モデルをインストール／修復します。ダウンロードは検証し、中断後も再開できます。導入後に「この保存先・モデルを使用」を押すと設定に反映します。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Install selected components"
+msgstr "選択した項目をインストール"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Installation cancelled. Verified files and resumable downloads have been retained."
+msgstr "インストールを中止しました。検証済みファイルと再開可能なダウンロードを保持しました。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Installation completed. Select an installed component and choose Use to apply it."
+msgstr "インストールが完了しました。導入済みの項目を選択し、「この保存先・モデルを使用」で設定に反映できます。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Installation failed. Check the destination and connection, then retry.\n%1\n%2"
+msgstr "インストールに失敗しました。保存先と接続を確認して再試行してください。\n%1\n%2"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Installation is available in the Windows installer build. The prepared optional component bundle is missing or unsupported."
+msgstr "インストール機能はWindowsのインストーラー版で利用できます。追加機能の配布ファイルがないか、この環境には対応していません。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Installed"
+msgstr "導入済み"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Manage local AI"
+msgstr "ローカルAIの管理"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Missing / incomplete"
+msgstr "未導入／不足あり"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Model download"
+msgstr "モデルのダウンロード量"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Preparing selected components..."
+msgstr "選択した追加機能を準備しています…"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Show detected installation: %1"
+msgstr "検出した導入済みの保存先を表示: %1"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Status"
+msgstr "状態"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "The bundled license or notice is missing or has an invalid checksum: %1"
+msgstr "同梱ライセンス・出所表示がないか、チェックサムが一致しません: %1"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "The shared environment needs up to about 2 GB in addition to the model. PLaMo conversion requires at least 80 GB free. NVIDIA translation also downloads about 0.65 GB of CUDA runtime."
+msgstr "モデルとは別に共通環境が最大約2 GB必要です。PLaMoの変換には80 GB以上の空き容量が必要です。NVIDIAでの翻訳用にCUDAランタイムを別途約0.65 GB取得します。"
+
+msgctxt "OptionalComponentsDialog|"
+msgid "Use this directory / selected model"
+msgstr "この保存先・モデルを使用"
+
+msgctxt "MainWindow|"
+msgid " Some previous shortcuts could not be restored; another application may have claimed them."
+msgstr " 一部の変更前のキーを復元できませんでした。他のアプリが使用している可能性があります。"
+
+msgctxt "MainWindow|"
+msgid "Could not register %1. It may be used by another application. The shortcut settings have not been saved."
+msgstr "%1 を登録できませんでした。他のアプリが使用している可能性があります。ショートカット設定は保存していません。"
+
+msgctxt "MainWindow|"
+msgid "Could not release the previous global shortcuts."
+msgstr "変更前のグローバルショートカットを解除できませんでした。"
+
+msgctxt "MainWindow|"
+msgid "Edit current model instructions"
+msgstr "現在のモデルの指示を編集"
+
+msgctxt "MainWindow|"
+msgid "Manage local AI"
+msgstr "ローカルAIの管理"
+
+msgctxt "SettingsDialog|"
+msgid "Hide Crow windows during screen capture"
+msgstr "キャプチャー中はCrowのウィンドウを隠す"
+
+msgctxt "SettingsDialog|"
+msgid "Manage local AI"
+msgstr "ローカルAIの管理"
+
+msgctxt "ShortcutsModel|"
+msgid "%1 conflicts with %2 (%3)."
+msgstr "%1 と %2 のキーが重複しています（%3）。"
+
+msgctxt "ShortcutsModel|"
+msgid "Cancel translation"
+msgstr "翻訳を中止"
+
+msgctxt "ShortcutsModel|"
+msgid "Edit current model instructions"
+msgstr "現在のモデルの指示を編集"
+
+msgctxt "ShortcutsModel|"
+msgid "Global shortcuts must contain a single key combination: %1"
+msgstr "グローバルショートカットには1つのキーの組み合わせを指定してください: %1"
+
+msgctxt "ShortcutsModel|"
+msgid "Manage local AI"
+msgstr "ローカルAIの管理"
+
+msgctxt "ShortcutsModel|"
+msgid "Next installed local model"
+msgstr "導入済みの次のローカルモデル"
+
+msgctxt "ShortcutsModel|"
+msgid "Open settings"
+msgstr "設定を開く"
+
+msgctxt "ShortcutsModel|"
+msgid "Paste clipboard into input"
+msgstr "クリップボードを入力欄に貼り付け"
+
+msgctxt "ShortcutsModel|"
+msgid "Previous installed local model"
+msgstr "導入済みの前のローカルモデル"
+
+msgctxt "TrayIcon|"
+msgid "Manage local AI"
+msgstr "ローカルAIの管理"
+
+msgctxt "MainWindow|"
+msgid "Shortcuts"
+msgstr "ショートカット"
+
+msgctxt "MainWindow|"
+msgid "Some global shortcuts could not be registered: %1. Change them in Settings > Shortcuts."
+msgstr "一部のグローバルショートカットを登録できませんでした: %1。「設定 → ショートカット」で変更してください。"

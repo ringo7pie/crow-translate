@@ -7,6 +7,7 @@
  */
 
 #include "settingsdialog.h"
+#include "optionalcomponentsdialog.h"
 #include "ui_settingsdialog.h"
 
 #include "instancepinger.h"
@@ -52,9 +53,11 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QSpinBox>
+#include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QStandardItemModel>
 #include <QUrl>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -125,6 +128,13 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
     buildOcrEngineUi();
     buildCodexUi();
     buildLocalModelsUi();
+    auto *manage = new QPushButton(tr("Manage local AI"), ui->translationPage);
+    manage->setObjectName(QStringLiteral("manageLocalAiButton"));
+    ui->translationPageLayout->insertWidget(1, manage);
+    connect(manage, &QPushButton::clicked, this, &SettingsDialog::openLocalAiManager);
+    auto *manageOcr = new QPushButton(tr("Manage local AI"), ui->ocrPage);
+    qobject_cast<QVBoxLayout *>(ui->ocrPage->layout())->insertWidget(0, manageOcr);
+    connect(manageOcr, &QPushButton::clicked, this, &SettingsDialog::openLocalAiManager);
     m_sentenceLineBreaks = new QCheckBox(tr("Break input into lines at sentence endings (. / 。)"), ui->translationPage);
     m_sentenceLineBreaks->setObjectName(QStringLiteral("sentenceLineBreaksCheckBox"));
     m_sentenceLineBreaks->setToolTip(tr("Preserves decimal numbers, URLs and common English abbreviations. Applies to the input display and text sent for translation. Takes priority over source simplification."));
@@ -389,6 +399,37 @@ void SettingsDialog::updateLocalModelsStatus()
     m_localModelsStatus->setText(lines.join(QLatin1Char('\n')));
 }
 
+void SettingsDialog::openLocalAiManager()
+{
+    OptionalComponentsDialog manager(m_localModelsRoot->text(), this);
+    connect(&manager, &OptionalComponentsDialog::useRequested, this, [this](const QString &root, const QString &id) {
+        if (id == QStringLiteral("indra")) {
+            m_indraExecutableEdit->setText(root + QStringLiteral("/local-translation/venv/Scripts/indra-ocr.exe"));
+            m_indraModelDirectoryEdit->setText(root + QStringLiteral("/indra-models"));
+            m_ocrEngineCombo->setCurrentIndex(m_ocrEngineCombo->findData(static_cast<int>(AppSettings::OcrEngine::Indra)));
+        } else {
+            m_localModelsRoot->setText(root + QStringLiteral("/local-translation"));
+            m_localModelsModel->setCurrentIndex(m_localModelsModel->findData(id));
+            ui->translationProviderComboBox->setCurrentIndex(ui->translationProviderComboBox->findData(
+                QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels)));
+        }
+    });
+    manager.exec();
+    updateLocalModelsStatus();
+}
+
+void SettingsDialog::showCurrentModelInstructions()
+{
+    ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->translationPage));
+    const auto backend = ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>();
+    const bool codex = backend == ATranslationProvider::ProviderBackend::Codex;
+    if (!codex && backend != ATranslationProvider::ProviderBackend::LocalModels)
+        return;
+    auto *editor = codex ? m_codexPrompt : m_localModelsPrompt;
+    editor->setFocus();
+    QTimer::singleShot(0, this, [this, editor]() { ui->scrollArea->ensureWidgetVisible(editor); });
+}
+
 void SettingsDialog::storeLocalModelsPromptDraft()
 {
     if (m_localModelsPromptId.isEmpty())
@@ -408,6 +449,13 @@ void SettingsDialog::switchLocalModelsPrompt()
 
 void SettingsDialog::accept()
 {
+    acceptCurrentShortcut();
+    const QString conflict = ui->shortcutsTreeView->model()->conflictDescription();
+    if (!conflict.isEmpty()) {
+        ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->shortcutsPage));
+        QMessageBox::warning(this, tr("Shortcuts"), conflict);
+        return;
+    }
     storeLocalModelsPromptDraft();
     for (auto it = m_localModelsPrompts.cbegin(); it != m_localModelsPrompts.cend(); ++it) {
         if (!it.value().trimmed().isEmpty() && !it.value().contains(QStringLiteral("{text}"))) {
@@ -433,6 +481,14 @@ void SettingsDialog::accept()
         if (msgBox.exec() == QMessageBox::No) {
             // Navigate to OCR
             ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->ocrPage));
+            return;
+        }
+    }
+    if (auto *main = qobject_cast<MainWindow *>(parentWidget())) {
+        QString error;
+        if (!main->applyGlobalShortcuts(ui->shortcutsTreeView->model()->globalSequences(), ui->globalShortcutsCheckBox->isChecked(), &error)) {
+            ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->shortcutsPage));
+            QMessageBox::warning(this, tr("Shortcuts"), error);
             return;
         }
     }
@@ -533,6 +589,7 @@ void SettingsDialog::accept()
 #endif
     settings.setRegionRememberType(static_cast<AppSettings::RegionRememberType>(ui->rememberRegionComboBox->currentIndex()));
     settings.setCaptureDelay(ui->captureDelaySpinBox->value());
+    settings.setHideWindowsForCapture(ui->hideWindowsForCaptureCheckBox->isChecked());
     settings.setShowMagnifier(ui->showMagnifierCheckBox->isChecked());
     settings.setConfirmOnRelease(ui->confirmOnReleaseCheckBox->isChecked());
     settings.setApplyLightMask(ui->applyLightMaskCheckBox->isChecked());
@@ -1371,37 +1428,41 @@ void SettingsDialog::onTesseractParametersCurrentItemChanged()
 
 void SettingsDialog::loadShortcut(ShortcutItem *item)
 {
-    if (item->childCount() == 0) {
+    const QSignalBlocker blocker(ui->shortcutSequenceEdit);
+    if (item && item->childCount() == 0) {
         ui->shortcutGroupBox->setEnabled(true);
         ui->shortcutSequenceEdit->setKeySequence(item->shortcut());
     } else {
         ui->shortcutGroupBox->setEnabled(false);
         ui->shortcutSequenceEdit->clear();
     }
+    ui->acceptShortcutButton->setEnabled(false);
 }
 
 void SettingsDialog::updateAcceptButton()
 {
-    if (ui->shortcutsTreeView->currentItem()->shortcut() != ui->shortcutSequenceEdit->keySequence())
-        ui->acceptShortcutButton->setEnabled(true);
-    else
-        ui->acceptShortcutButton->setEnabled(false);
+    // The dialog's OK is sufficient. Changing rows must not discard an edit.
+    acceptCurrentShortcut();
 }
 
 void SettingsDialog::acceptCurrentShortcut()
 {
-    ui->shortcutsTreeView->currentItem()->setShortcut(ui->shortcutSequenceEdit->keySequence());
+    auto *item = ui->shortcutsTreeView->currentItem();
+    if (item && item->childCount() == 0)
+        item->setShortcut(ui->shortcutSequenceEdit->keySequence());
     ui->acceptShortcutButton->setEnabled(false);
 }
 
 void SettingsDialog::clearCurrentShortcut()
 {
     ui->shortcutSequenceEdit->clear();
-    ui->acceptShortcutButton->setEnabled(true);
+    acceptCurrentShortcut();
 }
 
 void SettingsDialog::resetCurrentShortcut()
 {
+    if (!ui->shortcutsTreeView->currentItem())
+        return;
     ui->shortcutsTreeView->currentItem()->resetShortcut();
     ui->shortcutSequenceEdit->setKeySequence(ui->shortcutsTreeView->currentItem()->shortcut());
     ui->acceptShortcutButton->setEnabled(false);
@@ -1410,6 +1471,9 @@ void SettingsDialog::resetCurrentShortcut()
 void SettingsDialog::resetAllShortcuts()
 {
     ui->shortcutsTreeView->model()->resetAllShortcuts();
+    ui->shortcutsTreeView->expandAll();
+    ui->shortcutSequenceEdit->clear();
+    ui->shortcutGroupBox->setEnabled(false);
 }
 
 void SettingsDialog::restoreDefaults()
@@ -1486,6 +1550,7 @@ void SettingsDialog::restoreDefaults()
     ui->ocrLanguagesListWidget->setCheckedLanguages(AppSettings::defaultOcrLanguagesString());
     ui->rememberRegionComboBox->setCurrentIndex(AppSettings::defaultRegionRememberType());
     ui->captureDelaySpinBox->setValue(AppSettings::defaultCaptureDelay());
+    ui->hideWindowsForCaptureCheckBox->setChecked(true);
     ui->showMagnifierCheckBox->setChecked(AppSettings::defaultShowMagnifier());
     ui->confirmOnReleaseCheckBox->setChecked(AppSettings::defaultConfirmOnRelease());
     ui->applyLightMaskCheckBox->setChecked(AppSettings::defaultApplyLightMask());
@@ -1507,7 +1572,7 @@ void SettingsDialog::restoreDefaults()
 
     // Shortcuts
     if (QHotkey::isPlatformSupported())
-        ui->globalShortcutsCheckBox->setEnabled(AppSettings::defaultGlobalShortcutsEnabled());
+        ui->globalShortcutsCheckBox->setChecked(AppSettings::defaultGlobalShortcutsEnabled());
     resetAllShortcuts();
 }
 
@@ -1636,6 +1701,7 @@ void SettingsDialog::loadSettings()
 #endif
     ui->rememberRegionComboBox->setCurrentIndex(settings.regionRememberType());
     ui->captureDelaySpinBox->setValue(settings.captureDelay());
+    ui->hideWindowsForCaptureCheckBox->setChecked(settings.hideWindowsForCapture());
     ui->showMagnifierCheckBox->setChecked(settings.isShowMagnifier());
     ui->confirmOnReleaseCheckBox->setChecked(settings.isConfirmOnRelease());
     ui->applyLightMaskCheckBox->setChecked(settings.isApplyLightMask());

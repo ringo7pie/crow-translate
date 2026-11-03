@@ -9,6 +9,8 @@
 #define SHORTCUTSMODEL_H
 
 #include <QAbstractItemModel>
+#include <QMap>
+#include <QKeySequence>
 
 class ShortcutItem;
 class AppSettings;
@@ -39,6 +41,8 @@ public:
     void loadShortcuts(const AppSettings &settings);
     void saveShortcuts(AppSettings &settings) const;
     void resetAllShortcuts();
+    QString conflictDescription() const;
+    QList<QKeySequence> globalSequences() const;
 
     void updateShortcut(ShortcutItem *item);
     void updateItem(ShortcutItem *item);
@@ -70,6 +74,7 @@ private:
     ShortcutItem *m_translateShortcut;
     ShortcutItem *m_swapShortcut;
     ShortcutItem *m_closeWindowShortcut;
+    QMap<QString, ShortcutItem *> m_extraShortcuts;
 
     // Source text shortcuts
     ShortcutItem *m_speakSourceShortcut;

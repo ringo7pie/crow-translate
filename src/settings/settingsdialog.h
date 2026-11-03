@@ -55,6 +55,7 @@ class SettingsDialog : public QDialog
 public:
     explicit SettingsDialog(MainWindow *parent = nullptr);
     ~SettingsDialog() override;
+    void showCurrentModelInstructions();
 
 public slots:
     void accept() override;
@@ -104,6 +105,7 @@ private:
     void buildCodexUi();
     void buildLocalModelsUi();
     void updateLocalModelsStatus();
+    void openLocalAiManager();
     void switchLocalModelsPrompt();
     void storeLocalModelsPromptDraft();
     QString m_localModelsPromptId;

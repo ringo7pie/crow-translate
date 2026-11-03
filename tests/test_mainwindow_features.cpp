@@ -34,6 +34,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QKeyEvent>
+#include <QSignalSpy>
 #include <QLocale>
 #include <QTest>
 #include <QTextEdit>
@@ -68,6 +69,10 @@ void pinLocalAiSettings(const MockHttpServer &server)
     settings.setLocalProviderUrl(QStringLiteral("openai_custom"), server.baseUrl());
     settings.setLocalProviderModel(QStringLiteral("openai_custom"), QStringLiteral("mock-model"));
     settings.setLocalAiTimeout(QStringLiteral("openai_custom"), 300);
+    // Each mock server has a different port. A detection endpoint retained
+    // from an earlier test otherwise talks to a server that no longer exists.
+    settings.setDetectProvider(QString());
+    settings.setDetectModel(QString());
     settings.setForceSourceAutodetect(false);
     settings.setForceTranslationAutodetect(false);
 
@@ -142,6 +147,10 @@ private slots:
     void testPopupCombosKeepTrackingTheMainWindowAfterItIsOpen();
     void testPopupVoicesMatchTheMainWindowAfterARealTranslation();
     void testAutoButtonNamesTheDestinationItResolvedTo();
+    void testCaptureHidesWindowsAndOnlyRecognizes();
+    void testCaptureCancellationRestoresVisibility();
+    void testCaptureHideOptionAndFailure();
+    void testDelayedCaptureAndTranslate();
 
 private:
     static void waitForTranslateButton(MainWindow &window);
@@ -149,9 +158,11 @@ private:
 
 void MainWindowFeaturesTest::initTestCase()
 {
+#ifndef Q_OS_WIN
     if (qgetenv("DISPLAY").isEmpty() && qgetenv("WAYLAND_DISPLAY").isEmpty()) {
         QSKIP("No display server available - skipping GUI tests");
     }
+#endif
 
     Q_INIT_RESOURCE(engines);
     Q_INIT_RESOURCE(icon_theme);
@@ -525,7 +536,7 @@ void MainWindowFeaturesTest::testForcedAutoSpeaksTheResolvedDestinationLanguage(
 
     // Sanity: the system locale is NOT the answer, so a fallback to it is
     // detectable rather than accidentally correct.
-    QCOMPARE(Language(QLocale::system()).toQLocale().language(), QLocale::English);
+    QVERIFY(Language(QLocale::system()).toQLocale().language() != QLocale::Russian);
 
     // Speech must follow the language actually translated into.
     QCOMPARE(window.spokenTranslationLanguage(), russian);
@@ -705,7 +716,8 @@ void MainWindowFeaturesTest::testAutoDestinationStaysAutoAtStartup()
     // the settings load nor the support validation may replace it with a
     // concrete locale.
     QVERIFY(window.translationLanguageButtons()->isAutoButtonChecked());
-    QCOMPARE(window.spokenTranslationLanguage(), russian);
+    const Language expected = Language(QLocale::system()).toQLocale().language() == QLocale::English ? russian : english;
+    QCOMPARE(window.spokenTranslationLanguage(), expected);
 }
 
 // The multi-hop regression: with the destination auto, a detection-driven
@@ -723,11 +735,12 @@ void MainWindowFeaturesTest::testRetranslateDoesNotClobberNextAutoDestination()
     server.queueJson(200, chatCompletionJson(QStringLiteral("RU-A"))); // first translate (ru)
     server.queueJson(200, chatCompletionJson(QStringLiteral("EN-A"))); // retranslate (en)
     // Attempt 2: English source. Resolves straight to the secondary (ru).
-    server.queueJson(200, chatCompletionJson(QStringLiteral("en"))); // detection -> English
+    server.queueJson(200, chatCompletionJson(Language(QLocale::system()).toCode())); // detection -> primary
     server.queueJson(200, chatCompletionJson(QStringLiteral("RU-B"))); // translate (ru)
     pinLocalAiSettings(server);
 
-    const Language english(QLocale::English);
+    // Exercise a wrong initial guess on every OS locale, including Japanese.
+    const Language english(QLocale::system());
     const Language russian(QLocale::Russian);
     const Language polish(QLocale::Polish);
 
@@ -752,9 +765,9 @@ void MainWindowFeaturesTest::testRetranslateDoesNotClobberNextAutoDestination()
         return window.translationEdit()->toPlainText() == QStringLiteral("EN-A");
     },
                             10000));
-    QCOMPARE(window.spokenTranslationLanguage(), english);
+    QCOMPARE(window.spokenTranslationLanguage().toCode(), english.toCode());
 
-    // Attempt 2: English -> resolves fresh to the secondary (Russian). The
+    // Attempt 2: the primary language -> resolves fresh to the secondary. The
     // previous retranslate must not have left a concrete destination behind.
     window.sourceEdit()->clear();
     typeText(window.sourceEdit(), QStringLiteral("Hello"));
@@ -957,7 +970,7 @@ void MainWindowFeaturesTest::testPopupVoicesMatchTheMainWindowAfterARealTranslat
     }
     pinLocalAiSettings(server);
 
-    const Language english(QLocale::English);
+    const Language english(QLocale::system());
     const Language russian(QLocale::Russian);
     const Language polish(QLocale::Polish);
 
@@ -1089,6 +1102,116 @@ void MainWindowFeaturesTest::testAutoButtonNamesTheDestinationItResolvedTo()
     QTRY_COMPARE(window.translationLanguageButtons()->language(LanguageButtonsWidget::autoButtonId()), russian);
     // Still auto - naming the resolved destination must not pin it.
     QVERIFY(window.translationLanguageButtons()->isAutoButtonChecked());
+}
+
+void MainWindowFeaturesTest::testCaptureHidesWindowsAndOnlyRecognizes()
+{
+    MockHttpServer server;
+    server.queueJson(200, chatCompletionJson(QStringLiteral("Recognized screenshot")));
+    pinLocalAiSettings(server);
+    pinLlmOcrSettings(server);
+    AppSettings().setHideWindowsForCapture(true);
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *automatic = window.findChild<QCheckBox *>(QStringLiteral("autoTranslateCheckBox"));
+    automatic->setChecked(true);
+    QSignalSpy translated(&window, &MainWindow::translationRequested);
+    auto *snip = window.findChild<SnippingArea *>();
+    window.recognizeScreenArea();
+    QVERIFY(!window.isVisible());
+    // A second trigger must neither start another capture nor arm translation.
+    window.translateScreenArea();
+    QTRY_VERIFY(snip->isVisible());
+    const QPixmap pixmap = QPixmap::fromImage(solidImage());
+    emit snip->snipped(pixmap, 96);
+    snip->hide();
+    QTRY_COMPARE(window.sourceEdit()->toPlainText(), QStringLiteral("Recognized screenshot"));
+    QTRY_VERIFY(window.isVisible());
+    QTest::qWait(500); // longer than the source edit auto-translation timer
+    QCOMPARE(translated.count(), 0);
+    QVERIFY(automatic->isChecked());
+    QVERIFY(window.translateButton()->isEnabled());
+}
+
+void MainWindowFeaturesTest::testCaptureCancellationRestoresVisibility()
+{
+    MockHttpServer server;
+    pinLocalAiSettings(server);
+    pinLlmOcrSettings(server);
+    AppSettings().setHideWindowsForCapture(true);
+    for (bool visible : {true, false}) {
+        MainWindow window;
+        if (visible) {
+            window.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&window));
+        } else {
+            window.hide();
+        }
+        auto *snip = window.findChild<SnippingArea *>();
+        window.recognizeScreenArea();
+        QTRY_VERIFY(snip->isVisible());
+        QTest::keyClick(snip, Qt::Key_Escape);
+        QTRY_VERIFY(!snip->isVisible());
+        QTest::qWait(100);
+        QCOMPARE(window.isVisible(), visible);
+        QVERIFY(window.sourceEdit()->toPlainText().isEmpty());
+    }
+}
+
+void MainWindowFeaturesTest::testCaptureHideOptionAndFailure()
+{
+    MockHttpServer server;
+    pinLocalAiSettings(server);
+    pinLlmOcrSettings(server);
+    AppSettings settings;
+    settings.setHideWindowsForCapture(false);
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *snip = window.findChild<SnippingArea *>();
+    window.recognizeScreenArea();
+    QVERIFY(window.isVisible());
+    QTRY_VERIFY(snip->isVisible());
+    QTest::keyClick(snip, Qt::Key_Escape);
+    QTRY_VERIFY(!snip->isVisible());
+    QTest::qWait(100);
+    settings.setHideWindowsForCapture(true);
+    window.recognizeScreenArea();
+    QVERIFY(!window.isVisible());
+    auto *grabber = window.findChild<AbstractScreenGrabber *>();
+    emit grabber->grabbingFailed();
+    QTRY_VERIFY(window.isVisible());
+    QTest::qWait(250);
+    QVERIFY(!snip->isVisible());
+}
+
+void MainWindowFeaturesTest::testDelayedCaptureAndTranslate()
+{
+    MockHttpServer server;
+    server.queueJson(200, chatCompletionJson(QStringLiteral("Screenshot input")));
+    server.queueJson(200, chatCompletionJson(QStringLiteral("Screenshot translation")));
+    pinLocalAiSettings(server);
+    pinLlmOcrSettings(server);
+    AppSettings settings;
+    settings.setHideWindowsForCapture(true);
+    settings.setCaptureDelay(200);
+    settings.setAutoTranslateEnabled(false);
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QSignalSpy translated(&window, &MainWindow::translationRequested);
+    window.delayedTranslateScreenArea();
+    QVERIFY(window.isVisible());
+    window.recognizeScreenArea(); // may not replace the pending translate capture
+    auto *snip = window.findChild<SnippingArea *>();
+    QTRY_VERIFY(snip->isVisible());
+    QVERIFY(!window.isVisible());
+    emit snip->snipped(QPixmap::fromImage(solidImage()), 96);
+    snip->hide();
+    QTRY_COMPARE(window.sourceEdit()->toPlainText(), QStringLiteral("Screenshot input"));
+    QTRY_COMPARE(window.translationEdit()->toPlainText(), QStringLiteral("Screenshot translation"));
+    QTRY_VERIFY(window.isVisible());
 }
 
 #include "test_mainwindow_features.moc"

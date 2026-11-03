@@ -29,6 +29,7 @@
 #include "ocr/tesseractocr.h"
 #include "settings/appsettings.h"
 #include "settings/settingsdialog.h"
+#include "settings/optionalcomponentsdialog.h"
 #include "translator/atranslationprovider.h"
 #include "translator/languageresolution.h"
 #include "tts/attsprovider.h"
@@ -48,12 +49,14 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMessageBox>
+#include <QMenu>
 #include <QMimeData>
 #include <QSet>
 #include <QStandardPaths>
 #include <QTimer>
 
 #include <cassert>
+#include <utility>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -129,6 +132,29 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_delayedTranslateScreenAreaHotkey, &QHotkey::activated, this, &MainWindow::delayedTranslateScreenArea);
     connect(m_toggleOcrNegateHotkey, &QHotkey::activated, this, &MainWindow::toggleOcrNegate);
 
+    for (const auto &id : AppSettings::extraShortcutIds()) {
+        auto *shortcut = new QShortcut(this);
+        shortcut->setObjectName(id + QStringLiteral("Shortcut"));
+        m_extraShortcuts.insert(id, shortcut);
+    }
+    connect(m_extraShortcuts.value(QStringLiteral("CancelTranslation")), &QShortcut::activated, this, &MainWindow::cancelTranslation);
+    connect(m_extraShortcuts.value(QStringLiteral("PasteInput")), &QShortcut::activated, this, [this]() {
+        clearSourceImage();
+        ui->sourceEdit->setFocus();
+        ui->sourceEdit->insertPlainText(QApplication::clipboard()->text());
+    });
+    connect(m_extraShortcuts.value(QStringLiteral("PreviousLocalModel")), &QShortcut::activated, this, [this]() { cycleLocalModel(-1); });
+    connect(m_extraShortcuts.value(QStringLiteral("NextLocalModel")), &QShortcut::activated, this, [this]() { cycleLocalModel(1); });
+    connect(m_extraShortcuts.value(QStringLiteral("OpenSettings")), &QShortcut::activated, this, &MainWindow::openSettings);
+    connect(m_extraShortcuts.value(QStringLiteral("EditInstructions")), &QShortcut::activated, this, &MainWindow::editModelInstructions);
+    connect(m_extraShortcuts.value(QStringLiteral("ManageLocalAi")), &QShortcut::activated, this, &MainWindow::openLocalAiManager);
+    auto *menu = new QMenu(ui->settingsButton);
+    menu->addAction(tr("Settings"), this, &MainWindow::openSettings);
+    menu->addAction(tr("Manage local AI"), this, &MainWindow::openLocalAiManager);
+    menu->addAction(tr("Edit current model instructions"), this, &MainWindow::editModelInstructions);
+    ui->settingsButton->setMenu(menu);
+    ui->settingsButton->setPopupMode(QToolButton::MenuButtonPopup);
+
     // OCR logic
     connect(m_screenGrabber, &AbstractScreenGrabber::grabbed, m_snippingArea, &SnippingArea::snip);
     connect(m_snippingArea, &SnippingArea::snipped, this, [this](const QPixmap &pixmap, int dpi) {
@@ -137,9 +163,11 @@ MainWindow::MainWindow(QWidget *parent)
     // An abandoned snip must not leave a translation armed for whatever gets
     // recognized next.
     connect(m_snippingArea, &SnippingArea::cancelled, m_session, &TranslationSession::disarmOcrTranslation);
+    connect(m_snippingArea, &SnippingArea::cancelled, this, [this]() { finishScreenCapture(false); });
     // A failed grab never opens the snipping area, so it emits no SnippingArea
     // signal either - the same armed-connection leak as an abandoned snip.
     connect(m_screenGrabber, &AbstractScreenGrabber::grabbingFailed, m_session, &TranslationSession::disarmOcrTranslation);
+    connect(m_screenGrabber, &AbstractScreenGrabber::grabbingFailed, this, [this]() { finishScreenCapture(false); });
     connect(m_session->tesseractOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
     connect(m_session->llmOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
     connect(m_session->indraOcr(), &AOcrProvider::recognized, ui->sourceEdit, &SourceTextEdit::replaceText);
@@ -157,12 +185,20 @@ MainWindow::MainWindow(QWidget *parent)
             return; // the armed path chains its own translation
         updateTranslateButtonState();
         updateTTSButtonStates();
-        updateAutoLocales();
-        handleAutoTranslation();
+        if (!m_suppressOcrAutoTranslation) {
+            updateAutoLocales();
+            handleAutoTranslation();
+        }
     };
     connect(m_session->tesseractOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
     connect(m_session->llmOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
     connect(m_session->indraOcr(), &AOcrProvider::recognized, this, handleRecognizedText);
+    for (AOcrProvider *engine : {static_cast<AOcrProvider *>(m_session->tesseractOcr()),
+                                static_cast<AOcrProvider *>(m_session->llmOcr()), static_cast<AOcrProvider *>(m_session->indraOcr())}) {
+        connect(engine, &AOcrProvider::recognized, this, [this]() { finishScreenCapture(true); });
+        connect(engine, &AOcrProvider::failed, this, [this]() { finishScreenCapture(false); });
+        connect(engine, &AOcrProvider::canceled, this, [this]() { finishScreenCapture(false); });
+    }
     m_screenCaptureTimer->setSingleShot(true);
 
     // The session binds its recognition engines; the grabber and the
@@ -206,6 +242,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->translationPlayPauseButton, &QToolButton::clicked, this, &MainWindow::translationPlayPauseClicked);
     connect(ui->translationStopButton, &QToolButton::clicked, this, &MainWindow::translationStopClicked);
     connect(ui->settingsButton, &QToolButton::clicked, this, &MainWindow::openSettings);
+    connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, [this]() { m_suppressOcrAutoTranslation = false; });
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, &MainWindow::updateTranslateButtonState);
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, &MainWindow::updateTTSButtonStates);
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, &MainWindow::updateAutoLocales);
@@ -614,67 +651,44 @@ bool MainWindow::prepareOcr()
 
 Q_SCRIPTABLE void MainWindow::recognizeScreenArea()
 {
-    if (!prepareOcr()) {
-        return;
-    }
-
-    if (m_screenGrabber != nullptr) {
-        m_session->disarmOcrTranslation();
-        startScreenCapture();
-    }
+    requestScreenCapture(false, false);
 }
 
 Q_SCRIPTABLE void MainWindow::translateScreenArea()
 {
-    if (!prepareOcr()) {
-        return;
-    }
-
-    if (m_screenGrabber != nullptr) {
-        m_session->armOcrTranslation(m_session->ocr());
-        startScreenCapture();
-    }
+    requestScreenCapture(true, false);
 }
 
 Q_SCRIPTABLE void MainWindow::delayedRecognizeScreenArea()
 {
-    if (!prepareOcr()) {
-        return;
-    }
-
-    if ((m_screenCaptureTimer != nullptr) && (m_screenGrabber != nullptr)) {
-        const AppSettings settings;
-        m_screenCaptureTimer->start(settings.captureDelay());
-        connect(
-            m_screenCaptureTimer,
-            &QTimer::timeout,
-            this,
-            [this]() {
-                m_session->disarmOcrTranslation();
-                startScreenCapture();
-            },
-            Qt::SingleShotConnection);
-    }
+    requestScreenCapture(false, true);
 }
 
 Q_SCRIPTABLE void MainWindow::delayedTranslateScreenArea()
 {
+    requestScreenCapture(true, true);
+}
+
+void MainWindow::requestScreenCapture(bool translate, bool delayed)
+{
+    if (m_captureActive || m_captureRestoring || !m_screenGrabber
+        || moduleStatus()->activity(ModuleStatus::Module::Ocr) == ModuleStatus::Activity::Busy)
+        return;
+    m_captureActive = true;
+    m_previousOcrSuppression = m_suppressOcrAutoTranslation;
+    m_suppressOcrAutoTranslation = !translate;
     if (!prepareOcr()) {
+        finishScreenCapture(false);
         return;
     }
-
-    if ((m_screenCaptureTimer != nullptr) && (m_screenGrabber != nullptr)) {
-        const AppSettings settings;
-        m_screenCaptureTimer->start(settings.captureDelay());
-        connect(
-            m_screenCaptureTimer,
-            &QTimer::timeout,
-            this,
-            [this]() {
-                m_session->armOcrTranslation(m_session->ocr());
-                startScreenCapture();
-            },
-            Qt::SingleShotConnection);
+    m_session->disarmOcrTranslation();
+    if (translate)
+        m_session->armOcrTranslation(m_session->ocr());
+    if (delayed) {
+        connect(m_screenCaptureTimer, &QTimer::timeout, this, &MainWindow::startScreenCapture, Qt::SingleShotConnection);
+        m_screenCaptureTimer->start(AppSettings().captureDelay());
+    } else {
+        startScreenCapture();
     }
 }
 
@@ -686,16 +700,72 @@ Q_SCRIPTABLE void MainWindow::clearText()
 
 void MainWindow::startScreenCapture()
 {
-    if (m_screenGrabber == nullptr)
+    if (!m_captureActive || m_screenGrabber == nullptr)
         return;
-
+    const bool hide = AppSettings().hideWindowsForCapture();
+    m_captureWindows.clear();
+    if (hide) {
+        // Snapshot first: hiding a parent can implicitly hide its tool windows.
+        for (QWidget *widget : QApplication::topLevelWidgets()) {
+            if (widget != m_snippingArea && widget->isVisible() && widget->windowType() != Qt::ToolTip)
+                m_captureWindows << CaptureWindow{widget, widget->windowState(), widget->geometry()};
+        }
+        for (const auto &saved : std::as_const(m_captureWindows)) {
+            if (saved.widget)
+                saved.widget->hide();
+        }
+    }
     m_session->moduleStatus()->beginScreenCapture();
-    m_screenGrabber->grab();
+    // Give the desktop compositor time to remove Crow from the actual pixels.
+    QTimer::singleShot(hide ? 150 : 0, this, [this]() {
+        if (m_captureActive)
+            m_screenGrabber->grab();
+    });
+}
+
+void MainWindow::finishScreenCapture(bool success)
+{
+    if (!m_captureActive)
+        return;
+    m_captureActive = false;
+    m_captureRestoring = true;
+    m_screenCaptureTimer->stop();
+    if (!success) {
+        m_session->disarmOcrTranslation();
+        m_suppressOcrAutoTranslation = m_previousOcrSuppression;
+    }
+    const auto savedWindows = std::exchange(m_captureWindows, {});
+    // SnippingArea emits snipped before hiding itself and releasing its
+    // keyboard grab. Restore after that stack has unwound.
+    QTimer::singleShot(0, this, [this, savedWindows, success]() {
+        for (const auto &saved : savedWindows) {
+            if (saved.widget) {
+                saved.widget->setGeometry(saved.geometry);
+                saved.widget->setWindowState(saved.state);
+                saved.widget->show();
+            }
+        }
+        if (success)
+            open();
+        m_captureRestoring = false;
+    });
 }
 
 Q_SCRIPTABLE void MainWindow::openSettings()
 {
+    showSettings(false);
+}
+
+void MainWindow::editModelInstructions()
+{
+    showSettings(true);
+}
+
+void MainWindow::showSettings(bool instructions)
+{
     SettingsDialog config(this);
+    if (instructions)
+        config.showCurrentModelInstructions();
     connect(&config, &SettingsDialog::translationBackendChanged, m_session, &TranslationSession::setTranslationBackend);
     connect(&config, &SettingsDialog::ttsBackendChanged, m_session, &TranslationSession::setTtsBackend);
 
@@ -714,6 +784,46 @@ Q_SCRIPTABLE void MainWindow::openSettings()
         m_session->loadBackendsFromSettings();
         m_session->applyTranslationOptions();
     }
+}
+
+void MainWindow::openLocalAiManager()
+{
+    OptionalComponentsDialog manager(AppSettings().localModelsRoot(), this);
+    connect(&manager, &OptionalComponentsDialog::useRequested, this, [this](const QString &root, const QString &id) {
+        AppSettings settings;
+        if (id == QStringLiteral("indra")) {
+            settings.setIndraExecutable(root + QStringLiteral("/local-translation/venv/Scripts/indra-ocr.exe"));
+            settings.setIndraModelDirectory(root + QStringLiteral("/indra-models"));
+            settings.setOcrEngine(AppSettings::OcrEngine::Indra);
+        } else {
+            settings.setLocalModelsRoot(root + QStringLiteral("/local-translation"));
+            settings.setLocalModelsModel(id);
+            settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::LocalModels);
+            m_session->loadBackendsFromSettings();
+            m_session->applyTranslationOptions();
+            updateProviderUI();
+        }
+    });
+    manager.exec();
+}
+
+void MainWindow::cycleLocalModel(int direction)
+{
+    AppSettings settings;
+    const auto all = LocalModelsTranslationProvider::modelIds();
+    const int current = all.indexOf(settings.localModelsModel());
+    for (int step = 1; step <= all.size(); ++step) {
+        const int index = (qMax(0, current) + direction * step + all.size()) % all.size();
+        if (LocalModelsTranslationProvider::isInstalled(settings.localModelsRoot(), all.at(index))) {
+            settings.setLocalModelsModel(all.at(index));
+            settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::LocalModels);
+            m_session->loadBackendsFromSettings();
+            m_session->applyTranslationOptions();
+            updateProviderUI();
+            return;
+        }
+    }
+    openLocalAiManager();
 }
 
 Q_SCRIPTABLE void MainWindow::quit()
@@ -944,34 +1054,21 @@ void MainWindow::loadAppSettings()
         QNetworkProxy::setApplicationProxy(proxy);
     }
 
-    // Global shortcuts
-    if (QHotkey::isPlatformSupported() && settings.isGlobalShortuctsEnabled()) {
-        m_translateSelectionHotkey->setShortcut(settings.translateSelectionShortcut(), true);
-        m_speakSelectionHotkey->setShortcut(settings.speakSelectionShortcut(), true);
-        m_stopSpeakingHotkey->setShortcut(settings.stopSpeakingShortcut(), true);
-        m_playPauseSpeakingHotkey->setShortcut(settings.playPauseSpeakingShortcut(), true);
-        m_speakTranslatedSelectionHotkey->setShortcut(settings.speakTranslatedSelectionShortcut(), true);
-        m_showMainWindowHotkey->setShortcut(settings.showMainWindowShortcut(), true);
-        m_copyTranslatedSelectionHotkey->setShortcut(settings.copyTranslatedSelectionShortcut(), true);
-        m_recognizeScreenAreaHotkey->setShortcut(settings.recognizeScreenAreaShortcut(), true);
-        m_translateScreenAreaHotkey->setShortcut(settings.translateScreenAreaShortcut(), true);
-        m_delayedRecognizeScreenAreaHotkey->setShortcut(settings.delayedRecognizeScreenAreaShortcut(), true);
-        m_delayedTranslateScreenAreaHotkey->setShortcut(settings.delayedTranslateScreenAreaShortcut(), true);
-        m_toggleOcrNegateHotkey->setShortcut(settings.toggleOcrNegateShortcut(), true);
-    } else {
-        m_translateSelectionHotkey->setRegistered(false);
-        m_speakSelectionHotkey->setRegistered(false);
-        m_stopSpeakingHotkey->setRegistered(false);
-        m_playPauseSpeakingHotkey->setRegistered(false);
-        m_speakTranslatedSelectionHotkey->setRegistered(false);
-        m_showMainWindowHotkey->setRegistered(false);
-        m_copyTranslatedSelectionHotkey->setRegistered(false);
-        m_recognizeScreenAreaHotkey->setRegistered(false);
-        m_translateScreenAreaHotkey->setRegistered(false);
-        m_delayedRecognizeScreenAreaHotkey->setRegistered(false);
-        m_delayedTranslateScreenAreaHotkey->setRegistered(false);
-        m_toggleOcrNegateHotkey->setRegistered(false);
+    QString shortcutError;
+    if (!m_hotkeysLoaded && QHotkey::isPlatformSupported()) {
+        const auto hotkeys = globalHotkeys();
+        const auto sequences = settings.globalShortcutSequences();
+        QStringList failed;
+        for (int i = 0; i < hotkeys.size(); ++i) {
+            if (!hotkeys.at(i)->setShortcut(sequences.at(i), settings.isGlobalShortuctsEnabled() && !sequences.at(i).isEmpty()))
+                failed << sequences.at(i).toString(QKeySequence::NativeText);
+        }
+        if (!failed.isEmpty())
+            m_trayIcon->showMessage(tr("Shortcuts"), tr("Some global shortcuts could not be registered: %1. Change them in Settings > Shortcuts.").arg(failed.join(QStringLiteral(", "))), QSystemTrayIcon::Warning);
+    } else if (!applyGlobalShortcuts(settings.globalShortcutSequences(), settings.isGlobalShortuctsEnabled(), &shortcutError)) {
+        m_trayIcon->showMessage(tr("Shortcuts"), shortcutError, QSystemTrayIcon::Warning);
     }
+    m_hotkeysLoaded = true;
 
     // Window shortcuts
     ui->sourcePlayPauseButton->setShortcut(settings.speakSourceShortcut());
@@ -980,6 +1077,70 @@ void MainWindow::loadAppSettings()
     ui->swapButton->setShortcut(settings.swapShortcut());
     ui->copyTranslationButton->setShortcut(settings.copyTranslationShortcut());
     m_closeWindowsShortcut->setKey(settings.closeWindowShortcut());
+    for (auto it = m_extraShortcuts.cbegin(); it != m_extraShortcuts.cend(); ++it)
+        it.value()->setKey(settings.extraShortcut(it.key()));
+}
+
+QList<QHotkey *> MainWindow::globalHotkeys() const
+{
+    return {m_translateSelectionHotkey, m_speakSelectionHotkey, m_speakTranslatedSelectionHotkey,
+        m_stopSpeakingHotkey, m_playPauseSpeakingHotkey, m_showMainWindowHotkey, m_copyTranslatedSelectionHotkey,
+        m_recognizeScreenAreaHotkey, m_translateScreenAreaHotkey, m_delayedRecognizeScreenAreaHotkey,
+        m_delayedTranslateScreenAreaHotkey, m_toggleOcrNegateHotkey};
+}
+
+bool MainWindow::applyGlobalShortcuts(const QList<QKeySequence> &sequences, bool enabled, QString *error)
+{
+    if (!QHotkey::isPlatformSupported())
+        return true;
+    const auto hotkeys = globalHotkeys();
+    if (sequences.size() != hotkeys.size())
+        return false;
+    enabled = enabled && QHotkey::isPlatformSupported();
+    QList<QKeySequence> previous;
+    QList<bool> registered;
+    bool changed = false;
+    for (int i = 0; i < hotkeys.size(); ++i) {
+        previous << hotkeys.at(i)->shortcut();
+        registered << hotkeys.at(i)->isRegistered();
+        changed |= previous.last() != sequences.at(i) || registered.last() != (enabled && !sequences.at(i).isEmpty());
+    }
+    if (!changed)
+        return true;
+    const auto rollback = [&]() {
+        for (QHotkey *hotkey : hotkeys)
+            hotkey->setRegistered(false);
+        bool restored = true;
+        for (int i = 0; i < hotkeys.size(); ++i) {
+            restored &= hotkeys.at(i)->setShortcut(previous.at(i));
+            if (registered.at(i))
+                restored &= hotkeys.at(i)->setRegistered(true);
+        }
+        return restored;
+    };
+    // Release our bindings as a set so exchanging two keys works too.
+    for (QHotkey *hotkey : hotkeys) {
+        if (!hotkey->setRegistered(false)) {
+            const bool restored = rollback();
+            if (error)
+                *error = tr("Could not release the previous global shortcuts.")
+                    + (restored ? QString() : tr(" Some previous shortcuts could not be restored; another application may have claimed them."));
+            return false;
+        }
+    }
+    for (int i = 0; i < hotkeys.size(); ++i) {
+        const auto key = sequences.at(i);
+        const bool valid = key.isEmpty() || key.count() == 1;
+        if (!valid || !hotkeys.at(i)->setShortcut(key) || (enabled && !key.isEmpty() && !hotkeys.at(i)->setRegistered(true))) {
+            const bool restored = rollback();
+            if (error)
+                *error = tr("Could not register %1. It may be used by another application. The shortcut settings have not been saved.")
+                    .arg(key.toString(QKeySequence::NativeText))
+                    + (restored ? QString() : tr(" Some previous shortcuts could not be restored; another application may have claimed them."));
+            return false;
+        }
+    }
+    return true;
 }
 
 void MainWindow::refreshLanguageWidgetsWithSupportedLanguages()
@@ -1179,6 +1340,8 @@ void MainWindow::onTtsProviderChanged()
 
 void MainWindow::handleAutoTranslation()
 {
+    if (m_suppressOcrAutoTranslation)
+        return;
     if (ui->autoTranslateCheckBox->isChecked() && (m_session->translator() != nullptr) && m_session->translator()->getState() == ATranslationProvider::State::Ready
         && !ui->sourceEdit->toPlainText().isEmpty()) {
         const bool isSourceAutoChecked = ui->sourceLanguagesWidget->isAutoButtonChecked();
@@ -1662,6 +1825,7 @@ void MainWindow::translationStopClicked()
 
 void MainWindow::on_translateButton_clicked()
 {
+    m_suppressOcrAutoTranslation = false;
     assert(m_session->translator() != nullptr);
     assert(m_session->translator()->getState()
            == ATranslationProvider::State::Ready); // should be initialized and ready or something is wrong with button enabling logic and not here
@@ -1805,7 +1969,7 @@ void MainWindow::onLanguageDetected(const Language &detectedLanguage, bool isTra
         ui->sourceLanguagesWidget->setAutoLanguage(detectedLanguage);
     }
 
-    if (!ui->translationLanguagesWidget->isAutoButtonChecked() || !(isTranslationContext || ui->autoTranslateCheckBox->isChecked())) {
+    if (m_suppressOcrAutoTranslation || !ui->translationLanguagesWidget->isAutoButtonChecked() || !(isTranslationContext || ui->autoTranslateCheckBox->isChecked())) {
         return;
     }
 
@@ -1834,6 +1998,7 @@ Language MainWindow::spokenTranslationLanguage() const
 
 void MainWindow::setSourceImageInternal(const QImage &src)
 {
+    m_suppressOcrAutoTranslation = false;
     QImage img = src;
 
     if (img.width() * img.height() > AppSettings::maxSourceImagePixels) {

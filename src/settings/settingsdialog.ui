@@ -1265,6 +1265,13 @@
                  </property>
                 </widget>
                </item>
+               <item row="5" column="0" colspan="3">
+                <widget class="QCheckBox" name="hideWindowsForCaptureCheckBox">
+                 <property name="text">
+                  <string>Hide Crow windows during screen capture</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>

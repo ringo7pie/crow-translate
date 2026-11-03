@@ -364,6 +364,11 @@ public:
     void setToggleOcrNegateShortcut(const QKeySequence &shortcut);
 
     // Window shortcuts
+    static QStringList extraShortcutIds();
+    QKeySequence extraShortcut(const QString &id) const;
+    void setExtraShortcut(const QString &id, const QKeySequence &shortcut);
+    static QKeySequence defaultExtraShortcut(const QString &id);
+    QList<QKeySequence> globalShortcutSequences() const;
     QKeySequence translateShortcut() const;
     void setTranslateShortcut(const QKeySequence &shortcut);
     static QKeySequence defaultTranslateShortcut();
@@ -389,6 +394,8 @@ public:
     static QKeySequence defaultCopyTranslationShortcut();
 
     // OCR settings
+    bool hideWindowsForCapture() const;
+    void setHideWindowsForCapture(bool hide);
     enum class OcrEngine {
         Tesseract,
         Llm,

@@ -27,6 +27,9 @@ TrayIcon::TrayIcon(MainWindow *parent)
     , m_openSettingsAction(m_trayMenu->addAction(IconUtils::load(QStringLiteral("preferences-other")), tr("Settings"), parent, &MainWindow::openSettings))
     , m_quitAction(m_trayMenu->addAction(IconUtils::load(QStringLiteral("application-exit")), tr("Quit"), parent, &MainWindow::quit))
 {
+    m_manageLocalAiAction = new QAction(tr("Manage local AI"), m_trayMenu);
+    m_trayMenu->insertAction(m_quitAction, m_manageLocalAiAction);
+    connect(m_manageLocalAiAction, &QAction::triggered, parent, &MainWindow::openLocalAiManager);
     m_reportBugAction = m_trayMenu->addAction(tr("Report Bug…"));
     connect(m_reportBugAction, &QAction::triggered, this, []() {
         QUrl url(QStringLiteral("https://bugs.kde.org/enter_bug.cgi"));
@@ -64,6 +67,7 @@ void TrayIcon::retranslateMenu()
 {
     m_showMainWindowAction->setText(tr("Show window"));
     m_openSettingsAction->setText(tr("Settings"));
+    m_manageLocalAiAction->setText(tr("Manage local AI"));
     m_reportBugAction->setText(tr("Report Bug…"));
     m_quitAction->setText(tr("Quit"));
 }

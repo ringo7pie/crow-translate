@@ -67,6 +67,15 @@ ShortcutsModel::ShortcutsModel(QObject *parent)
     m_closeWindowShortcut = new ShortcutItem(tr("Close window"), QStringLiteral("application-exit"), windowShortcuts);
     m_closeWindowShortcut->setDefaultShortcut(AppSettings::defaultCloseWindowShortcut());
 
+    const QStringList descriptions{tr("Cancel translation"), tr("Paste clipboard into input"), tr("Previous installed local model"),
+        tr("Next installed local model"), tr("Open settings"), tr("Edit current model instructions"), tr("Manage local AI")};
+    const auto ids = AppSettings::extraShortcutIds();
+    for (int i = 0; i < ids.size(); ++i) {
+        auto *item = new ShortcutItem(descriptions.at(i), QStringLiteral("preferences-other"), windowShortcuts);
+        item->setDefaultShortcut(AppSettings::defaultExtraShortcut(ids.at(i)));
+        m_extraShortcuts.insert(ids.at(i), item);
+    }
+
     // Source text shortcuts
     auto *sourceText = new ShortcutItem(tr("Source text"), windowShortcuts);
 
@@ -214,6 +223,8 @@ void ShortcutsModel::loadShortcuts(const AppSettings &settings)
     // Translation text shortcuts
     m_speakTranslationShortcut->setShortcut(settings.speakTranslationShortcut());
     m_copyTranslationShortcut->setShortcut(settings.copyTranslationShortcut());
+    for (auto it = m_extraShortcuts.cbegin(); it != m_extraShortcuts.cend(); ++it)
+        it.value()->setShortcut(settings.extraShortcut(it.key()));
 }
 
 void ShortcutsModel::saveShortcuts(AppSettings &settings) const
@@ -243,11 +254,51 @@ void ShortcutsModel::saveShortcuts(AppSettings &settings) const
     // Translation text shortcuts
     settings.setSpeakTranslationShortcut(m_speakTranslationShortcut->shortcut());
     settings.setCopyTranslationShortcut(m_copyTranslationShortcut->shortcut());
+    for (auto it = m_extraShortcuts.cbegin(); it != m_extraShortcuts.cend(); ++it)
+        settings.setExtraShortcut(it.key(), it.value()->shortcut());
 }
 
 void ShortcutsModel::resetAllShortcuts()
 {
+    beginResetModel();
     m_rootItem->resetAllShortucts();
+    endResetModel();
+}
+
+QList<QKeySequence> ShortcutsModel::globalSequences() const
+{
+    QList<QKeySequence> result;
+    for (int i = 0; i < m_globalShortcuts->childCount(); ++i)
+        result << m_globalShortcuts->child(i)->shortcut();
+    return result;
+}
+
+QString ShortcutsModel::conflictDescription() const
+{
+    QList<ShortcutItem *> leaves;
+    const auto visit = [&leaves](auto &&self, ShortcutItem *item) -> void {
+        if (!item->isEnabled())
+            return;
+        if (!item->childCount())
+            leaves << item;
+        for (int i = 0; i < item->childCount(); ++i)
+            self(self, item->child(i));
+    };
+    visit(visit, m_rootItem);
+    for (int i = 0; i < leaves.size(); ++i) {
+        const auto first = leaves.at(i)->shortcut();
+        if (first.isEmpty())
+            continue;
+        // A global hotkey must be one chord; QHotkey cannot register a sequence.
+        if (leaves.at(i)->parentItem() == m_globalShortcuts && first.count() > 1)
+            return tr("Global shortcuts must contain a single key combination: %1").arg(leaves.at(i)->description());
+        for (int j = i + 1; j < leaves.size(); ++j) {
+            const auto second = leaves.at(j)->shortcut();
+            if (!second.isEmpty() && (first.matches(second) != QKeySequence::NoMatch || second.matches(first) != QKeySequence::NoMatch))
+                return tr("%1 conflicts with %2 (%3).").arg(leaves.at(i)->description(), leaves.at(j)->description(), first.toString(QKeySequence::NativeText));
+        }
+    }
+    return {};
 }
 
 void ShortcutsModel::setGlobalShortuctsEnabled(bool enabled)

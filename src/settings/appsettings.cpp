@@ -79,6 +79,41 @@ AppSettings::AppSettings(QObject *parent)
         }
     }
 #endif
+    // Apply after installer defaults: fresh settings must stay fresh until the
+    // Indra first-install request has been considered. Never steal a custom key.
+    if (!m_settings->value(QStringLiteral("Shortcuts/OcrCaptureV2"), false).toBool()) {
+        const QString key = QStringLiteral("Shortcuts/RecognizeScreenAreaShortcut");
+        const QKeySequence old(QStringLiteral("Ctrl+Alt+I"));
+        const QKeySequence target = defaultRecognizeScreenAreaShortcut();
+        const QKeySequence previous = m_settings->contains(key) ? m_settings->value(key).value<QKeySequence>() : old;
+        if (previous == old) {
+            bool conflict = false;
+            for (const QString &stored : m_settings->allKeys()) {
+                if (!stored.startsWith(QStringLiteral("Shortcuts/")) || stored == key)
+                    continue;
+                const QKeySequence other = m_settings->value(stored).value<QKeySequence>();
+                if (!other.isEmpty() && (other.matches(target) != QKeySequence::NoMatch || target.matches(other) != QKeySequence::NoMatch))
+                    conflict = true;
+            }
+            setRecognizeScreenAreaShortcut(conflict ? old : target);
+        }
+        for (const auto &id : extraShortcutIds()) {
+            const QString extraKey = QStringLiteral("Shortcuts/") + id;
+            if (m_settings->contains(extraKey))
+                continue;
+            const auto candidate = defaultExtraShortcut(id);
+            for (const QString &stored : m_settings->allKeys()) {
+                if (!stored.startsWith(QStringLiteral("Shortcuts/")) || stored == extraKey)
+                    continue;
+                const auto other = m_settings->value(stored).value<QKeySequence>();
+                if (!other.isEmpty() && (other.matches(candidate) != QKeySequence::NoMatch || candidate.matches(other) != QKeySequence::NoMatch)) {
+                    setExtraShortcut(id, {});
+                    break;
+                }
+            }
+        }
+        m_settings->setValue(QStringLiteral("Shortcuts/OcrCaptureV2"), true);
+    }
 }
 
 void AppSettings::setupLocalization() const
@@ -1242,7 +1277,7 @@ QKeySequence AppSettings::defaultStopSpeakingShortcut()
 
 QKeySequence AppSettings::playPauseSpeakingShortcut() const
 {
-    return m_settings->value(QStringLiteral("Shortcuts/PlayPauseSpeakingSelection"), defaultStopSpeakingShortcut()).value<QKeySequence>();
+    return m_settings->value(QStringLiteral("Shortcuts/PlayPauseSpeakingSelection"), defaultPlayPauseSpeakingShortcut()).value<QKeySequence>();
 }
 
 void AppSettings::setPlayPauseSpeakingShortcut(const QKeySequence &shortcut)
@@ -1297,7 +1332,50 @@ void AppSettings::setRecognizeScreenAreaShortcut(const QKeySequence &shortcut)
 
 QKeySequence AppSettings::defaultRecognizeScreenAreaShortcut()
 {
-    return {QStringLiteral("Ctrl+Alt+I")};
+    return {QStringLiteral("Ctrl+Shift+Z")};
+}
+
+QStringList AppSettings::extraShortcutIds()
+{
+    return {QStringLiteral("CancelTranslation"), QStringLiteral("PasteInput"), QStringLiteral("PreviousLocalModel"),
+        QStringLiteral("NextLocalModel"), QStringLiteral("OpenSettings"), QStringLiteral("EditInstructions"), QStringLiteral("ManageLocalAi")};
+}
+
+QKeySequence AppSettings::defaultExtraShortcut(const QString &id)
+{
+    static const QMap<QString, QString> defaults{{QStringLiteral("CancelTranslation"), QStringLiteral("Ctrl+Shift+X")},
+        {QStringLiteral("PasteInput"), QStringLiteral("Ctrl+Shift+V")}, {QStringLiteral("PreviousLocalModel"), QStringLiteral("Ctrl+PgUp")},
+        {QStringLiteral("NextLocalModel"), QStringLiteral("Ctrl+PgDown")}, {QStringLiteral("OpenSettings"), QStringLiteral("Ctrl+,")},
+        {QStringLiteral("EditInstructions"), QStringLiteral("Ctrl+Shift+P")}, {QStringLiteral("ManageLocalAi"), QStringLiteral("Ctrl+Shift+M")}};
+    return QKeySequence(defaults.value(id));
+}
+
+QKeySequence AppSettings::extraShortcut(const QString &id) const
+{
+    return m_settings->value(QStringLiteral("Shortcuts/") + id, defaultExtraShortcut(id)).value<QKeySequence>();
+}
+
+void AppSettings::setExtraShortcut(const QString &id, const QKeySequence &shortcut)
+{
+    if (extraShortcutIds().contains(id))
+        m_settings->setValue(QStringLiteral("Shortcuts/") + id, shortcut);
+}
+
+QList<QKeySequence> AppSettings::globalShortcutSequences() const
+{
+    return {translateSelectionShortcut(), speakSelectionShortcut(), speakTranslatedSelectionShortcut(), stopSpeakingShortcut(),
+        playPauseSpeakingShortcut(), showMainWindowShortcut(), copyTranslatedSelectionShortcut(), recognizeScreenAreaShortcut(),
+        translateScreenAreaShortcut(), delayedRecognizeScreenAreaShortcut(), delayedTranslateScreenAreaShortcut(), toggleOcrNegateShortcut()};
+}
+
+bool AppSettings::hideWindowsForCapture() const
+{
+    return m_settings->value(QStringLiteral("OCR/HideWindowsForCapture"), true).toBool();
+}
+
+void AppSettings::setHideWindowsForCapture(bool hide)
+{
+    m_settings->setValue(QStringLiteral("OCR/HideWindowsForCapture"), hide);
 }
 
 QKeySequence AppSettings::translateScreenAreaShortcut() const

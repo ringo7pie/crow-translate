@@ -479,7 +479,9 @@ class Installer:
                 self.cleanup_downloads()
             except (OSError, ValueError) as error:
                 self.warnings.append('ダウンロードファイルの整理を完了できませんでした: ' + str(error))
-        message = '完了しました。既定設定はCrow Translateの次回起動時に反映されます。' if not failures else '一部の追加機能をインストールできませんでした'
+        message = ('完了しました。既定設定はCrow Translateの次回起動時に反映されます。'
+                   if self.configure and (default_applied or self.receipt.get('new_installation') is True and 'indra' in completed)
+                   else '完了しました。') if not failures else '一部の追加機能をインストールできませんでした'
         if self.warnings:
             message += ' 注意: ' + ' / '.join(self.warnings)
         self.status(message, 100, done=True, completed=completed, failures=failures,

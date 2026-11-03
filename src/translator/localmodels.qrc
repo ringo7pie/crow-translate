@@ -4,5 +4,6 @@
     <qresource prefix="/local-models">
         <file alias="catalog.json">../../data/local-models/catalog.json</file>
         <file alias="worker.py">../../data/local-models/worker.py</file>
+        <file alias="optional-components.json">../../installer/optional-components.json</file>
     </qresource>
 </RCC>

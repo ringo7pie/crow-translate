@@ -34,6 +34,7 @@ private:
     QMenu *m_trayMenu;
     QAction *m_showMainWindowAction;
     QAction *m_openSettingsAction;
+    QAction *m_manageLocalAiAction = nullptr;
     QAction *m_reportBugAction = nullptr;
     QAction *m_quitAction;
 

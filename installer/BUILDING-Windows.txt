@@ -1,5 +1,22 @@
-Windows release build information: 4.1.0-local.9
+Windows release build information: 4.1.0-local.10
 =============================================
+
+The Qt local-AI manager reuses the prepared optional/ installer payload via
+Install-OptionalComponents.ps1 -Worker -NoConfigure. Consent is tied to the
+catalog SHA256; full bundled licenses and model notices are checked before the
+install button is enabled. The worker starts suspended, joins an owned Windows
+Job, and only then resumes; cancellation closes that job and all its children.
+The UI polls atomic progress JSON and retains resumable partial downloads.
+Installing files does not change the application settings or defaults request.
+Explicit Use actions apply a root/model immediately from the main window, or
+stage a draft until the enclosing Settings dialog is accepted.
+OCR-only capture uses Ctrl+Shift+Z by default and suppresses auto-translation for
+that result. Hiding Crow's top-level windows defaults on, with a 150 ms desktop
+redraw delay before grabbing. Cancellation and failures restore visibility and
+window states. Shortcut validation includes duplicates/prefixes; registration
+failure rolls back previous global bindings. tests/test_local_ai_management.cpp
+uses an offline fixture installer to exercise consent, failure, retry and owned
+child cancellation, separately from the real installed-payload checks.
 
 RTX 3070 support: the optional setup installs the matching official b11318
 CUDA 12.4 backend and NVIDIA runtime DLLs separately after license consent.

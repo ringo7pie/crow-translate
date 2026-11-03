@@ -26,6 +26,7 @@
 #include <QKeySequence>
 #include <QLocale>
 #include <QMainWindow>
+#include <QPointer>
 #include <QShortcut>
 #include <QTextEdit>
 #include <QTextToSpeech>
@@ -86,6 +87,7 @@ public:
     void translationStopClicked();
     void showTranslationWindow();
     void showNotification(const UserNotifier::Notification &notification);
+    bool applyGlobalShortcuts(const QList<QKeySequence> &sequences, bool enabled, QString *error = nullptr);
 public slots:
     void ttsStateChanged(QTextToSpeech::State newState);
     void onTTSError(QTextToSpeech::ErrorReason reason, const QString &errorString);
@@ -94,6 +96,8 @@ public slots:
     Q_SCRIPTABLE void open();
     Q_SCRIPTABLE static void quit();
     Q_SCRIPTABLE void openSettings();
+    void openLocalAiManager();
+    void editModelInstructions();
     Q_SCRIPTABLE void toggleOcrNegate();
 
 private:
@@ -113,6 +117,9 @@ private:
     QHotkey *m_delayedTranslateScreenAreaHotkey = nullptr;
     QHotkey *m_toggleOcrNegateHotkey = nullptr;
     QShortcut *m_closeWindowsShortcut = nullptr;
+    QMap<QString, QShortcut *> m_extraShortcuts;
+    QList<QHotkey *> globalHotkeys() const;
+    bool m_hotkeysLoaded = false;
     Ui::MainWindow *ui = nullptr;
     // Both providers, the options manager, the language model and the status
     // model live here now. The window borrows them; it does not own them, and
@@ -129,6 +136,20 @@ private:
     // Reports the capture start to the status model; grab() itself has no
     // "started" signal and adding one would touch every grabber subclass.
     void startScreenCapture();
+    void requestScreenCapture(bool translate, bool delayed);
+    void finishScreenCapture(bool success);
+    void showSettings(bool instructions);
+    void cycleLocalModel(int direction);
+    bool m_captureActive = false;
+    bool m_captureRestoring = false;
+    bool m_suppressOcrAutoTranslation = false;
+    bool m_previousOcrSuppression = false;
+    struct CaptureWindow {
+        QPointer<QWidget> widget;
+        Qt::WindowStates state;
+        QRect geometry;
+    };
+    QList<CaptureWindow> m_captureWindows;
     void loadAppSettings();
     void setupEngineComboBoxConnection();
     void validateLanguageSupport();
