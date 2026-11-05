@@ -50,6 +50,16 @@ std::unique_ptr<ProviderOptions> ProviderOptionsManager::createTranslationOption
         options->setOption("instructions", settings.codexInstructions());
         options->setOption("prompt", settings.codexPrompt());
         return options;
+    } else if (providerType == "ClaudeCodeTranslationProvider") {
+        const AppSettings settings;
+        auto options = std::make_unique<ProviderOptions>();
+        options->setOption("executable", settings.claudeCodeExecutable());
+        options->setOption("model", settings.claudeCodeModel());
+        options->setOption("reasoningEffort", settings.claudeCodeReasoningEffort());
+        options->setOption("timeout", settings.claudeCodeTimeout());
+        options->setOption("instructions", settings.claudeCodeInstructions());
+        options->setOption("prompt", settings.claudeCodePrompt());
+        return options;
     }
 
     return nullptr;

@@ -3239,3 +3239,79 @@ msgstr "ショートカット"
 msgctxt "MainWindow|"
 msgid "Some global shortcuts could not be registered: %1. Change them in Settings > Shortcuts."
 msgstr "一部のグローバルショートカットを登録できませんでした: %1。「設定 → ショートカット」で変更してください。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code request timed out. Increase the timeout in Translation settings or translate less text."
+msgstr "Claude Codeの処理がタイムアウトしました。翻訳設定で待ち時間を延ばすか、原文を短くしてください。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "There is no text to translate or detect."
+msgstr "翻訳・言語判定するテキストがありません。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code executable was not found. Install Claude Code CLI or select its executable in Translation settings."
+msgstr "Claude Codeの実行ファイルが見つかりません。CLIを導入するか、翻訳設定で実行ファイルを指定してください。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Could not create a temporary directory for Claude Code."
+msgstr "Claude Code用の一時フォルダーを作成できませんでした。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Could not create the Claude Code process group."
+msgstr "Claude Codeのプロセスグループを作成できませんでした。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code returned too much data."
+msgstr "Claude Codeの応答が大きすぎます。"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Could not start Claude Code: %1"
+msgstr "Claude Codeを起動できませんでした: %1"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code failed. Check CLI login (claude auth login), model access and usage limits.\n%1"
+msgstr "Claude Codeの処理に失敗しました。CLIのログイン（claude auth login）、モデルの利用権限、利用上限を確認してください。\n%1"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code did not return a valid translation response.\n%1"
+msgstr "Claude Codeから有効な翻訳結果が返されませんでした。\n%1"
+
+msgctxt "ClaudeCodeTranslationProvider|"
+msgid "Claude Code did not return a valid translation response."
+msgstr "Claude Codeから有効な翻訳結果が返されませんでした。"
+
+msgctxt "SettingsDialog|"
+msgid "Claude Code CLI"
+msgstr "Claude Code CLI"
+
+msgctxt "SettingsDialog|"
+msgid "Install Claude Code CLI and run claude auth login before translating. Uses your existing CLI login."
+msgstr "Claude Code CLIを導入し、claude auth loginでログインしてから翻訳してください。既存のCLIログインを使用します。"
+
+msgctxt "SettingsDialog|"
+msgid "Select Claude Code executable"
+msgstr "Claude Codeの実行ファイルを選択"
+
+msgctxt "SettingsDialog|"
+msgid "Claude Code executable was not found. Install Claude Code CLI or select its executable in Translation settings."
+msgstr "Claude Codeの実行ファイルが見つかりません。CLIを導入するか、翻訳設定で実行ファイルを指定してください。"
+
+msgctxt "SettingsDialog|"
+msgid "Claude Code executable:"
+msgstr "Claude Codeの実行ファイル:"
+
+msgctxt "SettingsDialog|"
+msgid "Claude Code model:"
+msgstr "Claude Codeのモデル:"
+
+msgctxt "SettingsDialog|"
+msgid "CLI default"
+msgstr "CLIの既定"
+
+msgctxt "SettingsDialog|"
+msgid "Claude Code timeout:"
+msgstr "Claude Codeのタイムアウト:"
+
+msgctxt "Cli|"
+msgid "Specify translation provider ('copy', 'mozhi', 'localai', 'codex', 'claude-code' or 'local-models'). Provider from app settings will be used by default."
+msgstr "翻訳エンジン（copy、mozhi、localai、codex、claude-code、local-models）を指定します。省略時はアプリの設定を使用します。"

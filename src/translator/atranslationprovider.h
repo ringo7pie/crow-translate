@@ -35,7 +35,8 @@ public:
         Mozhi,
         LocalAI,
         Codex,
-        LocalModels
+        LocalModels,
+        ClaudeCode
     };
     Q_ENUM(ProviderBackend)
 

@@ -137,7 +137,7 @@ void Cli::process(const QCoreApplication &app)
                                  QStringLiteral("URL"),
                                  settings.instance());
     const QCommandLineOption translationProvider({"tp", "translation-provider"},
-                                                 tr("Specify translation provider ('copy', 'mozhi', 'localai', 'codex' or 'local-models'). Provider from app settings will be used by default."),
+                                                 tr("Specify translation provider ('copy', 'mozhi', 'localai', 'codex', 'claude-code' or 'local-models'). Provider from app settings will be used by default."),
                                                  QStringLiteral("provider"));
     const QCommandLineOption localModel(QStringList{QStringLiteral("local-model")},
                                        tr("Select a local translation model by its preset ID."), QStringLiteral("model"));
@@ -230,6 +230,8 @@ void Cli::process(const QCoreApplication &app)
             translationBackend = ATranslationProvider::ProviderBackend::Mozhi;
         } else if (providerName == "localai" || providerName == "ollama") {
             translationBackend = ATranslationProvider::ProviderBackend::LocalAI;
+        } else if (providerName == "claude-code") {
+            translationBackend = ATranslationProvider::ProviderBackend::ClaudeCode;
         } else if (providerName == "codex") {
             translationBackend = ATranslationProvider::ProviderBackend::Codex;
         } else if (providerName == "local-models") {

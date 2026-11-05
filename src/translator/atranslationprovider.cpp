@@ -9,6 +9,7 @@
 #include "settings/appsettings.h"
 #include "translator/copytranslationprovider.h"
 #include "translator/codextranslationprovider.h"
+#include "translator/claudecodetranslationprovider.h"
 #include "translator/localaitranslationprovider.h"
 #include "translator/localmodelstranslationprovider.h"
 #include "translator/mozhitranslationprovider.h"
@@ -32,6 +33,8 @@ ATranslationProvider *ATranslationProvider::createTranslationProvider(QObject *p
             return new LocalAiTranslationProvider(parent);
         case ProviderBackend::Codex:
             return new CodexTranslationProvider(parent);
+        case ProviderBackend::ClaudeCode:
+            return new ClaudeCodeTranslationProvider(parent);
         case ProviderBackend::LocalModels:
             return new LocalModelsTranslationProvider(parent);
         }

@@ -274,6 +274,8 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/translator/localaitranslationprovider.cpp
     src/translator/codextranslationprovider.h
     src/translator/codextranslationprovider.cpp
+    src/translator/claudecodetranslationprovider.h
+    src/translator/claudecodetranslationprovider.cpp
     src/translator/translationlogic.h
     src/translator/translationlogic.cpp
     src/translator/languageresolution.h

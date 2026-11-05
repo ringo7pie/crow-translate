@@ -47,6 +47,7 @@ protected:
     void inputMethodEvent(QInputMethodEvent *event) override;
     void insertFromMimeData(const QMimeData *source) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
 
 private:
     QTimer *m_textEditedTimer;

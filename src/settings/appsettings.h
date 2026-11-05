@@ -261,6 +261,23 @@ public:
     QString codexPrompt() const;
     void setCodexPrompt(const QString &prompt);
     static QString defaultCodexPrompt();
+
+    QString claudeCodeExecutable() const;
+    void setClaudeCodeExecutable(const QString &executable);
+    QString claudeCodeModel() const;
+    void setClaudeCodeModel(const QString &model);
+    static QString defaultClaudeCodeModel();
+    QString claudeCodeReasoningEffort() const;
+    void setClaudeCodeReasoningEffort(const QString &effort);
+    static QString defaultClaudeCodeReasoningEffort();
+    static QStringList claudeCodeReasoningEfforts();
+    int claudeCodeTimeout() const;
+    void setClaudeCodeTimeout(int seconds);
+    QString claudeCodeInstructions() const;
+    void setClaudeCodeInstructions(const QString &instructions);
+    QString claudeCodePrompt() const;
+    void setClaudeCodePrompt(const QString &prompt);
+    static QString defaultClaudeCodePrompt();
     QString localModelsRoot() const;
     void setLocalModelsRoot(const QString &root);
     QString localModelsModel() const;

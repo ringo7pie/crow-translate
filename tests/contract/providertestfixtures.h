@@ -13,6 +13,7 @@
 #include "translator/atranslationprovider.h"
 #include "translator/copytranslationprovider.h"
 #include "translator/codextranslationprovider.h"
+#include "translator/claudecodetranslationprovider.h"
 #include "translator/localaitranslationprovider.h"
 #include "translator/mozhitranslationprovider.h"
 
@@ -157,6 +158,43 @@ private:
         auto provider = std::make_unique<CodexTranslationProvider>();
         ProviderOptions opts;
         opts.setOption("executable", QString::fromUtf8(CODEX_TEST_BINARY_PATH));
+        provider->applyOptions(opts);
+        return provider;
+    }
+};
+
+class ClaudeCodeProviderFixture : public ProviderFixture
+{
+public:
+    QString name() const override { return QStringLiteral("ClaudeCode"); }
+    Language sourceLanguage() const override { return Language(QStringLiteral("es")); }
+    Language targetLanguage() const override { return Language(QStringLiteral("en")); }
+    std::unique_ptr<ATranslationProvider> createForSuccess() override
+    {
+        qunsetenv("CROW_CLAUDECODE_TEST_MODE");
+        return makeProvider();
+    }
+    std::unique_ptr<ATranslationProvider> createForFailure(Language &source, Language &target) override
+    {
+        source = sourceLanguage();
+        target = targetLanguage();
+        qputenv("CROW_CLAUDECODE_TEST_MODE", "error");
+        return makeProvider();
+    }
+    bool supportsDeterministicMidFlightAbort() const override { return true; }
+    std::unique_ptr<ATranslationProvider> createForHang() override
+    {
+        qputenv("CROW_CLAUDECODE_TEST_MODE", "hang");
+        return makeProvider();
+    }
+    ~ClaudeCodeProviderFixture() override { qunsetenv("CROW_CLAUDECODE_TEST_MODE"); }
+
+private:
+    std::unique_ptr<ATranslationProvider> makeProvider()
+    {
+        auto provider = std::make_unique<ClaudeCodeTranslationProvider>();
+        ProviderOptions opts;
+        opts.setOption("executable", QString::fromUtf8(CLAUDECODE_TEST_BINARY_PATH));
         provider->applyOptions(opts);
         return provider;
     }

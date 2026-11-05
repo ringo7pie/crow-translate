@@ -116,7 +116,9 @@ int GuiFrontend::run(QCoreApplication &app)
     settings.loadCustomLanguageRegistry(); // Load persisted custom languages
     Language::setCustomLanguageRegistryChangedCallback(&AppSettings::onCustomLanguageRegistryChanged);
     settings.setupLocalization();
-    if (settings.instance().isEmpty()) {
+    const bool needsMozhi = settings.translationProviderBackend() == ATranslationProvider::ProviderBackend::Mozhi
+        || settings.ttsProviderBackend() == ATTSProvider::ProviderBackend::Mozhi;
+    if (needsMozhi && settings.instance().isEmpty()) {
         InstancePingerDialog instancePingerDialog;
         instancePingerDialog.exec();
         settings.setInstance(instancePingerDialog.fastestUrl());

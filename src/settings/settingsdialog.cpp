@@ -27,6 +27,7 @@
 #include "translator/atranslationprovider.h"
 #include "translator/localmodelstranslationprovider.h"
 #include "translator/codextranslationprovider.h"
+#include "translator/claudecodetranslationprovider.h"
 #include "tts/attsprovider.h"
 
 #include <QButtonGroup>
@@ -127,6 +128,7 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
     buildLocalAiTabs();
     buildOcrEngineUi();
     buildCodexUi();
+    buildClaudeCodeUi();
     buildLocalModelsUi();
     auto *manage = new QPushButton(tr("Manage local AI"), ui->translationPage);
     manage->setObjectName(QStringLiteral("manageLocalAiButton"));
@@ -176,6 +178,7 @@ SettingsDialog::SettingsDialog(MainWindow *parent)
     ui->translationProviderComboBox->addItem("Mozhi", QVariant::fromValue(ATranslationProvider::ProviderBackend::Mozhi));
     ui->translationProviderComboBox->addItem("LocalAI", QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalAI));
     ui->translationProviderComboBox->addItem("Codex", QVariant::fromValue(ATranslationProvider::ProviderBackend::Codex));
+    ui->translationProviderComboBox->addItem("Claude Code", QVariant::fromValue(ATranslationProvider::ProviderBackend::ClaudeCode));
     ui->translationProviderComboBox->addItem(tr("Local translation models"), QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels));
 
     // Populate TTS providers dynamically
@@ -316,6 +319,92 @@ void SettingsDialog::buildCodexUi()
     group->setVisible(false);
 }
 
+void SettingsDialog::buildClaudeCodeUi()
+{
+    auto *group = new QGroupBox(tr("Claude Code CLI"), ui->translationPage);
+    group->setObjectName(QStringLiteral("claudeCodeGroupBox"));
+    auto *form = new QFormLayout(group);
+    auto *hint = new QLabel(tr("Install Claude Code CLI and run claude auth login before translating. Uses your existing CLI login."), group);
+    hint->setWordWrap(true);
+    form->addRow(hint);
+
+    auto *executableRow = new QWidget(group);
+    auto *row = new QHBoxLayout(executableRow);
+    row->setContentsMargins(0, 0, 0, 0);
+    m_claudeCodeExecutable = new QLineEdit(executableRow);
+    m_claudeCodeExecutable->setObjectName(QStringLiteral("claudeCodeExecutableEdit"));
+    auto *browse = new QPushButton(tr("Browse..."), executableRow);
+    connect(browse, &QPushButton::clicked, this, [this]() {
+        const QString path = QFileDialog::getOpenFileName(this, tr("Select Claude Code executable"), m_claudeCodeExecutable->text());
+        if (!path.isEmpty())
+            m_claudeCodeExecutable->setText(path);
+    });
+    row->addWidget(m_claudeCodeExecutable, 1);
+    row->addWidget(browse);
+    auto *detect = new QPushButton(tr("Find automatically"), executableRow);
+    detect->setObjectName(QStringLiteral("claudeCodeFindExecutableButton"));
+    connect(detect, &QPushButton::clicked, this, [this]() {
+        const QString found = ClaudeCodeTranslationProvider::findClaudeCodeExecutable();
+        if (!found.isEmpty())
+            m_claudeCodeExecutable->setText(found);
+        else
+            QMessageBox::information(this, tr("Claude Code CLI"), tr("Claude Code executable was not found. Install Claude Code CLI or select its executable in Translation settings."));
+    });
+    row->addWidget(detect);
+    form->addRow(tr("Claude Code executable:"), executableRow);
+
+    m_claudeCodeModel = new QComboBox(group);
+    m_claudeCodeModel->setObjectName(QStringLiteral("claudeCodeModelComboBox"));
+    m_claudeCodeModel->setEditable(true);
+    m_claudeCodeModel->setInsertPolicy(QComboBox::NoInsert);
+    m_claudeCodeModel->addItems({AppSettings::defaultClaudeCodeModel(), QStringLiteral("sonnet"), QStringLiteral("opus")});
+    m_claudeCodeModel->setToolTip(tr("Select a model or enter a custom model name."));
+    form->addRow(tr("Claude Code model:"), m_claudeCodeModel);
+    m_claudeCodeReasoningEffort = new QComboBox(group);
+    m_claudeCodeReasoningEffort->setObjectName(QStringLiteral("claudeCodeReasoningEffortComboBox"));
+    m_claudeCodeReasoningEffort->addItem(tr("CLI default"), QString());
+    m_claudeCodeReasoningEffort->addItem(tr("Low (low)"), QStringLiteral("low"));
+    m_claudeCodeReasoningEffort->addItem(tr("Medium (medium)"), QStringLiteral("medium"));
+    m_claudeCodeReasoningEffort->addItem(tr("High (high)"), QStringLiteral("high"));
+    m_claudeCodeReasoningEffort->addItem(tr("Extra high (xhigh)"), QStringLiteral("xhigh"));
+    m_claudeCodeReasoningEffort->addItem(tr("Maximum (max)"), QStringLiteral("max"));
+    form->addRow(tr("Reasoning effort:"), m_claudeCodeReasoningEffort);
+    const auto updateEffort = [this]() {
+        m_claudeCodeReasoningEffort->setEnabled(!m_claudeCodeModel->currentText().startsWith(QLatin1String("claude-haiku-4-5")));
+    };
+    connect(m_claudeCodeModel, &QComboBox::currentTextChanged, this, updateEffort);
+    updateEffort();
+    m_claudeCodeTimeout = new QSpinBox(group);
+    m_claudeCodeTimeout->setObjectName(QStringLiteral("claudeCodeTimeoutSpinBox"));
+    m_claudeCodeTimeout->setRange(1, 3600);
+    m_claudeCodeTimeout->setSuffix(tr(" s"));
+    form->addRow(tr("Claude Code timeout:"), m_claudeCodeTimeout);
+    m_claudeCodePrompt = new QPlainTextEdit(group);
+    m_claudeCodePrompt->setObjectName(QStringLiteral("claudeCodePromptEdit"));
+    m_claudeCodePrompt->setFixedHeight(90);
+    form->addRow(tr("Basic instructions:"), m_claudeCodePrompt);
+    auto *resetPrompt = new QPushButton(tr("Restore default basic instructions"), group);
+    resetPrompt->setObjectName(QStringLiteral("claudeCodeResetPromptButton"));
+    connect(resetPrompt, &QPushButton::clicked, this, [this]() {
+        m_claudeCodePrompt->setPlainText(AppSettings::defaultClaudeCodePrompt());
+    });
+    form->addRow(resetPrompt);
+    m_claudeCodeInstructions = new QPlainTextEdit(group);
+    m_claudeCodeInstructions->setObjectName(QStringLiteral("claudeCodeInstructionsEdit"));
+    m_claudeCodeInstructions->setPlaceholderText(tr("Optional style and terminology preferences, e.g. use polite Japanese."));
+    m_claudeCodeInstructions->setFixedHeight(65);
+    form->addRow(tr("Additional instructions:"), m_claudeCodeInstructions);
+    // Keep the controls on the Translation page, immediately below the
+    // provider selector. translationLayout belongs to the separate Mozhi page.
+    ui->translationPageLayout->insertWidget(2, group);
+
+    connect(ui->translationProviderComboBox, &QComboBox::currentIndexChanged, group, [this, group]() {
+        group->setVisible(ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>()
+                          == ATranslationProvider::ProviderBackend::ClaudeCode);
+    });
+    group->setVisible(false);
+}
+
 void SettingsDialog::buildLocalModelsUi()
 {
     auto *group = new QGroupBox(tr("Local translation models"), ui->translationPage);
@@ -423,9 +512,10 @@ void SettingsDialog::showCurrentModelInstructions()
     ui->pagesListWidget->setCurrentRow(ui->pagesStackedWidget->indexOf(ui->translationPage));
     const auto backend = ui->translationProviderComboBox->currentData().value<ATranslationProvider::ProviderBackend>();
     const bool codex = backend == ATranslationProvider::ProviderBackend::Codex;
-    if (!codex && backend != ATranslationProvider::ProviderBackend::LocalModels)
+    const bool claude = backend == ATranslationProvider::ProviderBackend::ClaudeCode;
+    if (!codex && !claude && backend != ATranslationProvider::ProviderBackend::LocalModels)
         return;
-    auto *editor = codex ? m_codexPrompt : m_localModelsPrompt;
+    auto *editor = codex ? m_codexPrompt : claude ? m_claudeCodePrompt : m_localModelsPrompt;
     editor->setFocus();
     QTimer::singleShot(0, this, [this, editor]() { ui->scrollArea->ensureWidgetVisible(editor); });
 }
@@ -530,6 +620,12 @@ void SettingsDialog::accept()
     settings.setCodexTimeout(m_codexTimeout->value());
     settings.setCodexInstructions(m_codexInstructions->toPlainText());
     settings.setCodexPrompt(m_codexPrompt->toPlainText());
+    settings.setClaudeCodeExecutable(m_claudeCodeExecutable->text());
+    settings.setClaudeCodeModel(m_claudeCodeModel->currentText());
+    settings.setClaudeCodeReasoningEffort(m_claudeCodeReasoningEffort->currentData().toString());
+    settings.setClaudeCodeTimeout(m_claudeCodeTimeout->value());
+    settings.setClaudeCodeInstructions(m_claudeCodeInstructions->toPlainText());
+    settings.setClaudeCodePrompt(m_claudeCodePrompt->toPlainText());
     settings.setLocalModelsRoot(m_localModelsRoot->text().trimmed());
     settings.setLocalModelsModel(m_localModelsModel->currentData().toString());
     settings.setLocalModelsTimeout(m_localModelsTimeout->value());
@@ -1511,6 +1607,12 @@ void SettingsDialog::restoreDefaults()
     m_codexTimeout->setValue(AppSettings::defaultLocalAiTimeout());
     m_codexInstructions->clear();
     m_codexPrompt->setPlainText(AppSettings::defaultCodexPrompt());
+    m_claudeCodeExecutable->setText(QStringLiteral("claude"));
+    m_claudeCodeModel->setCurrentText(AppSettings::defaultClaudeCodeModel());
+    m_claudeCodeReasoningEffort->setCurrentIndex(m_claudeCodeReasoningEffort->findData(AppSettings::defaultClaudeCodeReasoningEffort()));
+    m_claudeCodeTimeout->setValue(AppSettings::defaultLocalAiTimeout());
+    m_claudeCodeInstructions->clear();
+    m_claudeCodePrompt->setPlainText(AppSettings::defaultClaudeCodePrompt());
     m_localModelsPromptId.clear();
     m_localModelsPrompts.clear();
     m_localModelsInstructions.clear();
@@ -1643,7 +1745,13 @@ void SettingsDialog::loadSettings()
     m_codexReasoningEffort->setCurrentIndex(m_codexReasoningEffort->findData(settings.codexReasoningEffort()));
     m_codexTimeout->setValue(settings.codexTimeout());
     m_codexInstructions->setPlainText(settings.codexInstructions());
+    m_claudeCodeExecutable->setText(settings.claudeCodeExecutable());
+    m_claudeCodeModel->setCurrentText(settings.claudeCodeModel());
+    m_claudeCodeReasoningEffort->setCurrentIndex(m_claudeCodeReasoningEffort->findData(settings.claudeCodeReasoningEffort()));
+    m_claudeCodeTimeout->setValue(settings.claudeCodeTimeout());
+    m_claudeCodeInstructions->setPlainText(settings.claudeCodeInstructions());
     m_codexPrompt->setPlainText(settings.codexPrompt());
+    m_claudeCodePrompt->setPlainText(settings.claudeCodePrompt());
     m_localModelsPromptId.clear();
     for (const QString &model : LocalModelsTranslationProvider::modelIds()) {
         m_localModelsPrompts[model] = settings.localModelsPrompt(model);

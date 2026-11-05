@@ -1,4 +1,4 @@
-Windows release build information: 4.1.0-local.13
+Windows release build information: 4.1.0-local.14
 =============================================
 
 The Qt local-AI manager reuses the prepared optional/ installer payload via
@@ -90,9 +90,17 @@ WinForms state transitions without starting a worker or downloading models.
 The release tag contains application sources, installer and setup scripts,
 license manifests, and deployment documentation.
 
+Claude Code translation uses an independently installed native CLI (2.1.318+)
+and its existing login. Requests use print mode with validated structured JSON,
+safe mode, no persisted sessions, no built-in tools or MCP servers, and disabled
+hooks. The default model is pinned to claude-haiku-4-5-20251001. Haiku 4.5 does
+not receive an adaptive effort flag. No Claude binary or credentials are bundled.
+Source text supports Ctrl+mouse-wheel zoom using Qt's fractional zoom operation;
+the gesture does not change stored font preferences or translation text.
+
 Build environment
 -----------------
-Windows 11 x64, MSVC 19.36.32548, CMake + Ninja, Qt 6.8.3 MSVC x64.
+Windows 11 x64, MSVC 19.51.36260, CMake + Ninja, Qt 6.8.3 MSVC x64.
 Release configuration, WITH_TTS=ON, WITH_PIPER_TTS=OFF,
 WITH_PORTABLE_MODE=ON, WITH_KICONTHEMES=OFF, WITH_KWAYLAND=OFF.
 
@@ -125,7 +133,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.13
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.14
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:

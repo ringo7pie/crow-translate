@@ -176,6 +176,42 @@ private slots:
         QVERIFY(!result.err.contains(QStringLiteral("Detecting fastest instance")));
     }
 
+    void testClaudeCodeProviderSelectionAndUtf8Json()
+    {
+        QTemporaryDir configDir;
+        QVERIFY(configDir.isValid());
+        QString executable = QStringLiteral(CROW_BINARY_PATH);
+        QString configPath;
+#ifdef Q_OS_WIN
+        // A private portable copy avoids touching the user's registry settings.
+        executable = configDir.filePath(QStringLiteral("crow.exe"));
+        QVERIFY(QFile::copy(QStringLiteral(CROW_BINARY_PATH), executable));
+        configPath = configDir.filePath(QStringLiteral("settings.ini"));
+#else
+        configPath = configDir.filePath(QStringLiteral("crow-translate/crow-translate.conf"));
+#endif
+        QSettings settings(configPath, QSettings::IniFormat);
+        settings.setValue(QStringLiteral("ClaudeCode/Executable"), QString::fromUtf8(CLAUDECODE_TEST_BINARY_PATH));
+        settings.setValue(QStringLiteral("ClaudeCode/Model"), QStringLiteral("test-model"));
+        settings.sync();
+        qputenv("CROW_CLAUDECODE_TEST_MODE", "echo");
+        const QString text = QString::fromUtf8("日本語の文章\n引用符: \"hello\"");
+        const RunResult result = runCrow({QStringLiteral("--translation-provider"), QStringLiteral("claude-code"),
+                                         QStringLiteral("-s"), QStringLiteral("ja"), QStringLiteral("-t"), QStringLiteral("en"),
+                                         QStringLiteral("--json"), text}, configDir.path(), executable);
+        qunsetenv("CROW_CLAUDECODE_TEST_MODE");
+        QVERIFY2(result.finished, "ClaudeCode CLI frontend did not terminate");
+        QCOMPARE(result.exitCode, 0);
+        QJsonParseError error;
+        const QJsonObject output = QJsonDocument::fromJson(result.out.toUtf8(), &error).object();
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        QCOMPARE(output.value(QStringLiteral("source")).toString(), text);
+        const QJsonArray translations = output.value(QStringLiteral("translations")).toArray();
+        QCOMPARE(translations.size(), 1);
+        QCOMPARE(translations.at(0).toObject().value(QStringLiteral("text")).toString(), text);
+        QVERIFY(!result.err.contains(QStringLiteral("Detecting fastest instance")));
+    }
+
     void initTestCase()
     {
         QVERIFY(m_configDir.isValid());

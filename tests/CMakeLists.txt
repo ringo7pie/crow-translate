@@ -190,6 +190,15 @@ target_compile_definitions(test_cli PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FIL
 add_dependencies(test_cli fake_codex)
 add_test(NAME CodexProviderTest COMMAND test_codex_provider)
 
+add_executable(fake_claudecode support/fakeclaudecode.cpp)
+target_link_libraries(fake_claudecode PRIVATE Qt6::Core)
+set_target_properties(fake_claudecode PROPERTIES WIN32_EXECUTABLE FALSE)
+add_executable(test_claudecode_provider test_claudecode_provider.cpp)
+target_link_libraries(test_claudecode_provider PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+target_compile_definitions(test_claudecode_provider PRIVATE CLAUDECODE_TEST_BINARY_PATH=\"$<TARGET_FILE:fake_claudecode>\")
+add_dependencies(test_claudecode_provider fake_claudecode)
+add_test(NAME ClaudeCodeProviderTest COMMAND test_claudecode_provider)
+
 # Canonical auto-destination language rule - pure, headless (see gotcha list).
 add_executable(test_translationlogic
     test_translationlogic.cpp
@@ -384,6 +393,11 @@ add_test(NAME TranslationProviderContractTest COMMAND test_translation_provider_
 target_compile_definitions(test_translation_provider_contract PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
 add_dependencies(test_translation_provider_contract fake_codex)
 
+foreach(_claude_consumer IN ITEMS test_cli test_settingsdialog_localai test_translation_provider_contract)
+    target_compile_definitions(${_claude_consumer} PRIVATE CLAUDECODE_TEST_BINARY_PATH=\"$<TARGET_FILE:fake_claudecode>\")
+    add_dependencies(${_claude_consumer} fake_claudecode)
+endforeach()
+
 # When using static ONNX Runtime, also configure test executables that link
 # the app library (they pull in Piper TTS transitively through it).
 if(WITH_PIPER_TTS AND ONNXRuntime_USE_STATIC)
@@ -393,7 +407,7 @@ if(WITH_PIPER_TTS AND ONNXRuntime_USE_STATIC)
     add_dependencies(test_localmodels_provider onnxruntime_ready)
     configure_onnxruntime_static(test_indraocr)
     add_dependencies(test_indraocr onnxruntime_ready)
-    foreach(_test_target IN ITEMS test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
+    foreach(_test_target IN ITEMS test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_claudecode_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
         configure_onnxruntime_static(${_test_target})
         add_dependencies(${_test_target} onnxruntime_ready)
     endforeach()
@@ -409,12 +423,13 @@ endif()
 # still succeeds; explicit `--target <test>` or a BUILD_TESTING=ON
 # configuration (see build.zsh's build-test/build-test-nopiper) still builds
 # and runs them.
+
 if(NOT BUILD_TESTING)
     set_target_properties(test_local_ai_management hotkeyholder PROPERTIES EXCLUDE_FROM_ALL TRUE)
     set_target_properties(fake_localmodels test_localmodels_provider PROPERTIES EXCLUDE_FROM_ALL TRUE)
     set_target_properties(fake_indra test_indraocr PROPERTIES EXCLUDE_FROM_ALL TRUE)
-    set_target_properties(fake_codex PROPERTIES EXCLUDE_FROM_ALL TRUE)
-    foreach(_test_target IN ITEMS test_helper_window test_dbus_static_init test_cli test_widget_free_core test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
+    set_target_properties(fake_codex fake_claudecode test_claudecode_provider PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    foreach(_test_target IN ITEMS test_helper_window test_dbus_static_init test_cli test_widget_free_core test_usernotifier test_translationhtmlformatter test_frontendregistry test_popupwindow_lifetime test_snippingarea_flags test_ttsprovider_isolation test_translation test_localai_provider test_codex_provider test_claudecode_provider test_settingsdialog_localai test_llmocr test_llmocr_live test_visionmodelprobe test_translationlogic test_languageresolution test_translationsession test_modulestatus test_statusstrip test_translationactivitywidget test_snippingarea_terminal test_mainwindow_status test_mainwindow_features test_appsettings_prompts test_translation_provider_contract)
         set_target_properties(${_test_target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
     endforeach()
     if(TARGET test_singleapplication_recovery)

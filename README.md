@@ -14,6 +14,11 @@ Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B translation presets, Codex CLI
 translation, translation progress and cancellation controls, Japanese localization,
 Windows build/installer support, and replacement application icons.
 
+Modified on **2026-11-05**: Windows installer **4.1.0-local.14** adds Claude
+Code CLI translation with Haiku 4.5 as its default model, executable discovery,
+editable instructions, language detection and cancellation. The source editor
+now supports Ctrl+mouse-wheel font zoom, independently of the translated text.
+
 Modified on **2026-11-05**: Windows installer **4.1.0-local.13** adds a fallback
 that queries running Codex image paths for the same Windows user and session,
 preferring the managed `current/bin` path across updates. Native executable
@@ -207,7 +212,7 @@ Wayland does not support global shortcuts registration, but you can use [D-Bus](
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> | Paste clipboard text into input         |
 | <kbd>Ctrl</kbd> + <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Previous / next installed local model |
 | <kbd>Ctrl</kbd> + <kbd>,</kbd> | Open settings |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Edit current local model / Codex instructions |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Edit current local model / Codex / Claude Code instructions |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd> | Manage local AI |
 
 Ctrl+Shift+Z is migrated once to delayed capture+translate, removing old OCR or
@@ -218,6 +223,35 @@ a failed global registration restores previous bindings. Global shortcuts depend
 on OS support and keys claimed by other apps.
 
 ## CLI commands
+
+### Translation with Claude Code
+
+Install the native [Claude Code CLI](https://code.claude.com/docs/en/setup)
+and sign in using `claude auth login`. Claude Code 2.1.318 or later is the
+supported baseline. In **Settings → Translation**, select **Claude Code**.
+The executable can be found automatically or selected manually. Windows native
+installations under `~/.local/bin` are found even with an outdated PATH.
+
+The default model is **Haiku 4.5**, pinned to `claude-haiku-4-5-20251001`.
+You can select Sonnet, Opus or enter another model ID. Models use the access
+available to your CLI login. Haiku 4.5 uses the CLI's thinking defaults; the
+adaptive effort selector is disabled for this model. Timeout, basic instructions
+and additional instructions can be edited like Codex, including via Ctrl+Shift+P.
+
+```bash
+crow --translation-provider claude-code --source en --translation ja "Hello, world!"
+crow --translation-provider claude-code --translation ja --json "Hello, world!"
+```
+
+Each request runs in a fresh temporary directory with built-in tools, MCP
+servers and user customizations disabled. Existing CLI authentication is reused;
+Crow does not store a Claude API key or bundle Claude Code. Requests do not save
+conversation history. Language detection, OCR-to-translation, progress and
+cancellation use the same application controls as other providers.
+
+日本語: 「設定 → 翻訳」で「Claude Code」を選択し、「自動検出」でCLIを設定できます。
+入力欄と翻訳欄は、それぞれCtrl＋マウスホイールで文字を拡大・縮小できます。
+この操作は表示用で、保存済みフォント設定は変更しません。
 
 ### Translation with Codex
 
@@ -307,7 +341,7 @@ The program also has a console interface.
 | `-t, --translation <code>` | Specify the translation language(s), split by '+' (by default, the system language is used)                          |
 | `-e, --engine <engine>`    | Specify the translator engine ('google', 'yandex', 'bing', 'libretranslate' or 'lingva'), Google is used by default  |
 | `-u, --url <URL>`          | Specify Mozhi instance URL. Instance URL from app settings will be used by default                                   |
-| `--tp, --translation-provider <provider>` | Specify translation provider ('copy', 'mozhi', 'localai', 'codex' or 'local-models'). Provider from app settings will be used by default |
+| `--tp, --translation-provider <provider>` | Specify translation provider ('copy', 'mozhi', 'localai', 'codex', 'claude-code' or 'local-models'). Provider from app settings will be used by default |
 | `--local-model <id>`       | Select a managed local translation model by its preset ID                                                            |
 | `--tts, --tts-provider <provider>` | Specify TTS provider ('none', 'mozhi', 'qt', or 'piper'). Provider from app settings will be used by default |
 | `-r, --speak-translation`  | Speak the translation                                                                                                |

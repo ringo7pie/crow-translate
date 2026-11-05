@@ -674,6 +674,94 @@ void AppSettings::setCodexPrompt(const QString &prompt)
     m_settings->setValue(QStringLiteral("Codex/Prompt"), prompt);
 }
 
+QString AppSettings::claudeCodeExecutable() const
+{
+    const QString value = m_settings->value(QStringLiteral("ClaudeCode/Executable"), QStringLiteral("claude")).toString().trimmed();
+    return value.isEmpty() ? QStringLiteral("claude") : value;
+}
+
+void AppSettings::setClaudeCodeExecutable(const QString &executable)
+{
+    m_settings->setValue(QStringLiteral("ClaudeCode/Executable"), executable.trimmed());
+}
+
+QString AppSettings::defaultClaudeCodeModel()
+{
+    return QStringLiteral("claude-haiku-4-5-20251001");
+}
+
+QString AppSettings::claudeCodeModel() const
+{
+    const QString value = m_settings->value(QStringLiteral("ClaudeCode/Model"), defaultClaudeCodeModel()).toString().trimmed();
+    return value.isEmpty() ? defaultClaudeCodeModel() : value;
+}
+
+void AppSettings::setClaudeCodeModel(const QString &model)
+{
+    m_settings->setValue(QStringLiteral("ClaudeCode/Model"), model.trimmed());
+}
+
+QString AppSettings::defaultClaudeCodeReasoningEffort()
+{
+    return QString();
+}
+
+QStringList AppSettings::claudeCodeReasoningEfforts()
+{
+    return {QString(), QStringLiteral("low"), QStringLiteral("medium"), QStringLiteral("high"),
+            QStringLiteral("xhigh"), QStringLiteral("max")};
+}
+
+QString AppSettings::claudeCodeReasoningEffort() const
+{
+    const QString value = m_settings->value(QStringLiteral("ClaudeCode/ReasoningEffort"), defaultClaudeCodeReasoningEffort()).toString().trimmed();
+    return claudeCodeReasoningEfforts().contains(value) ? value : defaultClaudeCodeReasoningEffort();
+}
+
+void AppSettings::setClaudeCodeReasoningEffort(const QString &effort)
+{
+    const QString value = effort.trimmed();
+    m_settings->setValue(QStringLiteral("ClaudeCode/ReasoningEffort"),
+                         claudeCodeReasoningEfforts().contains(value) ? value : defaultClaudeCodeReasoningEffort());
+}
+
+int AppSettings::claudeCodeTimeout() const
+{
+    return qBound(1, m_settings->value(QStringLiteral("ClaudeCode/Timeout"), defaultLocalAiTimeout()).toInt(), 3600);
+}
+
+void AppSettings::setClaudeCodeTimeout(int seconds)
+{
+    m_settings->setValue(QStringLiteral("ClaudeCode/Timeout"), qBound(1, seconds, 3600));
+}
+
+QString AppSettings::claudeCodeInstructions() const
+{
+    return m_settings->value(QStringLiteral("ClaudeCode/Instructions")).toString();
+}
+
+void AppSettings::setClaudeCodeInstructions(const QString &instructions)
+{
+    m_settings->setValue(QStringLiteral("ClaudeCode/Instructions"), instructions);
+}
+
+QString AppSettings::defaultClaudeCodePrompt()
+{
+    return QStringLiteral("You are a translation service. Preserve meaning, names, numbers, line breaks and formatting. "
+                          "Do not add explanations or Markdown fences.");
+}
+
+QString AppSettings::claudeCodePrompt() const
+{
+    const QString prompt = m_settings->value(QStringLiteral("ClaudeCode/Prompt")).toString();
+    return prompt.trimmed().isEmpty() ? defaultClaudeCodePrompt() : prompt;
+}
+
+void AppSettings::setClaudeCodePrompt(const QString &prompt)
+{
+    m_settings->setValue(QStringLiteral("ClaudeCode/Prompt"), prompt);
+}
+
 ATranslationProvider::ProviderBackend AppSettings::translationProviderBackend() const
 {
     uint8_t settingOrDefault = m_settings->value(QStringLiteral("Translation/Backend"),

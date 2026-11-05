@@ -103,6 +103,7 @@ private:
     Ui::SettingsDialog *ui;
 
     void buildCodexUi();
+    void buildClaudeCodeUi();
     void buildLocalModelsUi();
     void updateLocalModelsStatus();
     void openLocalAiManager();
@@ -125,6 +126,12 @@ private:
     QSpinBox *m_codexTimeout = nullptr;
     QPlainTextEdit *m_codexInstructions = nullptr;
     QPlainTextEdit *m_codexPrompt = nullptr;
+    QLineEdit *m_claudeCodeExecutable = nullptr;
+    QComboBox *m_claudeCodeModel = nullptr;
+    QComboBox *m_claudeCodeReasoningEffort = nullptr;
+    QSpinBox *m_claudeCodeTimeout = nullptr;
+    QPlainTextEdit *m_claudeCodeInstructions = nullptr;
+    QPlainTextEdit *m_claudeCodePrompt = nullptr;
 
     // OCR engine selection — dynamic widgets on the OCR page.
     // The LLM engine carries a complete endpoint of its own (URL, key, model

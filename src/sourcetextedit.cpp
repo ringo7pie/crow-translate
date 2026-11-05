@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
+#include <QWheelEvent>
 
 using namespace std::chrono_literals;
 
@@ -180,4 +181,14 @@ void SourceTextEdit::contextMenuEvent(QContextMenuEvent *event)
     m_skipFormat = true;
     auto *contextMenu = new ContextMenu(this, event);
     contextMenu->popup();
+}
+
+void SourceTextEdit::wheelEvent(QWheelEvent *event)
+{
+    if (event->modifiers() & Qt::ControlModifier) {
+        zoomInF(event->angleDelta().y() / 120.f);
+        event->accept();
+        return;
+    }
+    QPlainTextEdit::wheelEvent(event);
 }

@@ -462,6 +462,195 @@ private slots:
         QCOMPARE(settings.codexReasoningEffort(), QStringLiteral("max"));
     }
 
+    void testClaudeCodeControlsVisibleOnTranslationPage_data()
+    {
+        QTest::addColumn<bool>("alreadySelected");
+        QTest::newRow("select-claudeCode") << false;
+        QTest::newRow("saved-claudeCode") << true;
+    }
+
+    void testClaudeCodeControlsVisibleOnTranslationPage()
+    {
+        QFETCH(bool, alreadySelected);
+        AppSettings settings;
+        settings.setTranslationProviderBackend(alreadySelected ? ATranslationProvider::ProviderBackend::ClaudeCode
+                                                              : ATranslationProvider::ProviderBackend::Copy);
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        auto *page = dialog.findChild<QWidget *>(QStringLiteral("translationPage"));
+        auto *stack = dialog.findChild<QStackedWidget *>(QStringLiteral("pagesStackedWidget"));
+        auto *list = dialog.findChild<QListWidget *>(QStringLiteral("pagesListWidget"));
+        auto *backend = dialog.findChild<QComboBox *>(QStringLiteral("translationProviderComboBox"));
+        auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("claudeCodeGroupBox"));
+        QVERIFY(page && stack && list && backend && group);
+        list->setCurrentRow(stack->indexOf(page));
+        dialog.resize(904, 746);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        // A narrow display starts compact mode with the content area hidden;
+        // navigate using the same click that opens it for the user.
+        QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          list->visualItemRect(list->item(stack->indexOf(page))).center());
+        QTRY_VERIFY(page->isVisible());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::ClaudeCode)));
+
+        QVERIFY2(page->isAncestorOf(group), "ClaudeCode settings must belong to the Translation page");
+        QTRY_VERIFY(group->isVisible());
+        QTRY_VERIFY(group->visibleRegion().contains(group->rect()));
+        for (const auto *name : {"claudeCodeExecutableEdit", "claudeCodeModelComboBox", "claudeCodeReasoningEffortComboBox", "claudeCodeTimeoutSpinBox", "claudeCodePromptEdit", "claudeCodeInstructionsEdit"}) {
+            auto *control = group->findChild<QWidget *>(QString::fromLatin1(name));
+            QVERIFY(control);
+            QVERIFY(control->isVisible());
+            QTRY_VERIFY(control->visibleRegion().contains(control->rect()));
+            QVERIFY(page->rect().contains(QRect(control->mapTo(page, QPoint()), control->size())));
+        }
+        const QString screenshot = qEnvironmentVariable("CROW_CLAUDECODE_SETTINGS_SCREENSHOT");
+        if (!screenshot.isEmpty()) {
+            QTest::qWait(50);
+            QVERIFY(dialog.grab().save(screenshot));
+        }
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::Copy)));
+        QVERIFY(group->isHidden());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::ClaudeCode)));
+        QTRY_VERIFY(group->isVisible());
+        backend->setCurrentIndex(backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::LocalModels)));
+        auto *localGroup = dialog.findChild<QGroupBox *>(QStringLiteral("localModelsGroupBox"));
+        QTRY_VERIFY(localGroup->isVisible());
+        for (const auto *name : {"localModelsPromptEdit", "localModelsInstructionsEdit", "localModelsResetPromptButton"}) {
+            auto *control = localGroup->findChild<QWidget *>(QString::fromLatin1(name));
+            QVERIFY(control && control->isVisible());
+            QTRY_VERIFY(control->visibleRegion().contains(control->rect()));
+        }
+        const QString localScreenshot = qEnvironmentVariable("CROW_LOCALMODELS_SETTINGS_SCREENSHOT");
+        if (!localScreenshot.isEmpty())
+            QVERIFY(dialog.grab().save(localScreenshot));
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
+    void testClaudeCodeSettingsRoundTrip_data()
+    {
+        QTest::addColumn<QString>("modelName");
+        QTest::addColumn<QString>("effort");
+        QTest::newRow("listed-model") << QStringLiteral("sonnet") << QStringLiteral("high");
+        QTest::newRow("custom-model") << QStringLiteral("my-claudeCode-model") << QStringLiteral("xhigh");
+    }
+
+    void testClaudeCodeSettingsRoundTrip()
+    {
+        QFETCH(QString, modelName);
+        QFETCH(QString, effort);
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setClaudeCodeModel(QStringLiteral("saved-custom-model"));
+        settings.setClaudeCodeReasoningEffort(QStringLiteral("medium"));
+        MainWindow window;
+        {
+            SettingsDialog dialog(&window);
+            auto *backend = dialog.findChild<QComboBox *>(QStringLiteral("translationProviderComboBox"));
+            auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("claudeCodeGroupBox"));
+            auto *executable = dialog.findChild<QLineEdit *>(QStringLiteral("claudeCodeExecutableEdit"));
+            auto *model = dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeModelComboBox"));
+            auto *reasoning = dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeReasoningEffortComboBox"));
+            auto *timeout = dialog.findChild<QSpinBox *>(QStringLiteral("claudeCodeTimeoutSpinBox"));
+            auto *instructions = dialog.findChild<QPlainTextEdit *>(QStringLiteral("claudeCodeInstructionsEdit"));
+            QVERIFY(backend && group && executable && model && reasoning && timeout && instructions);
+            QVERIFY(model->isEditable());
+            QVERIFY(!reasoning->isEditable());
+            QCOMPARE(model->currentText(), QStringLiteral("saved-custom-model"));
+            QCOMPARE(reasoning->currentData().toString(), QStringLiteral("medium"));
+            for (const auto &level : AppSettings::claudeCodeReasoningEfforts())
+                QVERIFY(reasoning->findData(level) >= 0);
+            const int index = backend->findData(QVariant::fromValue(ATranslationProvider::ProviderBackend::ClaudeCode));
+            QVERIFY(index >= 0);
+            QVERIFY(group->isHidden());
+            backend->setCurrentIndex(index);
+            QVERIFY(!group->isHidden());
+            executable->setText(QStringLiteral("C:/ClaudeCode with spaces/claudeCode.exe"));
+            if (modelName == QLatin1String("sonnet")) {
+                QVERIFY(model->findText(modelName) >= 0);
+                model->setCurrentIndex(model->findText(modelName));
+            } else {
+                model->setEditText(modelName);
+            }
+            reasoning->setCurrentIndex(reasoning->findData(effort));
+            timeout->setValue(42);
+            instructions->setPlainText(QStringLiteral("Keep product names unchanged."));
+            dialog.accept();
+        }
+        QCOMPARE(settings.translationProviderBackend(), ATranslationProvider::ProviderBackend::ClaudeCode);
+        {
+            SettingsDialog reloaded(&window);
+            QCOMPARE(reloaded.findChild<QComboBox *>(QStringLiteral("claudeCodeModelComboBox"))->currentText(), modelName);
+            QCOMPARE(reloaded.findChild<QComboBox *>(QStringLiteral("claudeCodeReasoningEffortComboBox"))->currentData().toString(), effort);
+            QCOMPARE(reloaded.findChild<QLineEdit *>(QStringLiteral("claudeCodeExecutableEdit"))->text(), QStringLiteral("C:/ClaudeCode with spaces/claudeCode.exe"));
+            QCOMPARE(reloaded.findChild<QSpinBox *>(QStringLiteral("claudeCodeTimeoutSpinBox"))->value(), 42);
+            QCOMPARE(reloaded.findChild<QPlainTextEdit *>(QStringLiteral("claudeCodeInstructionsEdit"))->toPlainText(), QStringLiteral("Keep product names unchanged."));
+        }
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
+    void testClaudeCodeRestoreDefaults()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+        settings.setClaudeCodeModel(QStringLiteral("saved-custom-model"));
+        settings.setClaudeCodeReasoningEffort(QStringLiteral("max"));
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "restoreDefaults", Qt::DirectConnection));
+        QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeModelComboBox"))->currentText(), AppSettings::defaultClaudeCodeModel());
+        QCOMPARE(dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeReasoningEffortComboBox"))->currentData().toString(), AppSettings::defaultClaudeCodeReasoningEffort());
+        // Restoring defaults is provisional until OK is pressed.
+        dialog.reject();
+        QCOMPARE(settings.claudeCodeModel(), QStringLiteral("saved-custom-model"));
+        QCOMPARE(settings.claudeCodeReasoningEffort(), QStringLiteral("max"));
+    }
+
+
+    void testClaudeCodeHaikuDefaultsAndCanceledDiscovery()
+    {
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::ClaudeCode);
+        settings.setClaudeCodeExecutable(QStringLiteral("claude"));
+        settings.setClaudeCodeModel(AppSettings::defaultClaudeCodeModel());
+        settings.setClaudeCodeReasoningEffort(QString());
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        auto *model = dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeModelComboBox"));
+        auto *effort = dialog.findChild<QComboBox *>(QStringLiteral("claudeCodeReasoningEffortComboBox"));
+        QVERIFY(model && effort);
+        QCOMPARE(model->currentText(), QStringLiteral("claude-haiku-4-5-20251001"));
+        QVERIFY(!effort->isEnabled());
+        model->setCurrentText(QStringLiteral("opus"));
+        QVERIFY(effort->isEnabled());
+        model->setCurrentText(AppSettings::defaultClaudeCodeModel());
+        QVERIFY(!effort->isEnabled());
+        dialog.showCurrentModelInstructions();
+        auto *stack = dialog.findChild<QStackedWidget *>(QStringLiteral("pagesStackedWidget"));
+        QCOMPARE(stack->currentWidget()->objectName(), QStringLiteral("translationPage"));
+#ifdef Q_OS_WIN
+        QTemporaryDir profile;
+        QVERIFY(profile.isValid());
+        const QString executable = profile.filePath(QStringLiteral(".local/bin/claude.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(executable).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CLAUDECODE_TEST_BINARY_PATH), executable));
+        const QByteArray previousPath = qgetenv("PATH"), previousProfile = qgetenv("USERPROFILE");
+        const auto restore = qScopeGuard([&]() {
+            qputenv("PATH", previousPath);
+            qputenv("USERPROFILE", previousProfile);
+        });
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        qputenv("USERPROFILE", profile.path().toLocal8Bit());
+        dialog.findChild<QPushButton *>(QStringLiteral("claudeCodeFindExecutableButton"))->click();
+        QCOMPARE(dialog.findChild<QLineEdit *>(QStringLiteral("claudeCodeExecutableEdit"))->text(), executable);
+        QCOMPARE(settings.claudeCodeExecutable(), QStringLiteral("claude"));
+#endif
+        dialog.reject();
+        QCOMPARE(settings.claudeCodeExecutable(), QStringLiteral("claude"));
+        QCOMPARE(settings.claudeCodeModel(), AppSettings::defaultClaudeCodeModel());
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
+    }
+
     void initTestCase()
     {
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
