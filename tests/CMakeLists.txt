@@ -231,6 +231,8 @@ target_link_libraries(test_settingsdialog_localai PRIVATE
     test-support
     Qt6::Test
 )
+target_compile_definitions(test_settingsdialog_localai PRIVATE CODEX_TEST_BINARY_PATH="$<TARGET_FILE:fake_codex>")
+add_dependencies(test_settingsdialog_localai fake_codex)
 add_test(NAME SettingsDialogLocalAiTest COMMAND test_settingsdialog_localai)
 
 # VisionModelProbe model-list wire shapes - no GUI needed, runs headless.

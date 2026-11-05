@@ -1,4 +1,4 @@
-Crow Translate 非公式版 4.1.0-local.11 / Windows x64
+Crow Translate 非公式版 4.1.0-local.13 / Windows x64
 ================================================
 
 このインストーラーには、Crow Translate本体、Qt、Tesseract、日本語・英語の
@@ -120,6 +120,12 @@ Codex CLIの検出
 インストール先から起動してPATHが古い場合も、標準のユーザー用インストール先、
 Windowsのユーザー・システムPATH、npmのネイティブ実行ファイルを探します。
 「設定 → 翻訳 → Codex」の「自動検出」で見つかったパスを設定することもできます。
+Codexアプリが管理する .codex\packages\app-server-daemon\current\bin\codex.exe と
+.codex\bin\codex.exe も検出します。CODEX_HOMEを指定した環境ではその保存先を使います。
+CODEX_INSTALL_DIRには実行ファイルのあるフォルダーと、binを含む導入先の両方を指定できます。
+通常の保存先で見つからない場合は、同じWindowsユーザー・ログオンセッションで稼働中の
+codex.exeの実行パスも調べます。管理版は可能なら更新を追従するcurrentのパスを使います。
+稼働中のCodexがない場合も、従来のCLI単体版・npm版・Windows PATHからの検出を使えます。
 手動で指定した実行ファイルは優先します。Codexが未導入の場合は別途導入し、
 codex loginを実行してください。Codex自体やログイン情報はこのインストーラーに含みません。
 追加セットアップでは、Pythonと翻訳ランタイムも自動で導入します。

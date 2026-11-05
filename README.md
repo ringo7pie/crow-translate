@@ -14,6 +14,15 @@ Index-Translate 2B, Hy-MT2 7B and Seed-X-PPO 7B translation presets, Codex CLI
 translation, translation progress and cancellation controls, Japanese localization,
 Windows build/installer support, and replacement application icons.
 
+Modified on **2026-11-05**: Windows installer **4.1.0-local.13** adds a fallback
+that queries running Codex image paths for the same Windows user and session,
+preferring the managed `current/bin` path across updates. Native executable
+checks are independent of Qt's global NTFS permission-lookup setting.
+
+Modified on **2026-11-04**: Windows installer **4.1.0-local.12** also finds the
+desktop-managed Codex CLI under `CODEX_HOME` (by default `~/.codex`), including
+the stable `packages/app-server-daemon/current/bin/codex.exe` path.
+
 Modified on **2026-11-02**: added an optional installer for Indra OCR and each
 translation model, with license consent, private Python, resumable verified
 downloads, cancellation and automatic detection of the selected data directory.

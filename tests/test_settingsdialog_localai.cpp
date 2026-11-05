@@ -19,11 +19,16 @@
 
 #include <QComboBox>
 #include <QCheckBox>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGroupBox>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QProcess>
+#include <QScopeGuard>
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QStackedWidget>
@@ -313,6 +318,70 @@ private slots:
             QVERIFY(dialog.grab().save(localScreenshot));
         settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Copy);
     }
+
+#ifdef Q_OS_WIN
+    void testCodexFindManagedExecutableKeepsDraftUntilAccepted_data()
+    {
+        QTest::addColumn<bool>("runningFallback");
+        QTest::newRow("standard-home") << false;
+        QTest::newRow("running-cli-with-mismatched-environment") << true;
+    }
+
+    void testCodexFindManagedExecutableKeepsDraftUntilAccepted()
+    {
+        QFETCH(bool, runningFallback);
+        QTemporaryDir installation;
+        QVERIFY(installation.isValid());
+        const QByteArray oldPath = qgetenv("PATH"), oldHome = qgetenv("CODEX_HOME");
+        const QByteArray oldLocal = qgetenv("LOCALAPPDATA"), oldRoaming = qgetenv("APPDATA"), oldInstall = qgetenv("CODEX_INSTALL_DIR"), oldProfile = qgetenv("USERPROFILE");
+        const auto restore = qScopeGuard([&]() {
+            qputenv("PATH", oldPath);
+            qputenv("CODEX_HOME", oldHome);
+            qputenv("LOCALAPPDATA", oldLocal);
+            qputenv("APPDATA", oldRoaming);
+            qputenv("CODEX_INSTALL_DIR", oldInstall);
+            qputenv("USERPROFILE", oldProfile);
+        });
+        AppSettings settings;
+        settings.setTranslationProviderBackend(ATranslationProvider::ProviderBackend::Codex);
+        settings.setCodexExecutable(QStringLiteral("codex"));
+        MainWindow window;
+        SettingsDialog dialog(&window);
+        auto *button = dialog.findChild<QPushButton *>(QStringLiteral("codexFindExecutableButton"));
+        auto *executableEdit = dialog.findChild<QLineEdit *>(QStringLiteral("codexExecutableEdit"));
+        QVERIFY(button && executableEdit);
+        const QString home = installation.filePath(QString::fromUtf8("Codex 保存先 with spaces"));
+        const QString executable = QDir(home).filePath(QStringLiteral("packages/app-server-daemon/current/bin/codex.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(executable).absolutePath()));
+        QVERIFY(QFile::copy(runningFallback ? QString::fromUtf8(CODEX_TEST_BINARY_PATH) : QCoreApplication::applicationFilePath(), executable));
+        QProcess child;
+        const auto stop = qScopeGuard([&]() {
+            if (child.state() != QProcess::NotRunning) {
+                child.kill();
+                child.waitForFinished(5000);
+            }
+        });
+        if (runningFallback) {
+            child.start(executable, {QStringLiteral("--child")});
+            QVERIFY(child.waitForStarted());
+        }
+        const QString searchHome = runningFallback ? installation.filePath(QStringLiteral("empty-profile")) : home;
+        QVERIFY(QDir().mkpath(searchHome));
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        qputenv("CODEX_HOME", searchHome.toLocal8Bit());
+        qputenv("USERPROFILE", searchHome.toLocal8Bit());
+        qputenv("LOCALAPPDATA", installation.path().toLocal8Bit());
+        qputenv("APPDATA", installation.path().toLocal8Bit());
+        qunsetenv("CODEX_INSTALL_DIR");
+        QCOMPARE(qEnvironmentVariable("CODEX_HOME"), searchHome);
+        QVERIFY(QFileInfo(executable).isExecutable());
+        button->click();
+        QCOMPARE(executableEdit->text(), executable);
+        QCOMPARE(settings.codexExecutable(), QStringLiteral("codex"));
+        dialog.reject();
+        QCOMPARE(settings.codexExecutable(), QStringLiteral("codex"));
+    }
+#endif
 
     void testCodexSettingsRoundTrip_data()
     {

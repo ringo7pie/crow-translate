@@ -47,6 +47,107 @@ class CodexProviderTest : public QObject
 
 private slots:
 #ifdef Q_OS_WIN
+    void discoversRunningCodexWithoutInstallationEnvironment_data()
+    {
+        QTest::addColumn<bool>("stableCurrent");
+        QTest::newRow("unlisted-running-cli") << false;
+        QTest::newRow("managed-stable-current") << true;
+    }
+
+    void discoversRunningCodexWithoutInstallationEnvironment()
+    {
+        QFETCH(bool, stableCurrent);
+        QTemporaryDir installation;
+        QVERIFY(installation.isValid());
+        const QString profile = installation.filePath(QStringLiteral("empty-profile"));
+        QVERIFY(QDir().mkpath(profile));
+        const QString running = installation.filePath(QStringLiteral("unlisted/packages/app-server-daemon/releases/test/bin/codex.exe"));
+        const QString current = installation.filePath(QStringLiteral("unlisted/packages/app-server-daemon/current/bin/codex.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(running).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), running));
+        if (stableCurrent) {
+            QVERIFY(QDir().mkpath(QFileInfo(current).absolutePath()));
+            QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), current));
+        }
+        QProcess child;
+        child.start(running, {QStringLiteral("--child")});
+        const auto stop = qScopeGuard([&]() { child.kill(); child.waitForFinished(5000); });
+        QVERIFY(child.waitForStarted());
+        const QStringList keys{QStringLiteral("PATH"), QStringLiteral("USERPROFILE"), QStringLiteral("LOCALAPPDATA"),
+                               QStringLiteral("APPDATA"), QStringLiteral("CODEX_HOME"), QStringLiteral("CODEX_INSTALL_DIR")};
+        QMap<QString, QByteArray> previous;
+        for (const QString &key : keys)
+            previous.insert(key, qgetenv(key.toLatin1().constData()));
+        const auto restore = qScopeGuard([&]() {
+            for (auto value = previous.cbegin(); value != previous.cend(); ++value)
+                qputenv(value.key().toLatin1().constData(), value.value());
+        });
+        for (const QString &key : keys)
+            qputenv(key.toLatin1().constData(), profile.toLocal8Bit());
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(), stableCurrent ? current : running);
+        QVERIFY(CodexTranslationProvider::findCodexExecutable(installation.filePath(QStringLiteral("missing.exe"))).isEmpty());
+        QVERIFY(CodexTranslationProvider::findCodexExecutable(QStringLiteral("different-codex-name")).isEmpty());
+        const QNtfsPermissionCheckGuard permissions;
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(), stableCurrent ? current : running);
+    }
+
+    void discoversManagedCodexWithoutProcessPath_data()
+    {
+        QTest::addColumn<QString>("relativePath");
+        QTest::newRow("managed-current") << QStringLiteral("packages/app-server-daemon/current/bin/codex.exe");
+        QTest::newRow("home-bin") << QStringLiteral("bin/codex.exe");
+    }
+
+    void discoversManagedCodexWithoutProcessPath()
+    {
+        QFETCH(QString, relativePath);
+        QTemporaryDir installation;
+        QVERIFY(installation.isValid());
+        const QByteArray oldPath = qgetenv("PATH"), oldHome = qgetenv("CODEX_HOME");
+        const QByteArray oldLocal = qgetenv("LOCALAPPDATA"), oldRoaming = qgetenv("APPDATA"), oldInstall = qgetenv("CODEX_INSTALL_DIR");
+        const auto restore = qScopeGuard([&]() {
+            qputenv("PATH", oldPath);
+            qputenv("CODEX_HOME", oldHome);
+            qputenv("LOCALAPPDATA", oldLocal);
+            qputenv("APPDATA", oldRoaming);
+            qputenv("CODEX_INSTALL_DIR", oldInstall);
+        });
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        qputenv("CODEX_HOME", installation.path().toUtf8());
+        qputenv("LOCALAPPDATA", installation.path().toUtf8());
+        qputenv("APPDATA", installation.path().toUtf8());
+        qunsetenv("CODEX_INSTALL_DIR");
+        const QString executable = installation.filePath(relativePath);
+        QVERIFY(QDir().mkpath(QFileInfo(executable).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), executable));
+        const QString staging = installation.filePath(QStringLiteral("packages/app-server-daemon/releases/.staging.99/bin/codex.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(staging).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), staging));
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(), executable);
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(QStringLiteral("codex.exe")), executable);
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(executable), executable);
+        const QString manual = installation.filePath(QStringLiteral("manual-codex.exe"));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), manual));
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(manual), manual);
+        QVERIFY(CodexTranslationProvider::findCodexExecutable(installation.filePath(QStringLiteral("missing.exe"))).isEmpty());
+        QVERIFY(CodexTranslationProvider::findCodexExecutable(QStringLiteral("missing-custom-codex")).isEmpty());
+    }
+
+    void discoversInstallDirectoryWithBin()
+    {
+        QTemporaryDir installation;
+        QVERIFY(installation.isValid());
+        const QByteArray oldPath = qgetenv("PATH"), oldInstall = qgetenv("CODEX_INSTALL_DIR");
+        const auto restore = qScopeGuard([&]() { qputenv("PATH", oldPath); qputenv("CODEX_INSTALL_DIR", oldInstall); });
+        qputenv("PATH", qgetenv("SystemRoot") + "/System32");
+        qputenv("CODEX_INSTALL_DIR", installation.path().toUtf8());
+        const QString executable = installation.filePath(QStringLiteral("bin/codex.exe"));
+        QVERIFY(QDir().mkpath(QFileInfo(executable).absolutePath()));
+        QVERIFY(QFile::copy(QString::fromUtf8(CODEX_TEST_BINARY_PATH), executable));
+        QCOMPARE(CodexTranslationProvider::findCodexExecutable(), executable);
+    }
+
     void discoversStandaloneWithoutProcessPathAndHonorsExplicitPaths()
     {
         QTemporaryDir installation;

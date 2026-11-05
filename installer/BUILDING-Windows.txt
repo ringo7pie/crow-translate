@@ -1,4 +1,4 @@
-Windows release build information: 4.1.0-local.11
+Windows release build information: 4.1.0-local.13
 =============================================
 
 The Qt local-AI manager reuses the prepared optional/ installer payload via
@@ -61,6 +61,16 @@ the editor and session/CLI. Source edits preserve undo, selection and IME input;
 the formatter protects decimals, addresses, common abbreviations and paragraphs.
 Codex discovery checks the native PATH, standard per-user standalone locations,
 refreshed Windows PATH and native npm package binaries. No shell shim is run.
+It also checks CODEX_INSTALL_DIR/bin, CODEX_HOME/bin and the desktop-managed
+CODEX_HOME/packages/app-server-daemon/current/bin. CODEX_HOME defaults to
+the user's .codex directory. The stable current junction follows app updates;
+incomplete staging directories and arbitrary versioned releases are not scanned.
+When standard roots fail, Windows process image queries locate running codex.exe
+instances owned by the same user in the same session. An active managed release
+is mapped back to current/bin when available. Only image paths are queried;
+command lines and authentication files are never inspected by this resolver.
+Native .exe validation uses Windows file attributes rather than Qt's global
+NTFS permission-lookup mode. Explicit paths remain authoritative.
 Explicit executable selections remain authoritative; authentication stays with
 the user's separately installed Codex CLI.
 
@@ -82,13 +92,13 @@ license manifests, and deployment documentation.
 
 Build environment
 -----------------
-Windows 11 x64, MSVC 19.51.36260, CMake + Ninja, Qt 6.8.3 MSVC x64.
+Windows 11 x64, MSVC 19.36.32548, CMake + Ninja, Qt 6.8.3 MSVC x64.
 Release configuration, WITH_TTS=ON, WITH_PIPER_TTS=OFF,
 WITH_PORTABLE_MODE=ON, WITH_KICONTHEMES=OFF, WITH_KWAYLAND=OFF.
 
 The Qt binary packages are unmodified official Qt 6.8.3 packages. Their
 source and binary SBOMs record upstream configuration and commit IDs.
-The application was compiled with Tesseract 5.5.1 public headers and
+The application was compiled with Tesseract 5.5.3 public headers and
 Leptonica 1.87.0 headers, linking to the ABI-compatible Tesseract 5.5.3
 and Leptonica 1.87.0 DLLs. Both Tesseract sources are supplied.
 
@@ -115,7 +125,7 @@ Rebuilding
    installer/Get-Tessdata.ps1.
 6. Prepare notices and dependency sources with Python 3.14:
 
-   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.8
+   python installer/Prepare-ReleaseLicenses.py --qt-prefix <Qt-prefix> --tessdata-dir <tessdata> --output-dir <release-directory> --version 4.1.0-local.13
 
    Add notices for any additional runtime files to license-bundle/licenses.
    For the Microsoft CRT, include Microsoft's distribution terms/list:
