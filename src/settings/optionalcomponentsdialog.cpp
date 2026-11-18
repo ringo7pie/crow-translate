@@ -26,6 +26,15 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 #include <QTreeWidget>
+
+// 同時通訳の音声系の部品（翻訳モデルではないので「使用」で切り替えない）かを返す
+// 引数 id: カタログの部品 id / 戻り値: 音声系なら true
+static bool isSpeechComponent(const QString &id)
+{
+    return id == QLatin1String("whisper-large-v3-turbo") || id == QLatin1String("whisper-large-v3")
+        || id == QLatin1String("speaker-id");
+}
+
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
 #include <tlhelp32.h>
@@ -105,7 +114,7 @@ OptionalComponentsDialog::OptionalComponentsDialog(const QString &modelRoot, QWi
     m_choices->setHeaderLabels({tr("Component"), tr("Status"), tr("Model download"), tr("Free space required")});
     m_choices->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
     layout->addWidget(m_choices);
-    auto *common = new QLabel(tr("The shared environment needs up to about 2 GB in addition to the model. PLaMo conversion requires at least 80 GB free. NVIDIA translation also downloads about 0.65 GB of CUDA runtime."));
+    auto *common = new QLabel(tr("The shared environment needs up to about 2 GB in addition to the model. PLaMo conversion requires at least 80 GB free. NVIDIA translation also downloads about 0.65 GB of CUDA runtime. Whisper speech recognition also uses CUDA on NVIDIA GPUs."));
     common->setWordWrap(true);
     layout->addWidget(common);
     m_licenses = new QPlainTextEdit;
@@ -145,7 +154,8 @@ OptionalComponentsDialog::OptionalComponentsDialog(const QString &modelRoot, QWi
         m_catalogHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
         m_components = QJsonDocument::fromJson(bytes).object().value(QStringLiteral("components")).toArray();
     }
-    m_bundleValid = m_components.size() == 6 && QFileInfo::exists(m_bundle + QStringLiteral("/Install-OptionalComponents.ps1"))
+    // 部品の数はカタログ（翻訳 6・whisper 2・話者の聞き分け 1）と一致させる
+    m_bundleValid = m_components.size() == 9 &&QFileInfo::exists(m_bundle + QStringLiteral("/Install-OptionalComponents.ps1"))
         && QFileInfo::exists(m_bundle + QStringLiteral("/runtime-manifest.json"));
 #ifndef Q_OS_WIN
     m_bundleValid = false;
@@ -183,7 +193,9 @@ OptionalComponentsDialog::OptionalComponentsDialog(const QString &modelRoot, QWi
     connect(m_close, &QPushButton::clicked, this, &OptionalComponentsDialog::reject);
     connect(m_use, &QPushButton::clicked, this, [this]() {
         const auto *item = m_choices->currentItem();
-        if (item && !m_running && installed(item->data(0, Qt::UserRole).toString())) {
+        // whisper は翻訳モデルではなく「使用」で切り替える対象ではないので除く
+        if (item && !m_running && !isSpeechComponent(item->data(0, Qt::UserRole).toString())
+            && installed(item->data(0, Qt::UserRole).toString())) {
             emit useRequested(QDir::cleanPath(m_root->text()), item->data(0, Qt::UserRole).toString());
             accept();
         }
@@ -209,6 +221,25 @@ OptionalComponentsDialog::~OptionalComponentsDialog()
 bool OptionalComponentsDialog::installed(const QString &id) const
 {
     const QString root = QDir::cleanPath(m_root->text());
+    // whisper（音声認識）は speech/whisper 配下の実行ファイルとモデルが揃っているかで判定する
+#ifdef Q_OS_WIN
+    const QString server = QStringLiteral("/speech/whisper/bin/whisper-server.exe"); // whisper-server の相対パス
+    const QString speakerLibrary = QStringLiteral("/speech/speaker/bin/sherpa-onnx-c-api.dll"); // 話者の聞き分けの DLL
+#else
+    const QString server = QStringLiteral("/speech/whisper/bin/whisper-server"); // whisper-server の相対パス
+    const QString speakerLibrary = QStringLiteral("/speech/speaker/lib/libsherpa-onnx-c-api.so"); // 話者の聞き分けのライブラリ
+#endif
+    if (id == QStringLiteral("whisper-large-v3-turbo"))
+        return QFileInfo(root + server).isFile()
+            && QFileInfo(root + QStringLiteral("/speech/whisper/models/ggml-large-v3-turbo-q5_0.bin")).isFile();
+    // 高精度モデルはモデルだけの部品。whisper-server は turbo の部品のものを使う
+    if (id == QStringLiteral("whisper-large-v3"))
+        return QFileInfo(root + server).isFile()
+            && QFileInfo(root + QStringLiteral("/speech/whisper/models/ggml-large-v3-q5_0.bin")).isFile();
+    // 話者の聞き分けは sherpa-onnx の DLL と話者埋め込みモデルが揃っているかで判定する
+    if (id == QStringLiteral("speaker-id"))
+        return QFileInfo(root + speakerLibrary).isFile()
+            && QFileInfo(root + QStringLiteral("/speech/speaker/models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx")).isFile();
     if (id != QStringLiteral("indra"))
         return LocalModelsTranslationProvider::isInstalled(root + QStringLiteral("/local-translation"), id);
     if (!QFileInfo::exists(root + QStringLiteral("/local-translation/venv/Scripts/indra-ocr.exe")))
@@ -310,7 +341,8 @@ void OptionalComponentsDialog::updateButtons()
     m_install->setEnabled(!m_running && m_bundleValid && m_licensesValid && validRoot && !selected().isEmpty()
                           && m_consent->isChecked() && (!restricted || m_eligibility->isChecked()));
     const auto *current = m_choices->currentItem();
-    m_use->setEnabled(!m_running && validRoot && current && installed(current->data(0, Qt::UserRole).toString()));
+    m_use->setEnabled(!m_running && validRoot && current && !isSpeechComponent(current->data(0, Qt::UserRole).toString())
+                      && installed(current->data(0, Qt::UserRole).toString()));
     m_cancel->setEnabled(m_running);
     for (auto *widget : QList<QWidget *>{m_root, m_browse, m_choices, m_consent, m_eligibility})
         widget->setEnabled(!m_running);

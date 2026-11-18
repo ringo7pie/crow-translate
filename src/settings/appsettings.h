@@ -298,6 +298,11 @@ public:
     ATranslationProvider::ProviderBackend defaultTranslationProviderBackend() const;
     ATTSProvider::ProviderBackend defaultTTSProviderBackend() const;
 
+    // 同時通訳の設定（Interpretation/<key>）。引数: key = キー名、defaultValue = 未設定時の値。戻り値: 保存値
+    QVariant interpretationValue(const QString &key, const QVariant &defaultValue = {}) const;
+    // 同時通訳の設定を保存する
+    void setInterpretationValue(const QString &key, const QVariant &value);
+
 #ifdef WITH_PIPER_TTS
     QByteArray piperVoicesPath() const;
     void setPiperVoicesPath(const QByteArray &path);

@@ -15,11 +15,16 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
 import uuid
 import urllib.error
 import urllib.request
 import zipfile
+
+
+# 同時通訳の音声系の部品の format（Python 環境・llama ランタイムを使わず、既定の翻訳モデルにもならない）
+SPEECH_FORMATS = ('whisper', 'whisper-model', 'speaker')
 
 
 def sha256(path):
@@ -82,6 +87,9 @@ def extract_zip(archive, destination, strip_root=False, include=None):
 def download(record, target, progress=lambda *args: None, opener=urllib.request.urlopen):
     """Resume only a validated HTTP range; promote a file after hash verification."""
     target = Path(target)
+    # sha256 が空の項目はカタログ未確定。検証できないので、ダウンロード前に止める
+    if not record.get('sha256'):
+        raise ValueError('カタログ未確定: ' + str(record.get('file')) + ' の sha256 が空です。ダウンロードしません')
     expected_size = record.get('size')
     if target.exists():
         progress('保存済みファイルを検証中: ' + target.name, -1)
@@ -148,7 +156,8 @@ class Installer:
                 or receipt.get('accepted') is not True):
             raise ValueError('選択内容とライセンスへの明示的な同意を確認できません')
         if not isinstance(self.default_model, str) or (self.default_model and
-                (self.default_model not in self.components or self.default_model == 'indra')):
+                (self.default_model not in self.components or self.default_model == 'indra'
+                or self.components[self.default_model].get('format') in SPEECH_FORMATS)):
             raise ValueError('既定の翻訳モデルの指定が不正です')
         if self.root == Path(self.root.anchor):
             raise ValueError('ドライブ直下は保存先に指定できません')
@@ -298,6 +307,20 @@ class Installer:
             shutil.copy2(source, temporary)
             temporary.replace(destination)
 
+    # CUDA を初期化できる NVIDIA GPU が 1 台以上あるかを返す（nvcuda.dll 経由。Windows 以外は False）
+    def has_nvidia_gpu(self):
+        if os.name != 'nt':
+            return False
+        try:
+            import ctypes
+            driver = ctypes.WinDLL('nvcuda.dll')
+            count = ctypes.c_int()
+            if driver.cuInit(0) or driver.cuDeviceGetCount(ctypes.byref(count)) or count.value < 1:
+                return False
+        except (OSError, AttributeError):
+            return False
+        return True
+
     def cuda_runtime(self):
         """Optional MIT llama backend and NVIDIA redistributables, after consent.
 
@@ -308,15 +331,7 @@ class Installer:
         if not cuda or getattr(self, 'cuda_prepared', False):
             return
         self.cuda_prepared = True
-        if os.name != 'nt':
-            return
-        try:
-            import ctypes
-            driver = ctypes.WinDLL('nvcuda.dll')
-            count = ctypes.c_int()
-            if driver.cuInit(0) or driver.cuDeviceGetCount(ctypes.byref(count)) or count.value < 1:
-                return
-        except (OSError, AttributeError):
+        if not self.has_nvidia_gpu():
             return
         self.status('NVIDIA向けCUDAランタイムを準備しています')
         for record in cuda['archives']:
@@ -342,6 +357,8 @@ class Installer:
 
     def install_component(self, component):
         cid = component['id']
+        if component.get('format') in SPEECH_FORMATS:
+            self.require_pinned_whisper(component)
         self.status(component['name'] + ' を準備しています')
         licenses = self.root/'licenses'/cid
         licenses.mkdir(parents=True, exist_ok=True)
@@ -350,6 +367,17 @@ class Installer:
             if sha256(source) != record['sha256']:
                 raise ValueError('ライセンス文書のチェックサムが一致しません')
             shutil.copy2(source, licenses/record['file'])
+        # whisper は Python 環境・llama ランタイム・pip を使わないので、専用の手順だけで終える
+        if component.get('format') == 'whisper':
+            return self.install_whisper(component)
+        # 高精度モデル（whisper-model）はモデルだけを speech/whisper/models に入れる
+        if component.get('format') == 'whisper-model':
+            self.status('whisperモデルを取得しています')
+            for record in component['files']:
+                self.get(record)
+            return {}
+        if component.get('format') == 'speaker':
+            return self.install_speaker(component)
         # ONNX Runtime also imports MSVCP140*.dll. Put the redistributables
         # beside private Python even when Indra is the only selected component.
         self.runtime(python_only=True)
@@ -378,6 +406,116 @@ class Installer:
             if not (self.python.parent/'Scripts/indra-ocr.exe').exists():
                 raise FileNotFoundError('Indra OCRの実行ファイルが生成されませんでした')
         return {}
+
+    # whisper の項目に sha256 が空（カタログ未確定）のものがあれば、何も取得せず明確なエラーで止める
+    # 引数 component: カタログの whisper 部品
+    def require_pinned_whisper(self, component):
+        records = (component.get('licenses', []) + component.get('notices', []) + component.get('files', [])
+                   + list(component.get('whisper_archives', {}).values())
+                   + ([component['speaker_archive']] if component.get('speaker_archive') else []))
+        pending = [str(record.get('file')) for record in records if not record.get('sha256')]
+        if pending:
+            raise ValueError('カタログ未確定: ' + component['name'] + 'の次の項目にsha256が設定されていません。取得を中止しました: ' + ', '.join(pending))
+
+    # zip 内の whisper-server.exe を探し、そのフォルダの中身を bin へ展開する（zip 内の階層に依存しない）
+    # 引数 package: zip のパス / bin_dir: 展開先の bin フォルダ
+    def extract_whisper_bin(self, package, bin_dir):
+        with zipfile.ZipFile(package) as archive:
+            names = [item.filename.replace('\\', '/') for item in archive.infolist() if not item.is_dir()]
+            servers = [name for name in names if name.rsplit('/', 1)[-1].lower() == 'whisper-server.exe']
+            if len(servers) != 1:
+                raise ValueError('ZIP内のwhisper-server.exeが1つに特定できません: ' + str(len(servers)) + '件')
+            prefix = servers[0].rpartition('/')[0]   # whisper-server.exe のあるフォルダ（直下なら空）
+            prefix = prefix + '/' if prefix else ''
+            bin_dir.mkdir(parents=True, exist_ok=True)
+            for item in archive.infolist():
+                name = item.filename.replace('\\', '/')
+                if item.is_dir() or not name.startswith(prefix):
+                    continue
+                if (item.external_attr >> 16) & 0o170000 == 0o120000:
+                    raise ValueError('ZIPのシンボリックリンクは展開しません')
+                destination = safe_path(bin_dir, name[len(prefix):])
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                temporary = destination.with_name(destination.name + '.partial')
+                with archive.open(item) as source, temporary.open('wb') as target:
+                    shutil.copyfileobj(source, target)
+                temporary.replace(destination)
+
+    # whisper.cpp（whisper-server.exe と DLL 一式）とモデルを speech/whisper に導入する
+    # NVIDIA GPU があれば CUDA 版 zip、無ければ CPU 版 zip。CUDA 版に cudart/cublas が無ければ既存の cuda セクションから補う
+    # 引数 component: カタログの whisper 部品 / 戻り値: 導入状態に追記する辞書
+    def install_whisper(self, component):
+        archives = component['whisper_archives']
+        use_cuda = bool(self.catalog.get('cuda')) and self.has_nvidia_gpu()
+        variant = 'cuda' if use_cuda else 'cpu'
+        bin_dir = self.root/'speech/whisper/bin'
+        self.status('whisper.cpp（' + variant + '版）を取得しています')
+        package = self.get(archives[variant], 'downloads/' + archives[variant]['file'])
+        self.extract_whisper_bin(package, bin_dir)
+        if use_cuda:
+            # CUDA 版 zip に NVIDIA の DLL が無いときだけ、cuda セクションの cudart zip から同じ bin へ複製する
+            needed = ['cudart64_12.dll', 'cublas64_12.dll', 'cublasLt64_12.dll']
+            if any(not (bin_dir/name).is_file() for name in needed):
+                self.cuda_runtime()
+                for name in needed:
+                    if (bin_dir/name).is_file():
+                        continue
+                    source = self.root/'local-translation/runtime/cuda'/name
+                    if not source.is_file():
+                        raise FileNotFoundError('CUDAランタイムを取得できませんでした: ' + name)
+                    shutil.copy2(source, bin_dir/name)
+        self.status('whisperモデルを取得しています')
+        for record in component['files']:
+            self.get(record)
+        if not (bin_dir/'whisper-server.exe').is_file():
+            raise FileNotFoundError('whisper-server.exeが生成されませんでした')
+        return {'variant': variant}
+
+    # tar.bz2 内の sherpa-onnx-c-api.dll を探し、同じフォルダにある DLL だけを bin へ入れる
+    # シンボリックリンク・ハードリンクなど通常ファイル以外の DLL は拒否する
+    # 引数 package: tar.bz2 のパス / bin_dir: 展開先の bin フォルダ / 戻り値: 入れた DLL の名前の一覧
+    def extract_speaker_bin(self, package, bin_dir):
+        with tarfile.open(package, 'r:bz2') as archive:
+            members = archive.getmembers()   # アーカイブ内の全項目
+            libraries = [member for member in members
+                         if member.name.replace('\\', '/').rsplit('/', 1)[-1].lower() == 'sherpa-onnx-c-api.dll']
+            if len(libraries) != 1:
+                raise ValueError('アーカイブ内のsherpa-onnx-c-api.dllが1つに特定できません: ' + str(len(libraries)) + '件')
+            folder = libraries[0].name.replace('\\', '/').rpartition('/')[0]   # DLL のあるフォルダ
+            bin_dir.mkdir(parents=True, exist_ok=True)
+            copied = []   # 入れた DLL の名前
+            for member in members:
+                name = member.name.replace('\\', '/')
+                parent, _, base = name.rpartition('/')
+                if parent != folder or not base.lower().endswith('.dll'):
+                    continue
+                if not member.isfile():
+                    raise ValueError('アーカイブの通常ファイル以外は展開しません: ' + name)
+                destination = safe_path(bin_dir, base)
+                temporary = destination.with_name(destination.name + '.partial')
+                source = archive.extractfile(member)
+                if source is None:
+                    raise ValueError('アーカイブから読み出せません: ' + name)
+                with source, temporary.open('wb') as target:
+                    shutil.copyfileobj(source, target)
+                temporary.replace(destination)
+                copied.append(base)
+        return copied
+
+    # 話者の聞き分けの部品（sherpa-onnx の DLL 一式と話者埋め込みモデル）を speech/speaker に導入する
+    # 引数 component: カタログの speaker 部品 / 戻り値: 導入状態に追記する辞書
+    def install_speaker(self, component):
+        archive = component['speaker_archive']   # sherpa-onnx の配布物
+        bin_dir = self.root/'speech/speaker/bin'
+        self.status('話者の聞き分けの部品を取得しています')
+        package = self.get(archive, 'downloads/' + archive['file'])
+        copied = self.extract_speaker_bin(package, bin_dir)
+        self.status('話者埋め込みモデルを取得しています')
+        for record in component['files']:
+            self.get(record)
+        if not (bin_dir/'sherpa-onnx-c-api.dll').is_file():
+            raise FileNotFoundError('sherpa-onnx-c-api.dllが生成されませんでした')
+        return {'libraries': sorted(copied)}
 
     def convert_plamo(self, component):
         self.status('PLaMoの変換用環境を準備しています')
@@ -414,7 +552,9 @@ class Installer:
 
     def install(self):
         required = sum(self.components[c]['free_bytes'] for c in self.selected)
-        if self.catalog.get('cuda') and any(cid != 'indra' for cid in self.selected):
+        # whisper の空き容量見積もりは free_bytes に CUDA 用の余裕を含めてあるので、加算の対象から外す
+        if self.catalog.get('cuda') and any(cid != 'indra' and self.components[cid].get('format') not in SPEECH_FORMATS
+                                            for cid in self.selected):
             # Include archive + extracted DLL peak space for the optional GPU
             # runtime rather than counting only model/pip storage.
             required += 2_000_000_000

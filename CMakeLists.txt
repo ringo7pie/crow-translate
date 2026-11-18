@@ -209,6 +209,28 @@ add_library(${PROJECT_NAME}-lib STATIC
     src/ocr/indraocr.h
     src/ocr/indraocr.cpp
     src/optionalcomponents.h
+    src/interpreter/audiocapture.h
+    src/interpreter/audiocapture.cpp
+    src/interpreter/voicesegmenter.h
+    src/interpreter/voicesegmenter.cpp
+    src/interpreter/whisperserver.h
+    src/interpreter/whisperserver.cpp
+    src/interpreter/speechoutput.h
+    src/interpreter/speechoutput.cpp
+    src/interpreter/audionormalizer.h
+    src/interpreter/audionormalizer.cpp
+    src/interpreter/speakerclusterer.h
+    src/interpreter/speakerclusterer.cpp
+    src/interpreter/speakerembedder.h
+    src/interpreter/speakerembedder.cpp
+    src/interpreter/interpretationsession.h
+    src/interpreter/interpretationsession.cpp
+    src/interpreter/transcriptview.h
+    src/interpreter/transcriptview.cpp
+    src/interpreter/interpretertranslationsettings.h
+    src/interpreter/interpretertranslationsettings.cpp
+    src/interpreter/interpreterwindow.h
+    src/interpreter/interpreterwindow.cpp
     src/settings/optionalcomponentsdialog.h
     src/settings/optionalcomponentsdialog.cpp
     src/translator/localmodelstranslationprovider.h
@@ -561,6 +583,11 @@ target_link_libraries(${PROJECT_NAME}-lib PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME}-lib PUBLIC Qt6::TextToSpeech)
+
+# 同時通訳の WASAPI ループバック取り込み（CoCreateInstance など）
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}-lib PUBLIC ole32)
+endif()
 
 if(WITH_KICONTHEMES)
     target_link_libraries(${PROJECT_NAME}-lib PUBLIC KF6::IconThemes)

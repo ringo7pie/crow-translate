@@ -60,6 +60,58 @@ class OptionalSetupTest(unittest.TestCase):
                     setup.cuda_runtime()
             finally:setup.log.close()
 
+    # 作った tar.bz2 に tar 項目を足す（試験用）
+    # 引数 archive: 開いた tarfile / name: 項目名 / data: 中身
+    def add_tar_file(self, archive, name, data):
+        import tarfile
+        info=tarfile.TarInfo(name);info.size=len(data)   # 通常ファイルの項目
+        archive.addfile(info,BytesIO(data))
+
+    # sherpa-onnx-c-api.dll と同じフォルダの DLL だけを bin へ入れ、ほかは入れないこと
+    def test_speaker_extracts_only_dlls_beside_c_api(self):
+        import tarfile
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);setup=self.setup_installer(base)
+            package=base/'sherpa.tar.bz2'   # 試験用のアーカイブ
+            with tarfile.open(package,'w:bz2') as archive:
+                self.add_tar_file(archive,'sherpa/lib/sherpa-onnx-c-api.dll',b'c api')
+                self.add_tar_file(archive,'sherpa/lib/onnxruntime.dll',b'runtime')
+                self.add_tar_file(archive,'sherpa/lib/readme.txt',b'not a dll')
+                self.add_tar_file(archive,'sherpa/bin/other.dll',b'other folder')
+            try:
+                copied=setup.extract_speaker_bin(package,setup.root/'speech/speaker/bin')
+                self.assertEqual(sorted(copied),['onnxruntime.dll','sherpa-onnx-c-api.dll'])
+                self.assertEqual((setup.root/'speech/speaker/bin/onnxruntime.dll').read_bytes(),b'runtime')
+                self.assertFalse((setup.root/'speech/speaker/bin/other.dll').exists())
+                self.assertFalse((setup.root/'speech/speaker/bin/readme.txt').exists())
+            finally:setup.log.close()
+
+    # DLL がシンボリックリンクなら展開を拒否すること
+    def test_speaker_rejects_linked_dll(self):
+        import tarfile
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);setup=self.setup_installer(base)
+            package=base/'sherpa.tar.bz2'   # 試験用のアーカイブ
+            with tarfile.open(package,'w:bz2') as archive:
+                self.add_tar_file(archive,'lib/sherpa-onnx-c-api.dll',b'c api')
+                link=tarfile.TarInfo('lib/evil.dll');link.type=tarfile.SYMTYPE;link.linkname='../../outside.dll'   # リンクの項目
+                archive.addfile(link)
+            try:
+                with self.assertRaises(ValueError):
+                    setup.extract_speaker_bin(package,setup.root/'speech/speaker/bin')
+            finally:setup.log.close()
+
+    # sha256 が空の音声部品は何も取得せずに止まること
+    def test_speaker_with_pending_digest_never_downloads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            setup=self.setup_installer(Path(directory))
+            component={'id':'speaker-id','name':'speaker','format':'speaker','licenses':[],'notices':[],
+                       'speaker_archive':{'file':'a.tar.bz2','sha256':'x'},'files':[{'file':'model.onnx','sha256':''}]}
+            try:
+                with patch.object(setup,'get',side_effect=AssertionError('unexpected download')):
+                    with self.assertRaises(ValueError):setup.install_component(component)
+            finally:setup.log.close()
+
     def setup_installer(self, base, selected=None, default_model='', configure=False):
         catalog=base/'catalog.json'
         components=[{'id':cid,'free_bytes':0,'files':[],'revision':'test'} for cid in ['index','hy','indra']]

@@ -97,6 +97,8 @@ public slots:
     Q_SCRIPTABLE static void quit();
     Q_SCRIPTABLE void openSettings();
     void openLocalAiManager();
+    // 同時通訳の窓を開く（初回に作り、以後は同じ窓を前面に出す）
+    void openInterpreter();
     void editModelInstructions();
     Q_SCRIPTABLE void toggleOcrNegate();
 
@@ -172,6 +174,7 @@ private:
     void onLanguageDetected(const Language &detectedLanguage, bool isTranslationContext);
     AppSettings::WindowMode m_windowMode;
     TrayIcon *m_trayIcon;
+    QPointer<QWidget> m_interpreterWindow; // 同時通訳の窓（初回に作る）
     ScreenWatcher *m_orientationWatcher;
     AbstractScreenGrabber *m_screenGrabber;
     Language m_sourceLang = Language::autoLanguage();

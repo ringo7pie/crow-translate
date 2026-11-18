@@ -783,6 +783,18 @@ void AppSettings::setTTSProviderBackend(ATTSProvider::ProviderBackend newBackend
 {
     m_settings->setValue(QStringLiteral("TTS/Backend"), static_cast<uint8_t>(newBackend));
 }
+
+// 同時通訳の設定を読む
+QVariant AppSettings::interpretationValue(const QString &key, const QVariant &defaultValue) const
+{
+    return m_settings->value(QStringLiteral("Interpretation/") + key, defaultValue);
+}
+
+// 同時通訳の設定を保存する
+void AppSettings::setInterpretationValue(const QString &key, const QVariant &value)
+{
+    m_settings->setValue(QStringLiteral("Interpretation/") + key, value);
+}
 ATranslationProvider::ProviderBackend AppSettings::defaultTranslationProviderBackend() const
 {
     return ATranslationProvider::ProviderBackend::Mozhi;

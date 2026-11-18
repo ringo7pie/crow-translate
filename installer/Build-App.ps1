@@ -28,15 +28,21 @@ param(
     # vcpkg の installed\x64-windows
     [string]$VcpkgInstalledDir = 'E:\Tools\vcpkg\installed\x64-windows',
 
-    # Visual Studio の vcvars64.bat
-    [string]$VcVarsPath = 'E:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat',
+    # Visual Studio のフォルダ（省略時は VS 18 → VS 2022 の順に E:\Program Files から探す）
+    [string]$VisualStudioDir = '',
 
-    # Visual Studio 同梱の CMake と Ninja のフォルダ
-    [string]$CMakeBinDir = 'E:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin',
-    [string]$NinjaDir = 'E:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja',
+    # Visual Studio の vcvars64.bat（省略時は $VisualStudioDir から求める）
+    [string]$VcVarsPath = '',
+
+    # Visual Studio 同梱の CMake と Ninja のフォルダ（省略時は $VisualStudioDir から求める）
+    [string]$CMakeBinDir = '',
+    [string]$NinjaDir = '',
 
     # 並列数（既定は論理プロセッサ数）
-    [int]$Parallel = [Environment]::ProcessorCount
+    [int]$Parallel = [Environment]::ProcessorCount,
+
+    # 単体試験（tests/）もビルドする（CMake の BUILD_TESTING=ON。本体のライブラリにも BUILD_TESTING が定義されるので、配布用とは別の -BuildDir を使う）
+    [switch]$BuildTests
 )
 
 Set-StrictMode -Version Latest
@@ -45,6 +51,23 @@ $ErrorActionPreference = 'Stop'
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path  # このスクリプトのあるフォルダ（param の既定値では $PSScriptRoot が空になる環境があるため本体で求める）
 $repositoryRoot = Split-Path -Parent $scriptDirectory  # リポジトリのルート
 if ($BuildDir -eq '') { $BuildDir = Join-Path $repositoryRoot 'build-release' }
+if (-not [System.IO.Path]::IsPathRooted($BuildDir)) { $BuildDir = Join-Path $repositoryRoot $BuildDir }  # 相対指定はリポジトリのルートから
+
+# Visual Studio のフォルダを決める（指定が無ければ、vcvars64.bat のある最初の候補）
+if ($VisualStudioDir -eq '') {
+    $visualStudioCandidates = @(
+        'E:\Program Files\Microsoft Visual Studio\18\Professional',
+        'E:\Program Files\Microsoft Visual Studio\2022\Professional'
+    )  # 探す順の候補
+    foreach ($candidate in $visualStudioCandidates) {
+        if (Test-Path -LiteralPath (Join-Path $candidate 'VC\Auxiliary\Build\vcvars64.bat')) { $VisualStudioDir = $candidate; break }
+    }
+    if ($VisualStudioDir -eq '') { $VisualStudioDir = $visualStudioCandidates[0] }  # 見つからなければ下の存在確認で理由を出す
+}
+$cmakeExtensionDir = Join-Path $VisualStudioDir 'Common7\IDE\CommonExtensions\Microsoft\CMake'  # VS 同梱の CMake / Ninja の親フォルダ
+if ($VcVarsPath -eq '') { $VcVarsPath = Join-Path $VisualStudioDir 'VC\Auxiliary\Build\vcvars64.bat' }
+if ($CMakeBinDir -eq '') { $CMakeBinDir = Join-Path $cmakeExtensionDir 'CMake\bin' }
+if ($NinjaDir -eq '') { $NinjaDir = Join-Path $cmakeExtensionDir 'Ninja' }
 
 # 必須パスの存在確認。無ければ理由を示して止まる
 function Assert-PathExists {
@@ -100,6 +123,7 @@ $configureArguments = @(
     "-DLeptonica_INCLUDE_DIR=$includeDir",
     "-DLeptonica_LIBRARY_RELEASE=$(Join-Path $libraryDir 'leptonica-1.87.0.lib')"
 )  # cmake 構成の引数
+if ($BuildTests) { $configureArguments += '-DBUILD_TESTING=ON' }
 Invoke-Tool 'cmake' $configureArguments
 
 # 3. ビルド（並列）

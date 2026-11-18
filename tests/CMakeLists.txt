@@ -26,6 +26,11 @@ add_executable(test_sentenceformatter test_sentenceformatter.cpp)
 target_link_libraries(test_sentenceformatter PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
 add_test(NAME SentenceFormatterTest COMMAND test_sentenceformatter)
 
+# 同時通訳（発話区切り・字幕表示・whisper の補助関数）の単体試験
+add_executable(test_interpreter test_interpreter.cpp)
+target_link_libraries(test_interpreter PRIVATE ${PROJECT_NAME}-lib Qt6::Test)
+add_test(NAME InterpreterTest COMMAND test_interpreter)
+
 # Helper GUI process for e2e/manual selection and OCR scenarios (crow-flake's
 # e2e/ runner drives this via cua-driver; it is no longer spawned in-process
 # by any unit test, since those now drive text entry directly through QTest

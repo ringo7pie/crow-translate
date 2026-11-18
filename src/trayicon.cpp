@@ -30,6 +30,9 @@ TrayIcon::TrayIcon(MainWindow *parent)
     m_manageLocalAiAction = new QAction(tr("Manage local AI"), m_trayMenu);
     m_trayMenu->insertAction(m_quitAction, m_manageLocalAiAction);
     connect(m_manageLocalAiAction, &QAction::triggered, parent, &MainWindow::openLocalAiManager);
+    auto *interpreterAction = new QAction(tr("Simultaneous interpretation"), m_trayMenu); // 同時通訳の窓を開く
+    m_trayMenu->insertAction(m_quitAction, interpreterAction);
+    connect(interpreterAction, &QAction::triggered, parent, &MainWindow::openInterpreter);
     m_reportBugAction = m_trayMenu->addAction(tr("Report Bug…"));
     connect(m_reportBugAction, &QAction::triggered, this, []() {
         QUrl url(QStringLiteral("https://bugs.kde.org/enter_bug.cgi"));

@@ -434,6 +434,19 @@
          </widget>
         </item>
         <item>
+         <widget class="QToolButton" name="interpreterButton">
+          <property name="accessibleName">
+           <string>Simultaneous interpretation</string>
+          </property>
+          <property name="toolTip">
+           <string>Open the simultaneous interpretation window</string>
+          </property>
+          <property name="icon">
+           <iconset theme="audio-input-microphone"/>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QToolButton" name="settingsButton">
           <property name="accessibleName">
            <string>Application settings</string>

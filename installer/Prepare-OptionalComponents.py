@@ -30,6 +30,9 @@ def prepare(runtime, output):
     for component in catalog['components']:
         for record in component.get('licenses', []) + component.get('notices', []):
             target = notices/record['file']
+            # sha256 が空の項目はカタログ未確定（whisper の後埋め項目）なので、明確に止める
+            if not record.get('sha256'):
+                raise ValueError('Catalog entry is not finalized (empty sha256): ' + component['id'] + ' / ' + record['file'])
             if record.get('bundled_file'):
                 original = (source/record['bundled_file']).resolve()
                 if not original.is_relative_to(source.resolve()):

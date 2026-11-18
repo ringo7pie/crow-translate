@@ -86,7 +86,7 @@ if ($Worker) {
         }
         $defaultProperty = $acceptance.PSObject.Properties['default_model']
         if ($null -ne $defaultProperty -and (($defaultProperty.Value -isnot [string]) -or
-            ($defaultProperty.Value -ne '' -and ($defaultProperty.Value -eq 'indra' -or $defaultProperty.Value -notin $knownIds)))) {
+            ($defaultProperty.Value -ne '' -and ($defaultProperty.Value -in @('indra','whisper-large-v3-turbo','whisper-large-v3','speaker-id') -or $defaultProperty.Value -notin $knownIds)))) {
             throw '既定の翻訳モデルの指定が不正です'
         }
         $DataRoot = [IO.Path]::GetFullPath($DataRoot)
@@ -190,7 +190,8 @@ function Update-DefaultModels([int]$PendingIndex = -1, [bool]$PendingChecked = $
     [void]$defaultModel.Items.Add('既定を変更しない')
     for($i=0;$i -lt $catalog.components.Count;$i++){
         $component=$catalog.components[$i]
-        if($component.id -eq 'indra'){continue}
+        # Indra（OCR）と whisper（音声認識）は翻訳モデルではないので、既定の翻訳モデルの候補にしない
+        if($component.id -in @('indra','whisper-large-v3-turbo','whisper-large-v3','speaker-id')){continue}
         $checked=if($i -eq $PendingIndex){$PendingChecked}else{$choices.GetItemChecked($i)}
         $already=($null -ne $installedState -and $null -ne $installedState.PSObject.Properties[$component.id] -and
             (Test-Path -LiteralPath (Join-Path $destination.Text ('local-translation/models/'+$component.model_file))))

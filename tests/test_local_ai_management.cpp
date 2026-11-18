@@ -105,7 +105,7 @@ private slots:
         auto *consent = dialog.findChild<QCheckBox *>("componentConsent");
         auto *eligibility = dialog.findChild<QCheckBox *>("componentEligibility");
         root->setText(fixture.path() + "/components");
-        QCOMPARE(choices->topLevelItemCount(), 6);
+        QCOMPARE(choices->topLevelItemCount(), 9);
         QVERIFY(choices->topLevelItem(5)->text(0).contains(QStringLiteral("recommended")));
         choices->topLevelItem(0)->setCheckState(0, Qt::Checked);
         QVERIFY(!install->isEnabled());

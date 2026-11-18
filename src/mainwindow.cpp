@@ -30,6 +30,7 @@
 #include "settings/appsettings.h"
 #include "settings/settingsdialog.h"
 #include "settings/optionalcomponentsdialog.h"
+#include "interpreter/interpreterwindow.h"
 #include "translator/atranslationprovider.h"
 #include "translator/languageresolution.h"
 #include "tts/attsprovider.h"
@@ -151,6 +152,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto *menu = new QMenu(ui->settingsButton);
     menu->addAction(tr("Settings"), this, &MainWindow::openSettings);
     menu->addAction(tr("Manage local AI"), this, &MainWindow::openLocalAiManager);
+    menu->addAction(tr("Simultaneous interpretation"), this, &MainWindow::openInterpreter);
     menu->addAction(tr("Edit current model instructions"), this, &MainWindow::editModelInstructions);
     ui->settingsButton->setMenu(menu);
     ui->settingsButton->setPopupMode(QToolButton::MenuButtonPopup);
@@ -242,6 +244,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->translationPlayPauseButton, &QToolButton::clicked, this, &MainWindow::translationPlayPauseClicked);
     connect(ui->translationStopButton, &QToolButton::clicked, this, &MainWindow::translationStopClicked);
     connect(ui->settingsButton, &QToolButton::clicked, this, &MainWindow::openSettings);
+    connect(ui->interpreterButton, &QToolButton::clicked, this, &MainWindow::openInterpreter); // 同時通訳の窓を開くボタン
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, [this]() { m_suppressOcrAutoTranslation = false; });
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, &MainWindow::updateTranslateButtonState);
     connect(ui->sourceEdit, &SourceTextEdit::textEdited, this, &MainWindow::updateTTSButtonStates);
@@ -784,6 +787,18 @@ void MainWindow::showSettings(bool instructions)
         m_session->loadBackendsFromSettings();
         m_session->applyTranslationOptions();
     }
+}
+
+// 同時通訳の窓を開く。親を持たない独立の窓にし、本体を隠しても残るようにする
+void MainWindow::openInterpreter()
+{
+    if (m_interpreterWindow == nullptr) {
+        m_interpreterWindow = new InterpreterWindow;
+        connect(this, &QObject::destroyed, m_interpreterWindow.data(), &QObject::deleteLater);
+    }
+    m_interpreterWindow->show();
+    m_interpreterWindow->raise();
+    m_interpreterWindow->activateWindow();
 }
 
 void MainWindow::openLocalAiManager()

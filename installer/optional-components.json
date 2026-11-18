@@ -458,6 +458,119 @@
       "download_bytes": 2073114756,
       "free_bytes": 4566390496,
       "revision": "47e382331d005acd54a42cdf088a76aa88788e0c"
+    },
+    {
+      "id": "whisper-large-v3-turbo",
+      "name": "Whisper large-v3-turbo（音声認識）",
+      "format": "whisper",
+      "model_file": "ggml-large-v3-turbo-q5_0.bin",
+      "license": "MIT (whisper.cpp / OpenAI Whisper weights); NVIDIA CUDA runtime EULA",
+      "license_summary": "同時通訳の音声認識に使います。whisper.cppとOpenAI Whisperの重みはMITライセンスで、著作権・ライセンス表示を保持します。NVIDIA GPUではCUDA 12系ランタイムを使うため、以下のNVIDIA利用条件にも同意してください。",
+      "license_url": "https://github.com/ggml-org/whisper.cpp/blob/b5454/LICENSE",
+      "licenses": [
+        {
+          "url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/b5454/LICENSE",
+          "file": "whisper-cpp-license.txt",
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+          "size": 1078
+        },
+        {
+          "url": "https://docs.nvidia.com/cuda/archive/12.4.1/eula/index.html",
+          "file": "NVIDIA-CUDA-12.4-EULA.txt",
+          "bundled_file": "licenses/NVIDIA-CUDA-12.4-EULA.txt",
+          "sha256": "b3d69dbb6c2762be6d49f9f3e0082070411025ac3c4a96aa067cafc45a5be10d",
+          "size": 61188
+        }
+      ],
+      "notices": [],
+      "whisper_archives": {
+        "cpu": {
+          "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip",
+          "file": "whisper-bin-x64.zip",
+          "sha256": "6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb",
+          "size": 8928640
+        },
+        "cuda": {
+          "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-win-cuda-12.4.0-x64.zip",
+          "file": "whisper-bin-win-cuda-12.4.0-x64.zip",
+          "sha256": "afef0b881c500958921c3f5523b50e59ee2ec9b6f5cbd25b324c51ed308a957a",
+          "size": 684913404
+        }
+      },
+      "files": [
+        {
+          "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin",
+          "file": "speech/whisper/models/ggml-large-v3-turbo-q5_0.bin",
+          "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+          "size": 574041195
+        }
+      ],
+      "download_bytes": 1258954599,
+      "free_bytes": 3500000000,
+      "revision": "d1be6fde11ac6e0407606b4e42fe72d34add8037"
+    },
+    {
+      "id": "whisper-large-v3",
+      "name": "Whisper large-v3（音声認識・高精度）",
+      "format": "whisper-model",
+      "model_file": "ggml-large-v3-q5_0.bin",
+      "license": "MIT (whisper.cpp / OpenAI Whisper weights)",
+      "license_summary": "同時通訳の音声認識を高精度にするモデルです（turboより遅くなります）。whisper.cpp本体は「Whisper large-v3-turbo（音声認識）」のものを使うため、先にそちらを導入してください。OpenAI Whisperの重みはMITライセンスで、著作権・ライセンス表示を保持します。",
+      "license_url": "https://github.com/ggml-org/whisper.cpp/blob/b5454/LICENSE",
+      "licenses": [
+        {
+          "url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/b5454/LICENSE",
+          "file": "whisper-cpp-license.txt",
+          "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+          "size": 1078
+        }
+      ],
+      "notices": [],
+      "files": [
+        {
+          "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-q5_0.bin",
+          "file": "speech/whisper/models/ggml-large-v3-q5_0.bin",
+          "sha256": "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1",
+          "size": 1081140203
+        }
+      ],
+      "download_bytes": 1081140203,
+      "free_bytes": 2200000000,
+      "revision": "5359861c739e955e79d9a303bcbc70fb988958b1"
+    },
+    {
+      "id": "speaker-id",
+      "name": "話者の聞き分け（sherpa-onnx・3D-Speaker CAM++）",
+      "format": "speaker",
+      "license": "Apache-2.0 (sherpa-onnx / 3D-Speaker CAM++); MIT (ONNX Runtime)",
+      "license_summary": "同時通訳で相手の声を「Aさん」「Bさん」…と聞き分けます。sherpa-onnxと3D-Speakerの話者埋め込みモデルはApache 2.0、同梱のONNX RuntimeはMITライセンスで、著作権・ライセンス表示を保持します。",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "licenses": [
+        {
+          "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "file": "speaker-id-apache-2.0.txt"
+        }
+      ],
+      "notices": [],
+      "speaker_archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-win-x64-shared-MD-Release.tar.bz2",
+        "file": "sherpa-onnx-v2.0.1-win-x64-shared-MD-Release.tar.bz2",
+        "sha256": "ce987d5bfca42c74b54f7b3bbaaa8c1febe3c5cd0fea8f94be80ea30e72f1f61",
+        "size": 21921136
+      },
+      "files": [
+        {
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+          "file": "speech/speaker/models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+          "sha256": "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2",
+          "size": 28281164
+        }
+      ],
+      "download_bytes": 50202300,
+      "free_bytes": 300000000,
+      "revision": "v2.0.1"
     }
   ],
   "runtime_license": {

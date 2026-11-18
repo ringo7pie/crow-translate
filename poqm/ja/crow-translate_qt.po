@@ -3157,8 +3157,8 @@ msgid "The bundled license or notice is missing or has an invalid checksum: %1"
 msgstr "同梱ライセンス・出所表示がないか、チェックサムが一致しません: %1"
 
 msgctxt "OptionalComponentsDialog|"
-msgid "The shared environment needs up to about 2 GB in addition to the model. PLaMo conversion requires at least 80 GB free. NVIDIA translation also downloads about 0.65 GB of CUDA runtime."
-msgstr "モデルとは別に共通環境が最大約2 GB必要です。PLaMoの変換には80 GB以上の空き容量が必要です。NVIDIAでの翻訳用にCUDAランタイムを別途約0.65 GB取得します。"
+msgid "The shared environment needs up to about 2 GB in addition to the model. PLaMo conversion requires at least 80 GB free. NVIDIA translation also downloads about 0.65 GB of CUDA runtime. Whisper speech recognition also uses CUDA on NVIDIA GPUs."
+msgstr "モデルとは別に共通環境が最大約2 GB必要です。PLaMoの変換には80 GB以上の空き容量が必要です。NVIDIAでの翻訳用にCUDAランタイムを別途約0.65 GB取得します。Whisper音声認識もNVIDIA GPUではCUDAを使います。"
 
 msgctxt "OptionalComponentsDialog|"
 msgid "Use this directory / selected model"
@@ -3315,3 +3315,433 @@ msgstr "Claude Codeのタイムアウト:"
 msgctxt "Cli|"
 msgid "Specify translation provider ('copy', 'mozhi', 'localai', 'codex', 'claude-code' or 'local-models'). Provider from app settings will be used by default."
 msgstr "翻訳エンジン（copy、mozhi、localai、codex、claude-code、local-models）を指定します。省略時はアプリの設定を使用します。"
+
+msgctxt "MainWindow|"
+msgid "Simultaneous interpretation"
+msgstr "同時通訳"
+
+msgctxt "TrayIcon|"
+msgid "Simultaneous interpretation"
+msgstr "同時通訳"
+
+msgctxt "InterpreterWindow|"
+msgid "Simultaneous interpretation"
+msgstr "同時通訳"
+
+msgctxt "InterpreterWindow|"
+msgid "Start"
+msgstr "開始"
+
+msgctxt "InterpreterWindow|"
+msgid "Stop"
+msgstr "停止"
+
+msgctxt "InterpreterWindow|"
+msgid "Stopped"
+msgstr "停止中"
+
+msgctxt "InterpreterWindow|"
+msgid "Save…"
+msgstr "保存…"
+
+msgctxt "InterpreterWindow|"
+msgid "Clear"
+msgstr "消去"
+
+msgctxt "InterpreterWindow|"
+msgid "Settings"
+msgstr "設定"
+
+msgctxt "InterpreterWindow|"
+msgid "My language:"
+msgstr "自分の言語:"
+
+msgctxt "InterpreterWindow|"
+msgid "Remote language:"
+msgstr "相手の言語:"
+
+msgctxt "InterpreterWindow|"
+msgid "Microphone:"
+msgstr "マイク:"
+
+msgctxt "InterpreterWindow|"
+msgid "Meeting audio from:"
+msgstr "会議の音声の取り込み元:"
+
+msgctxt "InterpreterWindow|"
+msgid "The output device the meeting plays on (your headphones). Its sound is captured as the remote speaker."
+msgstr "会議の音声を再生している出力デバイス（ヘッドホン）。その音を相手の声として取り込みます。"
+
+msgctxt "InterpreterWindow|"
+msgid "Translator:"
+msgstr "翻訳:"
+
+msgctxt "InterpreterWindow|"
+msgid "Subtitles only"
+msgstr "字幕のみ"
+
+msgctxt "InterpreterWindow|"
+msgid "Send translated speech to a virtual device"
+msgstr "訳の音声を仮想デバイスへ送る"
+
+msgctxt "InterpreterWindow|"
+msgid "Install a virtual audio cable (e.g. VB-CABLE), choose \"CABLE Input\" here and \"CABLE Output\" as the microphone in Teams."
+msgstr "仮想オーディオケーブル（VB-CABLE など）を入れ、ここで「CABLE Input」を、Teams のマイクで「CABLE Output」を選んでください。"
+
+msgctxt "InterpreterWindow|"
+msgid "My voice:"
+msgstr "自分の声:"
+
+msgctxt "InterpreterWindow|"
+msgid "Virtual device:"
+msgstr "仮想デバイス:"
+
+msgctxt "InterpreterWindow|"
+msgid "Also send my original voice"
+msgstr "元の声も一緒に送る"
+
+msgctxt "InterpreterWindow|"
+msgid "Read remote translation aloud on:"
+msgstr "相手の訳を読み上げる出力先:"
+
+msgctxt "InterpreterWindow|"
+msgid "Speech rate:"
+msgstr "読み上げの速さ:"
+
+msgctxt "InterpreterWindow|"
+msgid "Minimum loudness (RMS) treated as speech. Raise it if noise is transcribed."
+msgstr "発話とみなす最小の音量（RMS）。雑音が文字になるときは上げてください。"
+
+msgctxt "InterpreterWindow|"
+msgid " ms"
+msgstr " ミリ秒"
+
+msgctxt "InterpreterWindow|"
+msgid "Silence that ends a sentence. Shorter is faster but splits sentences more often."
+msgstr "文の区切りとみなす無音の長さ。短いほど速く出ますが、文が途中で切れやすくなります。"
+
+msgctxt "InterpreterWindow|"
+msgid "Voice level / pause:"
+msgstr "音量の閾値 / 区切り:"
+
+msgctxt "InterpreterWindow|"
+msgid "Default microphone"
+msgstr "既定のマイク"
+
+msgctxt "InterpreterWindow|"
+msgid "Default output"
+msgstr "既定の出力"
+
+msgctxt "InterpreterWindow|"
+msgid "Waiting: recognition %1, translation %2, speech %3"
+msgstr "待ち: 認識 %1、翻訳 %2、読み上げ %3"
+
+msgctxt "InterpreterWindow|"
+msgid "Interpretation translation settings"
+msgstr "同時通訳モード通訳設定"
+
+msgctxt "InterpreterWindow|"
+msgid "Used only for simultaneous interpretation. The translator of the main window is not changed."
+msgstr "同時通訳でだけ使います。メインの窓の翻訳設定は変わりません。"
+
+msgctxt "InterpreterWindow|"
+msgid "Local translation models"
+msgstr "ローカル翻訳モデル"
+
+msgctxt "InterpreterWindow|"
+msgid "Engine:"
+msgstr "エンジン:"
+
+msgctxt "InterpreterWindow|"
+msgid "Instance:"
+msgstr "インスタンス:"
+
+msgctxt "InterpreterWindow|"
+msgid " (not installed)"
+msgstr "（未導入）"
+
+msgctxt "InterpreterWindow|"
+msgid "Model:"
+msgstr "モデル:"
+
+msgctxt "InterpreterWindow|"
+msgid "Provider:"
+msgstr "接続先:"
+
+msgctxt "InterpreterWindow|"
+msgid "Reasoning effort:"
+msgstr "思考レベル:"
+
+msgctxt "InterpreterWindow|"
+msgid "CLI default"
+msgstr "CLIの既定"
+
+msgctxt "InterpreterWindow|"
+msgid "Low"
+msgstr "低 (low)"
+
+msgctxt "InterpreterWindow|"
+msgid "Medium"
+msgstr "中 (medium)"
+
+msgctxt "InterpreterWindow|"
+msgid "High"
+msgstr "高 (high)"
+
+msgctxt "InterpreterWindow|"
+msgid "Extra high"
+msgstr "非常に高 (xhigh)"
+
+msgctxt "InterpreterWindow|"
+msgid "Maximum"
+msgstr "最大 (max)"
+
+msgctxt "InterpreterWindow|"
+msgid "Prompts, timeouts, API keys and other details use the values in Settings → Translation."
+msgstr "プロンプト・タイムアウト・API キーなどの細かい項目は、設定 → 翻訳 の値を使います。"
+
+msgctxt "InterpreterWindow|"
+msgid "<b>This translator starts a program for every sentence and is slow for interpretation.</b> Local models, Mozhi or LocalAI are recommended."
+msgstr "<b>この翻訳エンジンは文ごとにプログラムを起動するため、通訳には遅いです。</b>ローカルモデル、Mozhi、LocalAI を推奨します。"
+
+msgctxt "InterpreterWindow|"
+msgid "<b>This model is not installed.</b> Install it from \"Manage local AI\"."
+msgstr "<b>このモデルは未導入です。</b>「ローカルAIの管理」から導入してください。"
+
+msgctxt "MainWindow|"
+msgid "Open the simultaneous interpretation window"
+msgstr "同時通訳ウィンドウを開く"
+
+msgctxt "InterpreterWindow|"
+msgid "Speech recognition is not installed"
+msgstr "音声認識が入っていません"
+
+msgctxt "InterpreterWindow|"
+msgid ""
+"whisper.cpp was not found. Install Whisper from \"Manage local AI\", or place the files here:\n"
+"%1\n"
+"%2"
+msgstr ""
+"whisper.cpp が見つかりません。「ローカルAIの管理」で Whisper を入れるか、次の場所にファイルを置いてください:\n"
+"%1\n"
+"%2"
+
+msgctxt "InterpreterWindow|"
+msgid "Choose two different languages."
+msgstr "異なる 2 つの言語を選んでください。"
+
+msgctxt "InterpreterWindow|"
+msgid "Save transcript"
+msgstr "字幕の保存"
+
+msgctxt "InterpreterWindow|"
+msgid "Text files (*.txt)"
+msgstr "テキストファイル (*.txt)"
+
+msgctxt "TranscriptView|"
+msgid "Me"
+msgstr "自分"
+
+msgctxt "TranscriptView|"
+msgid "Remote"
+msgstr "相手"
+
+msgctxt "InterpretationSession|"
+msgid "Select at least one audio source."
+msgstr "取り込む音声を 1 つ以上選んでください。"
+
+msgctxt "InterpretationSession|"
+msgid "Starting speech recognition…"
+msgstr "音声認識を起動しています…"
+
+msgctxt "InterpretationSession|"
+msgid "Listening"
+msgstr "聞き取り中"
+
+msgctxt "InterpretationSession|"
+msgid "Speech recognition stopped: %1"
+msgstr "音声認識が止まりました: %1"
+
+msgctxt "InterpretationSession|"
+msgid "Speech recognition failed: %1"
+msgstr "音声認識に失敗しました: %1"
+
+msgctxt "InterpretationSession|"
+msgid "This speech engine cannot send speech to a chosen device; the default output is used."
+msgstr "この音声エンジンは出力先を選べないため、既定の出力で読み上げます。"
+
+msgctxt "InterpretationSession|"
+msgid "Could not open the virtual audio device for the original voice."
+msgstr "元の声を送る仮想デバイスを開けませんでした。"
+
+msgctxt "InterpretationSession|"
+msgid "Could not start the microphone."
+msgstr "マイクを開始できませんでした。"
+
+msgctxt "InterpretationSession|"
+msgid "Could not capture the meeting audio."
+msgstr "会議の音声を取り込めませんでした。"
+
+msgctxt "InterpretationSession|"
+msgid "Stopped"
+msgstr "停止中"
+
+msgctxt "InterpretationSession|"
+msgid "(translation failed: %1)"
+msgstr "（翻訳失敗: %1）"
+
+msgctxt "AudioCapture|"
+msgid "No microphone was found."
+msgstr "マイクが見つかりません。"
+
+msgctxt "AudioCapture|"
+msgid "Could not open the microphone \"%1\"."
+msgstr "マイク「%1」を開けませんでした。"
+
+msgctxt "AudioCapture|"
+msgid "Could not capture the output device audio (error 0x%1)."
+msgstr "出力デバイスの音声を取り込めませんでした（エラー 0x%1）。"
+
+msgctxt "AudioCapture|"
+msgid "Unsupported output device audio format (%1 bit)."
+msgstr "出力デバイスの音声形式（%1 bit）に対応していません。"
+
+msgctxt "AudioCapture|"
+msgid "Capturing the output device audio is only supported on Windows."
+msgstr "出力デバイスの音声の取り込みは Windows だけで使えます。"
+
+msgctxt "SpeechOutput|"
+msgid "Could not play speech on \"%1\"."
+msgstr "「%1」で読み上げを再生できませんでした。"
+
+msgctxt "WhisperServer|"
+msgid "The speech recognition engine (whisper-server) is not installed. Install it from Local AI management."
+msgstr "音声認識エンジン（whisper-server）が入っていません。「ローカルAIの管理」から入れてください。"
+
+msgctxt "WhisperServer|"
+msgid "The speech recognition model is not installed. Install it from Local AI management."
+msgstr "音声認識のモデルが入っていません。「ローカルAIの管理」から入れてください。"
+
+msgctxt "WhisperServer|"
+msgid "Could not find a free local port for speech recognition."
+msgstr "音声認識に使う空きポートが見つかりません。"
+
+msgctxt "WhisperServer|"
+msgid "Could not create the speech recognition process group."
+msgstr "音声認識のプロセスグループを作れませんでした。"
+
+msgctxt "WhisperServer|"
+msgid "Could not start the speech recognition engine: %1"
+msgstr "音声認識エンジンを起動できませんでした: %1"
+
+msgctxt "WhisperServer|"
+msgid ""
+"The speech recognition engine stopped (exit code %1).\n"
+"%2"
+msgstr ""
+"音声認識エンジンが止まりました（終了コード %1）。\n"
+"%2"
+
+msgctxt "WhisperServer|"
+msgid ""
+"The speech recognition engine did not become ready in time.\n"
+"%1"
+msgstr ""
+"音声認識エンジンが時間内に準備できませんでした。\n"
+"%1"
+
+msgctxt "WhisperServer|"
+msgid "Speech recognition is not ready."
+msgstr "音声認識の準備ができていません。"
+
+msgctxt "WhisperServer|"
+msgid "Unexpected speech recognition response."
+msgstr "音声認識の応答が想定外です。"
+
+msgctxt "InterpreterWindow|"
+msgid "Speech recognition"
+msgstr "音声認識"
+
+msgctxt "InterpreterWindow|"
+msgid "large-v3 is more accurate but about twice as slow. A GPU is recommended."
+msgstr "large-v3 は精度が高い代わりに、約 2 倍遅くなります。GPU を推奨します。"
+
+msgctxt "InterpreterWindow|"
+msgid "Recognition model:"
+msgstr "認識モデル:"
+
+msgctxt "InterpreterWindow|"
+msgid "e.g. Crow Translate, Kubernetes, Tanaka"
+msgstr "例: Crow Translate, Kubernetes, 田中"
+
+msgctxt "InterpreterWindow|"
+msgid "Names and terms that appear in the meeting, separated by commas. They help the recognizer spell them correctly."
+msgstr "会議に出てくる名前や用語をカンマ区切りで入力します。音声認識が正しく書き取る助けになります。"
+
+msgctxt "InterpreterWindow|"
+msgid "Terms:"
+msgstr "用語:"
+
+msgctxt "InterpreterWindow|"
+msgid "Identify remote speakers (A, B, …)"
+msgstr "相手の話者を聞き分ける（Aさん、Bさん…）"
+
+msgctxt "InterpreterWindow|"
+msgid "Tells the voices in the meeting audio apart and shows who is speaking. Your microphone is always shown as \"Me\"."
+msgstr "会議の音声に含まれる声を聞き分け、誰の発言かを表示します。マイクの発言は常に「自分」と表示します。"
+
+msgctxt "InterpreterWindow|"
+msgid "Similarity needed to treat two utterances as the same person. Raise it if different people get the same letter; lower it if one person gets several letters."
+msgstr "2 つの発言を同じ人とみなす類似度です。別の人が同じ記号になるときは上げ、1 人が複数の記号に分かれるときは下げてください。"
+
+msgctxt "InterpreterWindow|"
+msgid "Same-speaker similarity:"
+msgstr "同じ人とみなす類似度:"
+
+msgctxt "InterpreterWindow|"
+msgid "Install \"Speaker identification\" from \"Manage local AI\" to use this."
+msgstr "使うには「ローカル AI の管理」から「話者の聞き分け」を導入してください。"
+
+msgctxt "InterpreterWindow|"
+msgid "large-v3-turbo (fast)"
+msgstr "large-v3-turbo（速い）"
+
+msgctxt "InterpreterWindow|"
+msgid "large-v3 (accurate, slow)"
+msgstr "large-v3（高精度・遅い）"
+
+msgctxt "InterpretationSession|"
+msgid "Me"
+msgstr "自分"
+
+msgctxt "InterpretationSession|"
+msgid "Speaker %1"
+msgstr "%1さん"
+
+msgctxt "InterpretationSession|"
+msgid "Speaker identification is disabled: %1"
+msgstr "話者の聞き分けを止めました: %1"
+
+msgctxt "SpeakerEmbedder|"
+msgid "The speaker identification component is not installed."
+msgstr "話者の聞き分けの部品が導入されていません。"
+
+msgctxt "SpeakerEmbedder|"
+msgid "Could not load %1 (error %2)."
+msgstr "%1 を読み込めませんでした（エラー %2）。"
+
+msgctxt "SpeakerEmbedder|"
+msgid "The speaker identification library does not have the expected functions."
+msgstr "話者の聞き分けのライブラリに、必要な関数がありません。"
+
+msgctxt "SpeakerEmbedder|"
+msgid "Could not load the speaker model %1."
+msgstr "話者モデル %1 を読み込めませんでした。"
+
+msgctxt "SpeakerEmbedder|"
+msgid "Could not compute the speaker embedding."
+msgstr "話者埋め込みを計算できませんでした。"
+
+msgctxt "SpeakerEmbedder|"
+msgid "The utterance was too short to compute the speaker embedding."
+msgstr "発言が短すぎて、話者埋め込みを計算できませんでした。"
