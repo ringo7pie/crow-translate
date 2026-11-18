@@ -13,6 +13,8 @@
 #include <QRegularExpression>
 #include <QThread>
 
+#include <algorithm>
+
 namespace {
 constexpr int sampleRate = 16000; // 発話の標本化周波数
 constexpr int promptContextChars = 200; // 手がかりに入れる直前の発言の文字数
@@ -107,29 +109,7 @@ void InterpretationSession::start(const Config &config)
     emit statusChanged(tr("Starting speech recognition…"));
 
     // 文字起こし
-    m_whisper = new WhisperServer(this);
-    connect(m_whisper, &WhisperServer::ready, this, [this]() {
-        // 外した取り込み元があれば、その警告を「聞き取り中」で消さずに添える
-        if (m_sourceWarning.isEmpty())
-            emit statusChanged(tr("Listening"));
-        else
-            emit statusChanged(tr("Listening — %1").arg(m_sourceWarning));
-        transcribeNext();
-    });
-    connect(m_whisper, &WhisperServer::failed, this, [this](const QString &error) {
-        fail(tr("Speech recognition stopped: %1").arg(error));
-    });
-    connect(m_whisper, &WhisperServer::transcribed, this, [this](const WhisperServer::Transcript &transcript) {
-        handleTranscript(transcript.id, transcript.text, transcript.language);
-    });
-    connect(m_whisper, &WhisperServer::transcriptionFailed, this, [this](quint64 id, const QString &error) {
-        m_inFlight.remove(id);
-        if (!m_speakerResults.remove(id))
-            m_droppedSpeakerIds.insert(id);
-        emit errorOccurred(tr("Speech recognition failed: %1").arg(error));
-        transcribeNext();
-    });
-    m_whisper->start(m_config.whisperExecutable, m_config.whisperModel);
+    startWhisper();
     if (!m_running)
         return; // 起動に失敗して止まった
 
@@ -137,84 +117,15 @@ void InterpretationSession::start(const Config &config)
     if (m_config.captureRemote && m_config.speakerIdentification)
         startSpeakerIdentification();
 
-    // 翻訳
-    m_translator = ATranslationProvider::createTranslationProvider(this, m_config.backend);
-    ProviderOptions options; // 通訳専用の翻訳設定（メインの翻訳設定とは別）
-    for (auto option = m_config.translationOptions.cbegin(); option != m_config.translationOptions.cend(); ++option)
-        options.setOption(option.key(), option.value());
-    m_translator->applyOptions(options);
-    connect(m_translator, &ATranslationProvider::stateChanged, this, &InterpretationSession::handleTranslationState);
-
-    // 読み上げ
-    if (m_config.selfVoiceMode == SelfVoiceMode::SendTranslatedSpeech) {
-        m_selfSpeech = new SpeechOutput(this);
-        m_selfSpeech->setDevice(m_config.virtualOutputId);
-        m_selfSpeech->setRate(m_config.speechRate);
-        connect(m_selfSpeech, &SpeechOutput::errorOccurred, this, &InterpretationSession::errorOccurred);
-        if (!m_selfSpeech->canRouteToDevice())
-            emit errorOccurred(tr("This speech engine cannot send speech to a chosen device; the default output is used."));
-        if (m_config.mixOriginalVoice) {
-            m_passthrough = new AudioPassthrough(this);
-            if (!m_passthrough->start(m_config.virtualOutputId))
-                emit errorOccurred(tr("Could not open the virtual audio device for the original voice."));
-        }
-    }
-    if (m_config.speakRemoteTranslation) {
-        m_remoteSpeech = new SpeechOutput(this);
-        m_remoteSpeech->setDevice(m_config.speakerOutputId);
-        m_remoteSpeech->setRate(m_config.speechRate);
-        connect(m_remoteSpeech, &SpeechOutput::errorOccurred, this, &InterpretationSession::errorOccurred);
-        // 読み上げ中は再生音の取り込みを止め、読み上げを相手の声として拾わない
-        connect(m_remoteSpeech, &SpeechOutput::speakingChanged, this, [this](bool speaking) {
-            if (m_loopback)
-                m_loopback->setMuted(speaking);
-            if (speaking && m_remoteSegmenter)
-                m_remoteSegmenter->reset();
-        });
-    }
+    // 翻訳と読み上げ
+    startTranslator();
+    startSpeechOutputs();
 
     // 取り込みと発話区切り
-    QString microphoneFailure; // マイクを開けなかった理由（会議の音声を用意してから外す）
-    if (m_config.captureMicrophone) {
-        m_selfSegmenter = new VoiceSegmenter(this);
-        m_selfSegmenter->setSettings(m_config.vad);
-        connect(m_selfSegmenter, &VoiceSegmenter::utteranceReady, this, [this](const QVector<float> &samples) {
-            addUtterance(Speaker::Self, samples);
-        });
-        m_microphone = new AudioCapture(AudioCapture::Kind::Microphone, m_config.microphoneId, this);
-        connect(m_microphone, &AudioCapture::samplesReady, this, [this](const QVector<float> &samples) {
-            if (m_selfSegmenter)
-                m_selfSegmenter->push(samples);
-            if (m_passthrough)
-                m_passthrough->write(samples);
-        });
-        connect(m_microphone, &AudioCapture::errorOccurred, this, &InterpretationSession::errorOccurred);
-        if (!m_microphone->start()) {
-            // まだ外さない。会議の音声を用意する前に外すと、取り込み元が残っていないと判断して止まるため
-            microphoneFailure = tr("Could not start the microphone.");
-            const QString detail = m_microphone->lastError(); // AudioCapture が知らせた理由
-            if (!detail.isEmpty())
-                microphoneFailure += QLatin1Char(' ') + detail;
-        }
-    }
+    // マイクの失敗はまだ外さない。会議の音声を用意する前に外すと、取り込み元が残っていないと判断して止まるため
+    const QString microphoneFailure = m_config.captureMicrophone ? startMicrophone() : QString(); // マイクを開けなかった理由
     if (m_config.captureRemote) {
-        m_remoteSegmenter = new VoiceSegmenter(this);
-        m_remoteSegmenter->setSettings(m_config.vad);
-        connect(m_remoteSegmenter, &VoiceSegmenter::utteranceReady, this, [this](const QVector<float> &samples) {
-            addUtterance(Speaker::Remote, samples);
-        });
-        m_loopback = new AudioCapture(AudioCapture::Kind::Loopback, m_config.remoteOutputId, this);
-        connect(m_loopback, &AudioCapture::samplesReady, this, [this](const QVector<float> &samples) {
-            if (m_remoteSegmenter)
-                m_remoteSegmenter->push(samples);
-        });
-        // ループバックの失敗は取り込み用のスレッドから後で届く。開始時・実行中を問わず、会議の音声だけ外す
-        connect(m_loopback, &AudioCapture::errorOccurred, this, [this](const QString &error) {
-            dropSource(Speaker::Remote, error);
-        });
-        // start() の中で失敗を知らせた場合は、上の接続で既に外れている（m_loopback が空になる）
-        if (!m_loopback->start() && m_loopback)
-            dropSource(Speaker::Remote, tr("Could not capture the meeting audio."));
+        startLoopback();
         if (!m_running)
             return;
     }
@@ -223,6 +134,83 @@ void InterpretationSession::start(const Config &config)
         dropSource(Speaker::Self, microphoneFailure);
         if (!m_running)
             return;
+    }
+    reportQueues();
+}
+
+// 動作中に設定を変える
+void InterpretationSession::applyConfig(const Config &config)
+{
+    if (!m_running)
+        return;
+    const Config previous = m_config; // 変える前の設定
+    m_config = config; // 言語・用語は次の発話から m_config を通して効く
+
+    // 発話区切りと、同じ人とみなす類似度（そのまま反映）
+    for (VoiceSegmenter *segmenter : {m_selfSegmenter, m_remoteSegmenter}) {
+        if (segmenter)
+            segmenter->setSettings(m_config.vad);
+    }
+    m_clusterer.setThreshold(m_config.speakerThreshold);
+
+    // 翻訳
+    if (previous.backend != m_config.backend || previous.translationOptions != m_config.translationOptions)
+        restartTranslator();
+
+    // 読み上げ（出力先や方式が変わったら作り直す。速さだけならそのまま反映）
+    const bool speechChanged = previous.selfVoiceMode != m_config.selfVoiceMode || previous.virtualOutputId != m_config.virtualOutputId
+        || previous.mixOriginalVoice != m_config.mixOriginalVoice || previous.speakRemoteTranslation != m_config.speakRemoteTranslation
+        || previous.speakerOutputId != m_config.speakerOutputId; // 読み上げを作り直すか
+    if (speechChanged) {
+        releaseSpeechOutputs();
+        startSpeechOutputs();
+    } else if (previous.speechRate != m_config.speechRate) {
+        for (SpeechOutput *speech : {m_selfSpeech, m_remoteSpeech}) {
+            if (speech)
+                speech->setRate(m_config.speechRate);
+        }
+    }
+
+    // 取り込み元（会議の音声を先に用意する。マイクの失敗で、取り込み元が無いと誤って判断しないため）
+    const bool remoteChanged = previous.captureRemote != m_config.captureRemote || previous.remoteOutputId != m_config.remoteOutputId; // 会議の音声を作り直すか
+    const bool microphoneChanged = previous.captureMicrophone != m_config.captureMicrophone || previous.microphoneId != m_config.microphoneId; // マイクを作り直すか
+    if (remoteChanged || microphoneChanged)
+        m_sourceWarning.clear(); // 作り直した取り込み元の警告は、作り直した結果で出し直す
+    if (remoteChanged) {
+        releaseSource(Speaker::Remote);
+        if (m_config.captureRemote)
+            startLoopback();
+        if (!m_running)
+            return;
+    }
+    if (microphoneChanged) {
+        releaseSource(Speaker::Self);
+        const QString failure = m_config.captureMicrophone ? startMicrophone() : QString(); // マイクを開けなかった理由
+        if (!failure.isEmpty())
+            dropSource(Speaker::Self, failure);
+        if (!m_running)
+            return;
+    }
+    if (!m_microphone && !m_loopback) {
+        fail(tr("No audio source is available."));
+        return;
+    }
+
+    // 話者の聞き分け（会議の音声を取り込むときだけ）
+    const bool identifyBefore = previous.captureRemote && previous.speakerIdentification; // 前は聞き分けていたか
+    const bool identifyNow = m_config.captureRemote && m_config.speakerIdentification; // これから聞き分けるか
+    if (identifyNow && !identifyBefore)
+        startSpeakerIdentification();
+    else if (!identifyNow && identifyBefore)
+        disableSpeakerIdentification();
+
+    // 認識モデル（whisper-server を起動し直す。準備ができると「聞き取り中」に戻る）
+    if (previous.whisperModel != m_config.whisperModel || previous.whisperExecutable != m_config.whisperExecutable) {
+        restartWhisper();
+        if (!m_running)
+            return;
+    } else if (m_whisper && m_whisper->isReady()) {
+        emit statusChanged(listeningStatus());
     }
     reportQueues();
 }
@@ -236,14 +224,7 @@ void InterpretationSession::stop()
     // 取り込みを先に止め、新しい発話を作らない
     releaseSource(Speaker::Self);
     releaseSource(Speaker::Remote);
-    for (SpeechOutput **speech : {&m_selfSpeech, &m_remoteSpeech}) {
-        if (*speech) {
-            (*speech)->disconnect(this);
-            (*speech)->clear();
-            (*speech)->deleteLater();
-            *speech = nullptr;
-        }
-    }
+    releaseSpeechOutputs();
     if (m_whisper) {
         m_whisper->disconnect(this);
         m_whisper->stop();
@@ -297,11 +278,6 @@ void InterpretationSession::releaseSource(Speaker source)
         segmenter->deleteLater();
         segmenter = nullptr;
     }
-    if (self && m_passthrough) {
-        m_passthrough->stop();
-        m_passthrough->deleteLater();
-        m_passthrough = nullptr;
-    }
 }
 
 // 失敗した取り込み元だけ外して続ける
@@ -320,6 +296,206 @@ void InterpretationSession::dropSource(Speaker source, const QString &reason)
     else
         m_sourceWarning = tr("The meeting audio is not used (%1). Continuing with the microphone only.").arg(reason);
     emit errorOccurred(m_sourceWarning);
+}
+
+// whisper-server を起動する
+void InterpretationSession::startWhisper()
+{
+    m_whisper = new WhisperServer(this);
+    connect(m_whisper, &WhisperServer::ready, this, [this]() {
+        // 外した取り込み元があれば、その警告を「聞き取り中」で消さずに添える
+        emit statusChanged(listeningStatus());
+        transcribeNext();
+    });
+    connect(m_whisper, &WhisperServer::failed, this, [this](const QString &error) {
+        fail(tr("Speech recognition stopped: %1").arg(error));
+    });
+    connect(m_whisper, &WhisperServer::transcribed, this, [this](const WhisperServer::Transcript &transcript) {
+        handleTranscript(transcript.id, transcript.text, transcript.language);
+    });
+    connect(m_whisper, &WhisperServer::transcriptionFailed, this, [this](quint64 id, const QString &error) {
+        m_inFlight.remove(id);
+        if (!m_speakerResults.remove(id))
+            m_droppedSpeakerIds.insert(id);
+        emit errorOccurred(tr("Speech recognition failed: %1").arg(error));
+        transcribeNext();
+    });
+    m_whisper->start(m_config.whisperExecutable, m_config.whisperModel);
+}
+
+// whisper-server を起動し直す
+void InterpretationSession::restartWhisper()
+{
+    if (m_whisper) {
+        m_whisper->disconnect(this);
+        m_whisper->stop();
+        m_whisper->deleteLater();
+        m_whisper = nullptr;
+    }
+    // 文字起こし中だった発話を、発話の順を保って待ちの先頭へ戻す
+    QList<Utterance> unfinished = m_inFlight.values(); // 文字起こし中だった発話
+    m_inFlight.clear();
+    std::sort(unfinished.begin(), unfinished.end(), [](const Utterance &left, const Utterance &right) {
+        return left.id < right.id;
+    });
+    for (auto utterance = unfinished.crbegin(); utterance != unfinished.crend(); ++utterance)
+        m_utterances.prepend(*utterance);
+    emit statusChanged(tr("Starting speech recognition…"));
+    startWhisper();
+}
+
+// 翻訳の方式を作る
+void InterpretationSession::startTranslator()
+{
+    m_translator = ATranslationProvider::createTranslationProvider(this, m_config.backend);
+    ProviderOptions options; // 通訳専用の翻訳設定（メインの翻訳設定とは別）
+    for (auto option = m_config.translationOptions.cbegin(); option != m_config.translationOptions.cend(); ++option)
+        options.setOption(option.key(), option.value());
+    m_translator->applyOptions(options);
+    connect(m_translator, &ATranslationProvider::stateChanged, this, &InterpretationSession::handleTranslationState);
+}
+
+// 翻訳の方式を作り直す
+void InterpretationSession::restartTranslator()
+{
+    if (m_translator) {
+        m_translator->disconnect(this);
+        m_translator->abort();
+        m_translator->deleteLater();
+        m_translator = nullptr;
+    }
+    if (m_translating) {
+        m_translations.prepend(m_currentJob); // 訳しかけの文を新しい方式で訳し直す
+        m_translating = false;
+    }
+    startTranslator();
+    translateNext();
+}
+
+// 読み上げと元の声の中継を作る
+void InterpretationSession::startSpeechOutputs()
+{
+    if (m_config.selfVoiceMode == SelfVoiceMode::SendTranslatedSpeech) {
+        m_selfSpeech = new SpeechOutput(this);
+        m_selfSpeech->setDevice(m_config.virtualOutputId);
+        m_selfSpeech->setRate(m_config.speechRate);
+        connect(m_selfSpeech, &SpeechOutput::errorOccurred, this, &InterpretationSession::errorOccurred);
+        if (!m_selfSpeech->canRouteToDevice())
+            emit errorOccurred(tr("This speech engine cannot send speech to a chosen device; the default output is used."));
+        if (m_config.mixOriginalVoice) {
+            m_passthrough = new AudioPassthrough(this);
+            if (!m_passthrough->start(m_config.virtualOutputId))
+                emit errorOccurred(tr("Could not open the virtual audio device for the original voice."));
+        }
+    }
+    if (m_config.speakRemoteTranslation) {
+        m_remoteSpeech = new SpeechOutput(this);
+        m_remoteSpeech->setDevice(m_config.speakerOutputId);
+        m_remoteSpeech->setRate(m_config.speechRate);
+        connect(m_remoteSpeech, &SpeechOutput::errorOccurred, this, &InterpretationSession::errorOccurred);
+        // 読み上げ中は再生音の取り込みを止め、読み上げを相手の声として拾わない
+        connect(m_remoteSpeech, &SpeechOutput::speakingChanged, this, [this](bool speaking) {
+            if (m_loopback)
+                m_loopback->setMuted(speaking);
+            if (speaking && m_remoteSegmenter)
+                m_remoteSegmenter->reset();
+        });
+    }
+}
+
+// 読み上げと元の声の中継を片付ける
+void InterpretationSession::releaseSpeechOutputs()
+{
+    for (SpeechOutput **speech : {&m_selfSpeech, &m_remoteSpeech}) {
+        if (*speech) {
+            (*speech)->disconnect(this);
+            (*speech)->clear();
+            (*speech)->deleteLater();
+            *speech = nullptr;
+        }
+    }
+    if (m_passthrough) {
+        m_passthrough->stop();
+        m_passthrough->deleteLater();
+        m_passthrough = nullptr;
+    }
+    // 読み上げ中に片付けると speakingChanged(false) が届かないので、会議の音声の取り込みを戻す
+    if (m_loopback)
+        m_loopback->setMuted(false);
+}
+
+// マイクの取り込みを始める
+QString InterpretationSession::startMicrophone()
+{
+    m_selfSegmenter = new VoiceSegmenter(this);
+    m_selfSegmenter->setSettings(m_config.vad);
+    connect(m_selfSegmenter, &VoiceSegmenter::utteranceReady, this, [this](const QVector<float> &samples) {
+        addUtterance(Speaker::Self, samples);
+    });
+    m_microphone = new AudioCapture(AudioCapture::Kind::Microphone, m_config.microphoneId, this);
+    connect(m_microphone, &AudioCapture::samplesReady, this, [this](const QVector<float> &samples) {
+        if (m_selfSegmenter)
+            m_selfSegmenter->push(samples);
+        if (m_passthrough)
+            m_passthrough->write(samples);
+    });
+    connect(m_microphone, &AudioCapture::errorOccurred, this, &InterpretationSession::errorOccurred);
+    if (m_microphone->start())
+        return QString();
+    QString failure = tr("Could not start the microphone."); // 失敗の説明
+    const QString detail = m_microphone->lastError(); // AudioCapture が知らせた理由
+    if (!detail.isEmpty())
+        failure += QLatin1Char(' ') + detail;
+    return failure;
+}
+
+// 会議の音声の取り込みを始める
+void InterpretationSession::startLoopback()
+{
+    m_remoteSegmenter = new VoiceSegmenter(this);
+    m_remoteSegmenter->setSettings(m_config.vad);
+    connect(m_remoteSegmenter, &VoiceSegmenter::utteranceReady, this, [this](const QVector<float> &samples) {
+        addUtterance(Speaker::Remote, samples);
+    });
+    m_loopback = new AudioCapture(AudioCapture::Kind::Loopback, m_config.remoteOutputId, this);
+    connect(m_loopback, &AudioCapture::samplesReady, this, [this](const QVector<float> &samples) {
+        if (m_remoteSegmenter)
+            m_remoteSegmenter->push(samples);
+    });
+    // ループバックの失敗は取り込み用のスレッドから後で届く。開始時・実行中を問わず、会議の音声だけ外す
+    connect(m_loopback, &AudioCapture::errorOccurred, this, [this](const QString &error) {
+        dropSource(Speaker::Remote, error);
+    });
+    // start() の中で失敗を知らせた場合は、上の接続で既に外れている（m_loopback が空になる）
+    if (!m_loopback->start() && m_loopback)
+        dropSource(Speaker::Remote, tr("Could not capture the meeting audio."));
+}
+
+// 話者の聞き分けを途中でやめる
+void InterpretationSession::disableSpeakerIdentification()
+{
+    stopSpeakerIdentification(); // 世代が変わるので、後から届く結果は捨てられる
+    for (Utterance &utterance : m_utterances)
+        utterance.identifySpeaker = false;
+    for (Utterance &utterance : m_inFlight)
+        utterance.identifySpeaker = false;
+    m_speakerResults.clear();
+    m_droppedSpeakerIds.clear();
+    if (m_waiting.active) {
+        WaitingTranscript waiting = m_waiting; // 聞き分けの結果を待っていた文字起こし
+        m_waiting = WaitingTranscript();
+        waiting.utterance.identifySpeaker = false;
+        emitEntry(waiting.utterance, waiting.text, waiting.language);
+        transcribeNext();
+    }
+}
+
+// 「聞き取り中」の表示
+QString InterpretationSession::listeningStatus() const
+{
+    if (m_sourceWarning.isEmpty())
+        return tr("Listening");
+    return tr("Listening — %1").arg(m_sourceWarning);
 }
 
 // 発話を文字起こし待ちに入れる

@@ -77,6 +77,10 @@ public:
     void start(const Config &config);
     // 通訳を止める（途中の発話は捨てる）
     void stop();
+    // 動作中に設定を変える。変わった部分だけ作り直し、字幕と待ち行列は残す
+    // （取り込み元・読み上げ・翻訳・認識モデル・話者の聞き分けは作り直す。言語・用語・発話区切り・類似度はそのまま反映）
+    // 止まっているときは何もしない。引数: config = 新しい設定
+    void applyConfig(const Config &config);
     bool isRunning() const;
 
     // 話者と判定言語から、原文を置く列（0 = 言語 A、1 = 言語 B）を決める
@@ -144,6 +148,26 @@ private:
     // 失敗した取り込み元だけ外して続ける。ほかに取り込み元が残らなければ fail() で止める
     // 引数: source = 外す取り込み元（Self = マイク、Remote = 会議の音声）、reason = 失敗の説明
     void dropSource(Speaker source, const QString &reason);
+    // whisper-server を起動する（失敗したら fail() で止まる）
+    void startWhisper();
+    // 認識モデルを変えたときに whisper-server を起動し直す。文字起こし中の発話は待ちの先頭へ戻す
+    void restartWhisper();
+    // 翻訳の方式を作る
+    void startTranslator();
+    // 翻訳の方式を作り直す。翻訳中の文は待ちの先頭へ戻して訳し直す
+    void restartTranslator();
+    // 読み上げ（自分の訳・相手の訳）と元の声の中継を作る
+    void startSpeechOutputs();
+    // 読み上げと元の声の中継を片付ける
+    void releaseSpeechOutputs();
+    // マイクの取り込みを始める。戻り値: 失敗の説明（成功なら空。失敗しても取り込みは残すので、呼び出し側で外す）
+    QString startMicrophone();
+    // 会議の音声の取り込みを始める（失敗したら dropSource() で外す）
+    void startLoopback();
+    // 話者の聞き分けを途中でやめる。結果を待っている発話は話者なしで表に出す
+    void disableSpeakerIdentification();
+    // 「聞き取り中」の表示（外した取り込み元の警告を添える）
+    QString listeningStatus() const;
 
     Config m_config; // 開始時の設定
     bool m_running = false; // 動作中か

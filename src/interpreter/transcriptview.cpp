@@ -25,6 +25,23 @@ TranscriptView::TranscriptView(QWidget *parent)
     verticalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     verticalHeader()->setDefaultAlignment(Qt::AlignTop | Qt::AlignHCenter);
     setAlternatingRowColors(true);
+
+    // 自動スクロール: 行の高さは表示の更新時に遅れて決まるので、行を足した直後ではなく、
+    // スクロールの範囲が広がった時点で一番下へ送る（足した直後に送ると、確定前の高さで止まり追従が外れる）
+    QScrollBar *bar = verticalScrollBar(); // 縦のスクロールバー
+    connect(bar, &QScrollBar::rangeChanged, this, [this, bar](int, int maximum) {
+        if (m_followBottom)
+            bar->setValue(maximum);
+    });
+    // 利用者が一番下まで送ったら追従し、上へ戻したら追従をやめる
+    connect(bar, &QScrollBar::valueChanged, this, [this, bar](int value) {
+        m_followBottom = value >= bar->maximum() - 4;
+    });
+}
+
+bool TranscriptView::isFollowingBottom() const
+{
+    return m_followBottom;
 }
 
 void TranscriptView::setColumnTitles(const QString &titleA, const QString &titleB)
@@ -41,17 +58,9 @@ QTableWidgetItem *TranscriptView::makeItem(const QString &text) const
     return item;
 }
 
-// 最下部まで見ているか（自動スクロールの判定）
-bool TranscriptView::isAtBottom() const
-{
-    const QScrollBar *bar = verticalScrollBar(); // 縦のスクロールバー
-    return bar->value() >= bar->maximum() - 4;
-}
-
-// 原文の行を足す
+// 原文の行を足す（一番下への追従は rangeChanged で行う）
 int TranscriptView::addEntry(quint64 entryId, bool fromSelf, int column, const QString &text, const QDateTime &time, const QString &speakerLabel, int speakerIndex)
 {
-    const bool follow = isAtBottom(); // 足した後に最下部へ送るか
     const int row = rowCount(); // 足す行
     insertRow(row);
     const QString speakerName = !speakerLabel.isEmpty() ? speakerLabel : (fromSelf ? tr("Me") : tr("Remote")); // 表示する話者名
@@ -72,8 +81,6 @@ int TranscriptView::addEntry(quint64 entryId, bool fromSelf, int column, const Q
     setItem(row, std::clamp(column, 0, 1), item);
     m_rows.insert(entryId, row);
     resizeRowToContents(row);
-    if (follow)
-        scrollToBottom();
     return row;
 }
 
@@ -104,12 +111,9 @@ bool TranscriptView::setTranslation(quint64 entryId, const QString &text)
     const int column = item(row, 0) == nullptr ? 0 : 1; // 空いている列
     if (item(row, column) != nullptr)
         return false;
-    const bool follow = isAtBottom(); // 足した後に最下部へ送るか
     setItem(row, column, makeItem(text));
     m_rows.erase(found);
     resizeRowToContents(row);
-    if (follow)
-        scrollToBottom();
     return true;
 }
 
@@ -162,9 +166,6 @@ void TranscriptView::wheelEvent(QWheelEvent *event)
 // 幅が変わると折り返しが変わるので行の高さを合わせ直す
 void TranscriptView::resizeEvent(QResizeEvent *event)
 {
-    const bool follow = isAtBottom(); // 最下部を保つか
     QTableWidget::resizeEvent(event);
     resizeRowsToContents();
-    if (follow)
-        scrollToBottom();
 }

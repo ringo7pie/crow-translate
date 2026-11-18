@@ -32,6 +32,8 @@ public:
     QString toPlainText() const;
     // 文字の大きさ（ポイント）
     void setFontPointSize(qreal pointSize);
+    // 一番下に追従しているか（一番下までスクロールしてあれば true。行が増えると自動で一番下へ送る）
+    bool isFollowingBottom() const;
 
 signals:
     // Ctrl+ホイールで文字の大きさが変わった
@@ -42,8 +44,8 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
 
 private:
-    bool isAtBottom() const;
     QTableWidgetItem *makeItem(const QString &text) const;
 
     QHash<quint64, int> m_rows; // 対応付けの番号 → 行
+    bool m_followBottom = true; // 一番下に追従しているか（利用者が一番下までスクロールしたら true、上へ戻したら false）
 };

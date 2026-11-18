@@ -16,6 +16,8 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QSpinBox;
+class QTimer;
+class QToolButton;
 class TranscriptView;
 
 // 同時通訳の窓（モードレス）。上に設定と開始/停止、下に 2 列の字幕
@@ -49,6 +51,12 @@ private:
     void fillWhisperModels(const QString &selectedPath);
     void updateRecognitionControls();
     InterpretationSession::Config makeConfig() const;
+    // 設定の折りたたみを切り替える（引数: expanded = 開くか）
+    void setOptionsExpanded(bool expanded);
+    // 設定欄の項目が変わったら、少し待ってから動作中の通訳へ反映する（入力中の連続した変更をまとめる）
+    void watchOptionChanges();
+    // 動作中の通訳へ画面の設定を反映する（止まっているときは何もしない）
+    void applyRunningSettings();
 
     InterpretationSession *m_session; // 通訳の制御
     TranscriptView *m_transcript = nullptr; // 字幕
@@ -56,7 +64,9 @@ private:
     QLabel *m_statusLabel = nullptr; // 状態
     QLabel *m_queueLabel = nullptr; // 待ち件数
     QLabel *m_backendLabel = nullptr; // 翻訳方式の表示と注意
-    QGroupBox *m_optionsGroup = nullptr; // 設定のまとまり（動作中は無効）
+    QToolButton *m_optionsToggle = nullptr; // 設定の折りたたみボタン
+    QWidget *m_optionsPanel = nullptr; // 設定の中身（折りたたむと隠す。動作中も変えられる）
+    QTimer *m_applyTimer = nullptr; // 設定の変更を動作中の通訳へ反映するまでの待ち
     QComboBox *m_languageA = nullptr; // 自分の言語
     QComboBox *m_languageB = nullptr; // 相手の言語
     QCheckBox *m_captureMicrophone = nullptr; // マイクを取り込むか

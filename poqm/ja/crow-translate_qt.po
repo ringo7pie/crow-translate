@@ -3761,3 +3761,23 @@ msgstr "話者埋め込みを計算できませんでした。"
 msgctxt "SpeakerEmbedder|"
 msgid "The utterance was too short to compute the speaker embedding."
 msgstr "発言が短すぎて、話者埋め込みを計算できませんでした。"
+
+msgctxt "InterpreterWindow|"
+msgid "Show or hide the settings. Changes are applied while listening."
+msgstr "設定の表示・非表示を切り替えます。聞き取り中に変えた設定もすぐに反映します。"
+
+msgctxt "InterpreterWindow|"
+msgid "Select at least one audio source."
+msgstr "取り込む音声を 1 つ以上選んでください。"
+
+msgctxt "InterpreterWindow|"
+msgid "The selected recognition model is not installed."
+msgstr "選んだ認識モデルが入っていません。"
+
+msgctxt "InterpreterWindow|"
+msgid "Settings were not applied: %1"
+msgstr "設定を反映していません: %1"
+
+msgctxt "InterpretationSession|"
+msgid "No audio source is available."
+msgstr "使える音声の取り込み元がありません。"

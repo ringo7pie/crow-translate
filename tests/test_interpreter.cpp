@@ -16,6 +16,7 @@
 #include "translator/localmodelstranslationprovider.h"
 
 #include <QApplication>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTest>
@@ -107,6 +108,39 @@ private slots:
         QCOMPARE(view.item(1, 0)->text(), QStringLiteral("こんにちは、どうも"));
         QCOMPARE(view.item(1, 1)->text(), QStringLiteral("Hello there"));
         QVERIFY(view.toPlainText().contains(QStringLiteral("English: Hello there")));
+    }
+
+    // 一番下にいれば行が増えても一番下へ追従し、上へ戻したら追従しないこと
+    void transcriptFollowsBottom()
+    {
+        TranscriptView view; // 試験対象
+        view.resize(400, 200);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        const QDateTime now = QDateTime::currentDateTime(); // 時刻
+        const QString longText = QStringLiteral("long line of transcript text that wraps several times ").repeated(4); // 折り返す長い原文
+        QScrollBar *bar = view.verticalScrollBar(); // 縦のスクロールバー
+        quint64 entryId = 1; // 次の行の番号
+        for (int count = 0; count < 20; ++count)
+            view.addEntry(entryId++, count % 2 == 0, count % 2, longText, now);
+        QTRY_VERIFY(bar->maximum() > 0);
+        QTRY_COMPARE(bar->value(), bar->maximum());
+        QVERIFY(view.isFollowingBottom());
+
+        // 上へ戻すと、行が増えても位置を保つ
+        bar->setValue(0);
+        QVERIFY(!view.isFollowingBottom());
+        view.addEntry(entryId++, false, 1, longText, now);
+        QTest::qWait(50);
+        QCOMPARE(bar->value(), 0);
+
+        // 一番下へ戻すと、また追従する
+        bar->setValue(bar->maximum());
+        QVERIFY(view.isFollowingBottom());
+        const int before = bar->maximum(); // 行を足す前の一番下
+        view.addEntry(entryId++, true, 0, longText, now);
+        QTRY_VERIFY(bar->maximum() > before);
+        QTRY_COMPARE(bar->value(), bar->maximum());
     }
 
     // 判定言語と話者から列を決めること

@@ -29,6 +29,8 @@
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 namespace {
@@ -100,6 +102,7 @@ InterpreterWindow::InterpreterWindow(QWidget *parent)
     loadSettings();
     updateModeControls();
     updateColumnTitles();
+    watchOptionChanges();
 
     connect(m_session, &InterpretationSession::entryAdded, this,
             [this](quint64 entryId,
@@ -159,10 +162,18 @@ void InterpreterWindow::buildUi()
     topRow->addWidget(clearButton);
     layout->addLayout(topRow);
 
-    // 設定
-    m_optionsGroup = new QGroupBox(tr("Settings"), this);
-    m_optionsGroup->setCheckable(true);
-    auto *optionsLayout = new QHBoxLayout(m_optionsGroup); // 設定の左右
+    // 設定（見出しのボタンで折りたたむ。聞き取り中も変えられる）
+    m_optionsToggle = new QToolButton(this);
+    m_optionsToggle->setText(tr("Settings"));
+    m_optionsToggle->setToolTip(tr("Show or hide the settings. Changes are applied while listening."));
+    m_optionsToggle->setCheckable(true);
+    m_optionsToggle->setAutoRaise(true);
+    m_optionsToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    connect(m_optionsToggle, &QToolButton::toggled, this, &InterpreterWindow::setOptionsExpanded);
+    layout->addWidget(m_optionsToggle);
+    m_optionsPanel = new QWidget(this);
+    auto *optionsLayout = new QHBoxLayout(m_optionsPanel); // 設定の左右
+    optionsLayout->setContentsMargins(0, 0, 0, 0);
     auto *leftForm = new QFormLayout; // 言語と取り込み
     auto *rightForm = new QFormLayout; // 読み上げと詳細
 
@@ -222,12 +233,7 @@ void InterpreterWindow::buildUi()
     optionsLayout->addLayout(rightForm, 1);
     optionsLayout->addWidget(buildRecognitionGroup(), 1);
     optionsLayout->addWidget(buildTranslationGroup(), 1);
-    // 折りたたみ: チェックを外すと中身を隠す
-    connect(m_optionsGroup, &QGroupBox::toggled, this, [this](bool expanded) {
-        for (QWidget *child : m_optionsGroup->findChildren<QWidget *>(Qt::FindDirectChildrenOnly))
-            child->setVisible(expanded);
-    });
-    layout->addWidget(m_optionsGroup);
+    layout->addWidget(m_optionsPanel);
 
     // 字幕
     m_transcript = new TranscriptView(this);
@@ -565,6 +571,7 @@ void InterpreterWindow::loadSettings()
     m_speakerThreshold->setValue(settings.interpretationValue(QStringLiteral("SpeakerThreshold"), double(SpeakerClusterer::defaultThreshold)).toDouble());
     updateRecognitionControls();
     loadTranslationSettings();
+    setOptionsExpanded(settings.interpretationValue(QStringLiteral("SettingsExpanded"), true).toBool());
 }
 
 // 設定を保存する
@@ -590,6 +597,7 @@ void InterpreterWindow::saveSettings() const
     settings.setInterpretationValue(QStringLiteral("Glossary"), m_glossary->text().trimmed());
     settings.setInterpretationValue(QStringLiteral("SpeakerIdentification"), m_speakerIdentification->isChecked());
     settings.setInterpretationValue(QStringLiteral("SpeakerThreshold"), m_speakerThreshold->value());
+    settings.setInterpretationValue(QStringLiteral("SettingsExpanded"), m_optionsToggle->isChecked());
     currentTranslationSettings().save(settings);
 }
 
@@ -654,12 +662,74 @@ void InterpreterWindow::toggleRunning()
     m_session->start(config);
 }
 
-// 動作中は設定を変えられないようにする
+// 開始/停止のボタンを動作の状態に合わせる（設定は動作中も変えられる）
 void InterpreterWindow::updateRunningState(bool running)
 {
     m_startButton->setText(running ? tr("Stop") : tr("Start"));
     m_startButton->setIcon(QIcon::fromTheme(running ? QStringLiteral("media-playback-stop") : QStringLiteral("media-record")));
-    m_optionsGroup->setEnabled(!running);
+    if (!running && m_applyTimer)
+        m_applyTimer->stop(); // 止まった後に古い変更を反映しない
+}
+
+// 設定の折りたたみを切り替える
+void InterpreterWindow::setOptionsExpanded(bool expanded)
+{
+    if (m_optionsToggle->isChecked() != expanded) {
+        const QSignalBlocker blocker(m_optionsToggle); // ここから再び呼ばれないように
+        m_optionsToggle->setChecked(expanded);
+    }
+    m_optionsToggle->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
+    m_optionsPanel->setVisible(expanded);
+}
+
+// 設定欄の項目の変更を見張る
+void InterpreterWindow::watchOptionChanges()
+{
+    m_applyTimer = new QTimer(this);
+    m_applyTimer->setSingleShot(true);
+    m_applyTimer->setInterval(600); // 入力中の連続した変更をまとめる待ち（ミリ秒）
+    connect(m_applyTimer, &QTimer::timeout, this, &InterpreterWindow::applyRunningSettings);
+    const auto schedule = [this]() {
+        if (m_session->isRunning())
+            m_applyTimer->start();
+    }; // 動作中だけ反映を予約する
+    for (QComboBox *combo : m_optionsPanel->findChildren<QComboBox *>()) {
+        connect(combo, &QComboBox::currentIndexChanged, this, schedule);
+        if (combo->isEditable())
+            connect(combo, &QComboBox::currentTextChanged, this, schedule);
+    }
+    for (QCheckBox *check : m_optionsPanel->findChildren<QCheckBox *>())
+        connect(check, &QCheckBox::toggled, this, schedule);
+    for (QDoubleSpinBox *spin : m_optionsPanel->findChildren<QDoubleSpinBox *>())
+        connect(spin, &QDoubleSpinBox::valueChanged, this, schedule);
+    for (QSpinBox *spin : m_optionsPanel->findChildren<QSpinBox *>())
+        connect(spin, &QSpinBox::valueChanged, this, schedule);
+    for (QLineEdit *edit : m_optionsPanel->findChildren<QLineEdit *>()) {
+        if (qobject_cast<QComboBox *>(edit->parent()) == nullptr) // コンボの入力欄は上で見ている
+            connect(edit, &QLineEdit::textChanged, this, schedule);
+    }
+}
+
+// 動作中の通訳へ画面の設定を反映する
+void InterpreterWindow::applyRunningSettings()
+{
+    if (!m_session->isRunning())
+        return;
+    const InterpretationSession::Config config = makeConfig(); // 新しい設定
+    QString problem; // 反映できない理由
+    if (config.languageA == config.languageB)
+        problem = tr("Choose two different languages.");
+    else if (!config.captureMicrophone && !config.captureRemote)
+        problem = tr("Select at least one audio source.");
+    else if (!QFile::exists(config.whisperModel))
+        problem = tr("The selected recognition model is not installed.");
+    if (!problem.isEmpty()) {
+        // 直すまで前の設定のまま続ける
+        m_statusLabel->setText(tr("Settings were not applied: %1").arg(problem));
+        return;
+    }
+    saveSettings();
+    m_session->applyConfig(config);
 }
 
 // モードに合わせて関係する項目だけを有効にする
