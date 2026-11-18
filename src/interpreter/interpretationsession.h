@@ -139,9 +139,15 @@ private:
     void speak(const TranslationJob &job, const QString &translation);
     void reportQueues();
     void fail(const QString &error);
+    // 取り込み元を 1 つ片付ける（取り込み・発話区切り。マイクなら元の声の中継も）
+    void releaseSource(Speaker source);
+    // 失敗した取り込み元だけ外して続ける。ほかに取り込み元が残らなければ fail() で止める
+    // 引数: source = 外す取り込み元（Self = マイク、Remote = 会議の音声）、reason = 失敗の説明
+    void dropSource(Speaker source, const QString &reason);
 
     Config m_config; // 開始時の設定
     bool m_running = false; // 動作中か
+    QString m_sourceWarning; // 外した取り込み元の警告（「聞き取り中」に添える。無ければ空）
     QElapsedTimer m_clock; // 遅延の計測用
     quint64 m_nextId = 1; // 次の発話の番号
 

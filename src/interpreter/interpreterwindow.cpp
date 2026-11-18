@@ -117,6 +117,13 @@ InterpreterWindow::InterpreterWindow(QWidget *parent)
     connect(m_session, &InterpretationSession::errorOccurred, this, [this](const QString &error) {
         m_statusLabel->setText(error);
         qWarning("Interpreter: %s", qPrintable(error));
+        // 止まった失敗（開始できなかった・途中で止まった）は状態欄だけだと見落とすので、知らせる窓も出す
+        // 続けられる警告は状態欄だけ。クリック処理の中で入れ子のイベントループを回さないよう、閉じるのを待たない
+        if (!m_session->isRunning()) {
+            auto *box = new QMessageBox(QMessageBox::Warning, windowTitle(), error, QMessageBox::Ok, this); // 失敗を知らせる窓
+            box->setAttribute(Qt::WA_DeleteOnClose);
+            box->open();
+        }
     });
     connect(m_session, &InterpretationSession::queueChanged, this, [this](int recognition, int translation, int speech) {
         m_queueLabel->setText(tr("Waiting: recognition %1, translation %2, speech %3").arg(recognition).arg(translation).arg(speech));

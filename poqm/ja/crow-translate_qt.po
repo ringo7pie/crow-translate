@@ -3579,6 +3579,18 @@ msgid "Could not start the microphone."
 msgstr "マイクを開始できませんでした。"
 
 msgctxt "InterpretationSession|"
+msgid "Listening — %1"
+msgstr "聞き取り中 — %1"
+
+msgctxt "InterpretationSession|"
+msgid "The microphone is not used (%1). Continuing with the meeting audio only."
+msgstr "マイクは使いません（%1）。会議の音声だけで続けます。"
+
+msgctxt "InterpretationSession|"
+msgid "The meeting audio is not used (%1). Continuing with the microphone only."
+msgstr "会議の音声は使いません（%1）。マイクだけで続けます。"
+
+msgctxt "InterpretationSession|"
 msgid "Could not capture the meeting audio."
 msgstr "会議の音声を取り込めませんでした。"
 

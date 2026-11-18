@@ -55,6 +55,8 @@ public:
     // 一時停止の切り替え。止めている間の音声は捨てる（読み上げ音の再認識を防ぐ）
     void setMuted(bool muted);
     Kind kind() const;
+    // 最後に errorOccurred() で知らせた失敗の説明（無ければ空）
+    QString lastError() const;
 
 signals:
     void samplesReady(const QVector<float> &samples);
@@ -64,8 +66,11 @@ private:
     bool startMicrophone();
     bool startLoopback();
     void readMicrophone();
+    // 失敗を記録して errorOccurred() を出す（メインスレッドから呼ぶ）
+    void reportError(const QString &error);
 
     Kind m_kind; // 取り込み元の種類
+    QString m_lastError; // 最後に知らせた失敗の説明
     QByteArray m_deviceId; // 取り込み元のデバイス ID
     std::atomic_bool m_muted{false}; // 一時停止中か
     QPointer<QAudioSource> m_source; // マイクの取り込み

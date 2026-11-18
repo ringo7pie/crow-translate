@@ -96,6 +96,7 @@ void InterpretationSession::start(const Config &config)
 {
     stop();
     m_config = config;
+    m_sourceWarning.clear();
     if (!m_config.captureMicrophone && !m_config.captureRemote) {
         emit errorOccurred(tr("Select at least one audio source."));
         return;
@@ -108,7 +109,11 @@ void InterpretationSession::start(const Config &config)
     // 文字起こし
     m_whisper = new WhisperServer(this);
     connect(m_whisper, &WhisperServer::ready, this, [this]() {
-        emit statusChanged(tr("Listening"));
+        // 外した取り込み元があれば、その警告を「聞き取り中」で消さずに添える
+        if (m_sourceWarning.isEmpty())
+            emit statusChanged(tr("Listening"));
+        else
+            emit statusChanged(tr("Listening — %1").arg(m_sourceWarning));
         transcribeNext();
     });
     connect(m_whisper, &WhisperServer::failed, this, [this](const QString &error) {
@@ -169,6 +174,7 @@ void InterpretationSession::start(const Config &config)
     }
 
     // 取り込みと発話区切り
+    QString microphoneFailure; // マイクを開けなかった理由（会議の音声を用意してから外す）
     if (m_config.captureMicrophone) {
         m_selfSegmenter = new VoiceSegmenter(this);
         m_selfSegmenter->setSettings(m_config.vad);
@@ -184,8 +190,11 @@ void InterpretationSession::start(const Config &config)
         });
         connect(m_microphone, &AudioCapture::errorOccurred, this, &InterpretationSession::errorOccurred);
         if (!m_microphone->start()) {
-            fail(tr("Could not start the microphone."));
-            return;
+            // まだ外さない。会議の音声を用意する前に外すと、取り込み元が残っていないと判断して止まるため
+            microphoneFailure = tr("Could not start the microphone.");
+            const QString detail = m_microphone->lastError(); // AudioCapture が知らせた理由
+            if (!detail.isEmpty())
+                microphoneFailure += QLatin1Char(' ') + detail;
         }
     }
     if (m_config.captureRemote) {
@@ -199,13 +208,21 @@ void InterpretationSession::start(const Config &config)
             if (m_remoteSegmenter)
                 m_remoteSegmenter->push(samples);
         });
+        // ループバックの失敗は取り込み用のスレッドから後で届く。開始時・実行中を問わず、会議の音声だけ外す
         connect(m_loopback, &AudioCapture::errorOccurred, this, [this](const QString &error) {
-            fail(error);
+            dropSource(Speaker::Remote, error);
         });
-        if (!m_loopback->start()) {
-            fail(tr("Could not capture the meeting audio."));
+        // start() の中で失敗を知らせた場合は、上の接続で既に外れている（m_loopback が空になる）
+        if (!m_loopback->start() && m_loopback)
+            dropSource(Speaker::Remote, tr("Could not capture the meeting audio."));
+        if (!m_running)
             return;
-        }
+    }
+    // マイクだけ外す。会議の音声も使わない設定なら、ここで止まる
+    if (!microphoneFailure.isEmpty()) {
+        dropSource(Speaker::Self, microphoneFailure);
+        if (!m_running)
+            return;
     }
     reportQueues();
 }
@@ -215,22 +232,10 @@ void InterpretationSession::stop()
 {
     const bool wasRunning = m_running; // 止める前に動いていたか
     m_running = false;
+    m_sourceWarning.clear();
     // 取り込みを先に止め、新しい発話を作らない
-    for (AudioCapture **capture : {&m_microphone, &m_loopback}) {
-        if (*capture) {
-            (*capture)->disconnect(this);
-            (*capture)->stop();
-            (*capture)->deleteLater();
-            *capture = nullptr;
-        }
-    }
-    for (VoiceSegmenter **segmenter : {&m_selfSegmenter, &m_remoteSegmenter}) {
-        if (*segmenter) {
-            (*segmenter)->disconnect(this);
-            (*segmenter)->deleteLater();
-            *segmenter = nullptr;
-        }
-    }
+    releaseSource(Speaker::Self);
+    releaseSource(Speaker::Remote);
     for (SpeechOutput **speech : {&m_selfSpeech, &m_remoteSpeech}) {
         if (*speech) {
             (*speech)->disconnect(this);
@@ -238,11 +243,6 @@ void InterpretationSession::stop()
             (*speech)->deleteLater();
             *speech = nullptr;
         }
-    }
-    if (m_passthrough) {
-        m_passthrough->stop();
-        m_passthrough->deleteLater();
-        m_passthrough = nullptr;
     }
     if (m_whisper) {
         m_whisper->disconnect(this);
@@ -275,8 +275,51 @@ void InterpretationSession::stop()
 // 失敗を知らせて止める
 void InterpretationSession::fail(const QString &error)
 {
-    emit errorOccurred(error);
+    // 先に止める。stop() が出す「停止しました」で理由が上書きされないよう、理由は後から知らせる
     stop();
+    emit errorOccurred(error);
+}
+
+// 取り込み元を 1 つ片付ける
+void InterpretationSession::releaseSource(Speaker source)
+{
+    const bool self = source == Speaker::Self; // マイク側か
+    AudioCapture *&capture = self ? m_microphone : m_loopback; // 片付ける取り込み
+    VoiceSegmenter *&segmenter = self ? m_selfSegmenter : m_remoteSegmenter; // 片付ける発話区切り
+    if (capture) {
+        capture->disconnect(this);
+        capture->stop();
+        capture->deleteLater(); // 自分の signal の中から呼ばれることがあるので、すぐには消さない
+        capture = nullptr;
+    }
+    if (segmenter) {
+        segmenter->disconnect(this);
+        segmenter->deleteLater();
+        segmenter = nullptr;
+    }
+    if (self && m_passthrough) {
+        m_passthrough->stop();
+        m_passthrough->deleteLater();
+        m_passthrough = nullptr;
+    }
+}
+
+// 失敗した取り込み元だけ外して続ける
+void InterpretationSession::dropSource(Speaker source, const QString &reason)
+{
+    if (!m_running)
+        return;
+    releaseSource(source);
+    if (!m_microphone && !m_loopback) {
+        fail(reason); // 使える取り込み元が残っていない
+        return;
+    }
+    // 話者の聞き分けは止めない（待っている文字起こしが聞き分けの結果を待ち続けないように）
+    if (source == Speaker::Self)
+        m_sourceWarning = tr("The microphone is not used (%1). Continuing with the meeting audio only.").arg(reason);
+    else
+        m_sourceWarning = tr("The meeting audio is not used (%1). Continuing with the microphone only.").arg(reason);
+    emit errorOccurred(m_sourceWarning);
 }
 
 // 発話を文字起こし待ちに入れる

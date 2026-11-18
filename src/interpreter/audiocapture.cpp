@@ -123,10 +123,23 @@ void AudioCapture::setMuted(bool muted)
     m_muted = muted;
 }
 
+QString AudioCapture::lastError() const
+{
+    return m_lastError;
+}
+
+// 失敗を記録して知らせる
+void AudioCapture::reportError(const QString &error)
+{
+    m_lastError = error;
+    emit errorOccurred(error);
+}
+
 // 取り込みを始める
 bool AudioCapture::start()
 {
     stop();
+    m_lastError.clear();
     return m_kind == Kind::Microphone ? startMicrophone() : startLoopback();
 }
 
@@ -161,7 +174,7 @@ bool AudioCapture::startMicrophone()
         }
     }
     if (device.isNull()) {
-        emit errorOccurred(tr("No microphone was found."));
+        reportError(tr("No microphone was found."));
         return false;
     }
     QAudioFormat format; // 望ましい形式（16 kHz mono float）
@@ -177,7 +190,7 @@ bool AudioCapture::startMicrophone()
     m_source->setBufferSize(format.bytesForDuration(200000));
     m_sourceDevice = m_source->start();
     if (!m_sourceDevice || m_source->error() != QAudio::NoError) {
-        emit errorOccurred(tr("Could not open the microphone \"%1\".").arg(device.description()));
+        reportError(tr("Could not open the microphone \"%1\".").arg(device.description()));
         stop();
         return false;
     }
@@ -209,8 +222,8 @@ bool AudioCapture::startLoopback()
     const QString endpointId = QString::fromUtf8(m_deviceId); // 取り込む出力デバイスのエンドポイント ID
     m_loopbackThread = QThread::create([this, endpointId]() {
         // 失敗をメインスレッドへ知らせる
-        const auto reportError = [this](const QString &message) {
-            QMetaObject::invokeMethod(this, [this, message]() { emit errorOccurred(message); }, Qt::QueuedConnection);
+        const auto reportFromThread = [this](const QString &message) {
+            QMetaObject::invokeMethod(this, [this, message]() { reportError(message); }, Qt::QueuedConnection);
         };
         const HRESULT comResult = CoInitializeEx(nullptr, COINIT_MULTITHREADED); // このスレッドの COM 初期化
         IMMDeviceEnumerator *enumerator = nullptr; // デバイスの列挙
@@ -254,7 +267,7 @@ bool AudioCapture::startLoopback()
         if (SUCCEEDED(result))
             result = client->Start();
         if (FAILED(result)) {
-            reportError(tr("Could not capture the output device audio (error 0x%1).").arg(quint32(result), 8, 16, QLatin1Char('0')));
+            reportFromThread(tr("Could not capture the output device audio (error 0x%1).").arg(quint32(result), 8, 16, QLatin1Char('0')));
             cleanup();
             return;
         }
@@ -271,7 +284,7 @@ bool AudioCapture::startLoopback()
         else if (mixFormat->wBitsPerSample == 32)
             sampleFormat = QAudioFormat::Int32;
         if (sampleFormat == QAudioFormat::Unknown) {
-            reportError(tr("Unsupported output device audio format (%1 bit).").arg(mixFormat->wBitsPerSample));
+            reportFromThread(tr("Unsupported output device audio format (%1 bit).").arg(mixFormat->wBitsPerSample));
             cleanup();
             return;
         }
@@ -309,7 +322,7 @@ bool AudioCapture::startLoopback()
     m_loopbackThread->start();
     return true;
 #else
-    emit errorOccurred(tr("Capturing the output device audio is only supported on Windows."));
+    reportError(tr("Capturing the output device audio is only supported on Windows."));
     return false;
 #endif
 }
