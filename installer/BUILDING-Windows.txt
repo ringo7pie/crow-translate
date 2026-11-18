@@ -13,8 +13,12 @@ stage a draft until the enclosing Settings dialog is accepted.
 Delayed capture+translate uses Ctrl+Shift+Z; OCR-only capture uses Ctrl+Alt+I and
 suppresses auto-translation for that result. A one-time migration removes old
 OCR/inversion bindings of Ctrl+Shift+Z and repairs saved Ctrl+Alt+G duplicates.
-CAT-Translate-3.3B is recommended and selected alongside Indra in optional setup;
-fresh installations default to CAT, while updates preserve the existing model.
+Indra OCR, CAT-Translate-3.3B, Whisper large-v3 and speaker identification are
+recommended and preselected in optional setup and in "Manage local AI"; Whisper
+large-v3-turbo is preselected too because large-v3 uses its whisper-server.
+Components already installed in the chosen directory are also preselected; a
+reselected whisper or speaker component reuses its installed binaries.
+Fresh installations default to CAT, while updates preserve the existing model.
 Hiding Crow's top-level windows defaults on, with a 150 ms desktop
 redraw delay before grabbing. Cancellation and failures restore visibility and
 window states. Shortcut validation includes duplicates/prefixes; registration

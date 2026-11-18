@@ -167,14 +167,24 @@ OptionalComponentsDialog::OptionalComponentsDialog(const QString &modelRoot, QWi
         if (fallback.open(QIODevice::ReadOnly))
             m_components = QJsonDocument::fromJson(fallback.readAll()).object().value(QStringLiteral("components")).toArray();
     }
+    // 推奨の部品（最初からチェックして導入対象にする）
+    const QStringList recommended{QStringLiteral("indra"), QStringLiteral("cat-translate-3.3b"),
+                                  QStringLiteral("whisper-large-v3"), QStringLiteral("speaker-id")};
+    // whisper-large-v3 はモデルだけの部品で、whisper-server は turbo の部品のものを使うので、turbo もチェックする
+    const QString whisperServerComponent = QStringLiteral("whisper-large-v3-turbo");
     for (const auto &value : m_components) {
         const auto component = value.toObject();
         auto *item = new QTreeWidgetItem(m_choices);
-        const QString name = component.value(QStringLiteral("name")).toString();
-        item->setText(0, component.value(QStringLiteral("id")).toString() == QStringLiteral("cat-translate-3.3b")
-                             ? tr("%1 (recommended)").arg(name) : name);
-        item->setData(0, Qt::UserRole, component.value(QStringLiteral("id")).toString());
-        item->setCheckState(0, Qt::Unchecked);
+        const QString name = component.value(QStringLiteral("name")).toString(); // 表示名
+        const QString id = component.value(QStringLiteral("id")).toString();     // 部品の ID
+        if (recommended.contains(id))
+            item->setText(0, tr("%1 (recommended)").arg(name));
+        else if (id == whisperServerComponent)
+            item->setText(0, tr("%1 (required by Whisper large-v3)").arg(name));
+        else
+            item->setText(0, name);
+        item->setData(0, Qt::UserRole, id);
+        item->setCheckState(0, recommended.contains(id) || id == whisperServerComponent ? Qt::Checked : Qt::Unchecked);
         item->setText(2, QStringLiteral("%1 GB").arg(component.value(QStringLiteral("download_bytes")).toDouble() / 1e9, 0, 'f', 2));
         item->setText(3, QStringLiteral("%1 GB").arg(component.value(QStringLiteral("free_bytes")).toDouble() / 1e9, 0, 'f', 1));
     }
@@ -328,7 +338,11 @@ void OptionalComponentsDialog::refresh()
     const QSignalBlocker blocker(m_choices);
     for (int i = 0; i < m_choices->topLevelItemCount(); ++i) {
         auto *item = m_choices->topLevelItem(i);
-        item->setText(1, installed(item->data(0, Qt::UserRole).toString()) ? tr("Installed") : tr("Missing / incomplete"));
+        const bool present = installed(item->data(0, Qt::UserRole).toString()); // 保存先に導入済みか
+        item->setText(1, present ? tr("Installed") : tr("Missing / incomplete"));
+        // 導入済みの部品はチェック済みにする（選んだまま導入すると検証・修復になる）
+        if (present)
+            item->setCheckState(0, Qt::Checked);
     }
     updateButtons();
 }

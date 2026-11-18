@@ -159,23 +159,59 @@ $form.StartPosition = 'CenterScreen'
 $form.MinimumSize = $form.Size
 $form.MaximizeBox = $false
 $label = New-Object Windows.Forms.Label
-$label.Text = "導入する項目と、既定で使う翻訳モデルを選択してください。`n推奨: CAT-Translate-3.3B。Indra・CATを初期選択。共通環境は別途最大約2 GBです。"
+$label.Text = "導入する項目と、既定で使う翻訳モデルを選択してください。共通環境は別途最大約2 GBです。`n推奨（初期選択）: Indra OCR・CAT-Translate-3.3B・Whisper large-v3・話者の聞き分け。導入済みの項目も選択済みです。"
 $label.SetBounds(18, 14, 770, 42)
 $form.Controls.Add($label)
+# 推奨の部品（最初から選択して導入する）
+$recommendedIds = @('indra', 'cat-translate-3.3b', 'whisper-large-v3', 'speaker-id')
+# whisper-large-v3 はモデルだけの部品で、whisper-server は turbo の部品のものを使うので、turbo も選択する
+$whisperServerId = 'whisper-large-v3-turbo'
+
+# 部品が保存先に導入済みかを調べる（アプリの「ローカル AI の管理」と同じ判定）
+# 引数 Root: 追加機能の保存先 / Component: カタログの部品 / 戻り値: 導入済みなら $true
+function Test-ComponentInstalled([string]$Root, $Component) {
+    if ([string]::IsNullOrWhiteSpace($Root)) { return $false }
+    try {
+        $format = if ($null -ne $Component.PSObject.Properties['format']) { [string]$Component.format } else { '' }   # 部品の形式
+        $required = @()   # 揃っている必要があるファイル（保存先からの相対パス）
+        if ($Component.id -eq 'indra') {
+            $required += 'local-translation/venv/Scripts/indra-ocr.exe'
+        } elseif ($format -in @('whisper', 'whisper-model')) {
+            $required += 'speech/whisper/bin/whisper-server.exe'
+        } elseif ($format -eq 'speaker') {
+            $required += 'speech/speaker/bin/sherpa-onnx-c-api.dll'
+        } else {
+            # 翻訳モデルは変換後のモデルファイルで判定する（PLaMo は変換元を導入後に消すため）
+            return (Test-Path -LiteralPath (Join-Path $Root ('local-translation/models/' + $Component.model_file)) -PathType Leaf)
+        }
+        foreach ($record in $Component.files) { $required += $record.file }
+        foreach ($relative in $required) {
+            if (-not (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf)) { return $false }
+        }
+        return $true
+    } catch { return $false }
+}
+
 $choices = New-Object Windows.Forms.CheckedListBox
 $choices.CheckOnClick = $true
-$choices.SetBounds(18, 62, 768, 112)
+$choices.SetBounds(18, 62, 768, 182)
 foreach ($component in $catalog.components) {
-    $extra = if ($component.id -eq 'plamo-2-translate') { ' / 変換時の空き容量80 GB以上' } elseif ($component.id -eq 'cat-translate-3.3b') { '（推奨）' } else { '' }
-    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), ($component.id -in @('indra','cat-translate-3.3b')))
+    $extra = if ($component.id -eq 'plamo-2-translate') { ' / 変換時の空き容量80 GB以上' }
+             elseif ($component.id -in $recommendedIds) { '（推奨）' }
+             elseif ($component.id -eq $whisperServerId) { '（Whisper large-v3 に必要）' }
+             else { '' }   # 項目名の後ろに付ける説明
+    $installedNow = Test-ComponentInstalled $DataRoot $component   # 既定の保存先に導入済みか
+    if ($installedNow) { $extra += '（導入済み）' }
+    $initiallyChecked = ($component.id -in $recommendedIds) -or ($component.id -eq $whisperServerId) -or $installedNow   # 最初に選択しておくか
+    [void]$choices.Items.Add(('{0} - モデル {1:N2} GB{2}' -f $component.name, ($component.download_bytes/1e9), $extra), $initiallyChecked)
 }
 $form.Controls.Add($choices)
 $defaultLabel = New-Object Windows.Forms.Label
 $defaultLabel.Text = '既定で使う翻訳モデル（導入成功後、アプリの次回起動時に反映）'
-$defaultLabel.SetBounds(18, 180, 768, 22); $form.Controls.Add($defaultLabel)
+$defaultLabel.SetBounds(18, 250, 768, 22); $form.Controls.Add($defaultLabel)
 $defaultModel = New-Object Windows.Forms.ComboBox
 $defaultModel.DropDownStyle = 'DropDownList'
-$defaultModel.SetBounds(18, 204, 768, 28); $form.Controls.Add($defaultModel)
+$defaultModel.SetBounds(18, 274, 768, 28); $form.Controls.Add($defaultModel)
 $script:defaultIds = @()
 function Update-DefaultModels([int]$PendingIndex = -1, [bool]$PendingChecked = $false) {
     $previous = if($defaultModel.SelectedIndex -ge 0){$script:defaultIds[$defaultModel.SelectedIndex]}else{$null}
@@ -205,11 +241,11 @@ function Update-DefaultModels([int]$PendingIndex = -1, [bool]$PendingChecked = $
 }
 $licenseLabel = New-Object Windows.Forms.Label
 $licenseLabel.Text = '項目をクリックすると利用条件とライセンス全文を表示します。'
-$licenseLabel.SetBounds(18, 238, 768, 32)
+$licenseLabel.SetBounds(18, 308, 768, 32)
 $form.Controls.Add($licenseLabel)
 $license = New-Object Windows.Forms.TextBox
 $license.Multiline = $true; $license.ReadOnly = $true; $license.ScrollBars = 'Vertical'
-$license.SetBounds(18, 274, 768, 178)
+$license.SetBounds(18, 344, 768, 108)
 $form.Controls.Add($license)
 $choices.Add_SelectedIndexChanged({
     if ($choices.SelectedIndex -lt 0) { return }
@@ -242,7 +278,15 @@ $form.Controls.Add($destinationLabel)
 $destination = New-Object Windows.Forms.TextBox
 $destination.Text = $DataRoot; $destination.SetBounds(18, 568, 660, 24)
 $form.Controls.Add($destination)
-$destination.Add_TextChanged({Update-DefaultModels})
+$destination.Add_TextChanged({
+    # 保存先を変えたら、その保存先に導入済みの部品も選択済みにする（選択を外すことはしない）
+    for ($index = 0; $index -lt $catalog.components.Count; $index++) {
+        if (-not $choices.GetItemChecked($index) -and (Test-ComponentInstalled $destination.Text $catalog.components[$index])) {
+            $choices.SetItemChecked($index, $true)
+        }
+    }
+    Update-DefaultModels
+})
 Update-DefaultModels
 function Select-InitialDefaultModel {
     $defaultModel.SelectedIndex = if($script:newInstallation){[Array]::IndexOf($script:defaultIds,'cat-translate-3.3b')}else{0}

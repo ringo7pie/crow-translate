@@ -33,6 +33,14 @@ static bool writeFile(const QString &name, const QByteArray &bytes = {})
     return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
 }
 
+// 部品一覧のチェックをすべて外す（推奨の初期選択に左右されずに試験するため）
+// 引数 choices: 部品一覧
+static void uncheckAll(QTreeWidget *choices)
+{
+    for (int index = 0; index < choices->topLevelItemCount(); ++index)
+        choices->topLevelItem(index)->setCheckState(0, Qt::Unchecked);
+}
+
 static void createBundle(const QString &path)
 {
     LocalModelsTranslationProvider::modelIds(); // initialize resource
@@ -107,6 +115,7 @@ private slots:
         root->setText(fixture.path() + "/components");
         QCOMPARE(choices->topLevelItemCount(), 9);
         QVERIFY(choices->topLevelItem(5)->text(0).contains(QStringLiteral("recommended")));
+        uncheckAll(choices);
         choices->topLevelItem(0)->setCheckState(0, Qt::Checked);
         QVERIFY(!install->isEnabled());
         consent->setChecked(true);
@@ -135,6 +144,37 @@ private slots:
         QVERIFY(!install->isEnabled());
     }
 
+    // 推奨の部品（と large-v3 に必要な turbo）が最初からチェックされ、導入済みの部品もチェックされることを確かめる
+    void recommendedAndInstalledComponentsAreChecked()
+    {
+        QTemporaryDir fixture;
+        createBundle(fixture.path());
+        const QString root = fixture.path() + "/components";   // 追加機能の保存先
+        OptionalComponentsDialog dialog({}, nullptr, fixture.path());
+        auto *choices = dialog.findChild<QTreeWidget *>("componentChoices");
+        dialog.findChild<QLineEdit *>("componentRootEdit")->setText(root);
+        QCOMPARE(choices->topLevelItemCount(), 9);
+        // カタログの並び: indra, plamo, index, hy-mt2, seed-x, cat, whisper turbo, whisper large-v3, speaker-id
+        const QList<int> expected{0, 5, 6, 7, 8};   // 最初からチェックされる行
+        for (int index = 0; index < choices->topLevelItemCount(); ++index)
+            QCOMPARE(choices->topLevelItem(index)->checkState(0) == Qt::Checked, expected.contains(index));
+        for (int index : {0, 5, 7, 8})
+            QVERIFY(choices->topLevelItem(index)->text(0).contains(QStringLiteral("recommended")));
+        QVERIFY(choices->topLevelItem(6)->text(0).contains(QStringLiteral("required by Whisper large-v3")));
+
+        // 話者の聞き分けを導入済みにし、保存先を選び直すとチェックされる
+        uncheckAll(choices);
+#ifdef Q_OS_WIN
+        QVERIFY(writeFile(root + "/speech/speaker/bin/sherpa-onnx-c-api.dll"));
+#else
+        QVERIFY(writeFile(root + "/speech/speaker/lib/libsherpa-onnx-c-api.so"));
+#endif
+        QVERIFY(writeFile(root + "/speech/speaker/models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx"));
+        dialog.findChild<QLineEdit *>("componentRootEdit")->setText(root + "/");
+        for (int index = 0; index < choices->topLevelItemCount(); ++index)
+            QCOMPARE(choices->topLevelItem(index)->checkState(0) == Qt::Checked, index == 8);
+    }
+
 #ifdef Q_OS_WIN
     void workerFailureRetryAndOwnedCancellation()
     {
@@ -145,6 +185,7 @@ private slots:
         OptionalComponentsDialog dialog({}, nullptr, fixture.path());
         dialog.findChild<QLineEdit *>("componentRootEdit")->setText(root);
         auto *choices = dialog.findChild<QTreeWidget *>("componentChoices");
+        uncheckAll(choices);
         choices->topLevelItem(2)->setCheckState(0, Qt::Checked);
         auto *install = dialog.findChild<QPushButton *>("installComponentsButton");
         auto *cancel = dialog.findChild<QPushButton *>("cancelComponentsButton");
@@ -350,6 +391,7 @@ private slots:
         OptionalComponentsDialog dialog(root + "/local-translation", nullptr, bundle);
         auto *choices = dialog.findChild<QTreeWidget *>("componentChoices");
         choices->setCurrentItem(choices->topLevelItem(5));
+        uncheckAll(choices);
         choices->topLevelItem(5)->setCheckState(0, Qt::Checked);
         auto *install = dialog.findChild<QPushButton *>("installComponentsButton");
         auto *cancel = dialog.findChild<QPushButton *>("cancelComponentsButton");

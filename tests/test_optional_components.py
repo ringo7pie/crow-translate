@@ -112,6 +112,48 @@ class OptionalSetupTest(unittest.TestCase):
                     with self.assertRaises(ValueError):setup.install_component(component)
             finally:setup.log.close()
 
+    # 同じ版で導入済みの話者部品を選び直したとき、DLL が揃っていれば配布物を再取得しないこと
+    def test_speaker_reinstall_reuses_installed_libraries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            setup=self.setup_installer(Path(directory))
+            component={'id':'speaker-id','format':'speaker','revision':'r1',
+                       'speaker_archive':{'file':'a.tar.bz2','sha256':'x'},'files':[{'file':'model.onnx','sha256':'y'}]}   # 試験用の部品
+            bin_dir=setup.root/'speech/speaker/bin';bin_dir.mkdir(parents=True)
+            for name in ['sherpa-onnx-c-api.dll','onnxruntime.dll']:(bin_dir/name).write_bytes(b'dll')
+            module.write_json(setup.root/'installed-components.json',
+                              {'speaker-id':{'revision':'r1','libraries':['onnxruntime.dll','sherpa-onnx-c-api.dll']}})
+            fetched=[]   # 取得を求められたファイル
+            try:
+                with patch.object(setup,'get',side_effect=lambda record,relative=None:fetched.append(relative or record['file'])):
+                    result=setup.install_speaker(component)
+                self.assertEqual(fetched,['model.onnx'])
+                self.assertEqual(result,{'libraries':['onnxruntime.dll','sherpa-onnx-c-api.dll']})
+                # 版が違えば配布物を取り直す
+                component['revision']='r2';fetched.clear()
+                with patch.object(setup,'get',side_effect=lambda record,relative=None:fetched.append(relative or record['file'])),\
+                     patch.object(setup,'extract_speaker_bin',return_value=['sherpa-onnx-c-api.dll']):
+                    setup.install_speaker(component)
+                self.assertEqual(fetched,['downloads/a.tar.bz2','model.onnx'])
+            finally:setup.log.close()
+
+    # 同じ版・同じ種類（cpu）で導入済みの whisper を選び直したとき、whisper.cpp の zip を再取得しないこと
+    def test_whisper_reinstall_reuses_installed_server(self):
+        with tempfile.TemporaryDirectory() as directory:
+            setup=self.setup_installer(Path(directory))
+            component={'id':'whisper-large-v3-turbo','format':'whisper','revision':'r1',
+                       'whisper_archives':{'cpu':{'file':'cpu.zip','sha256':'x'},'cuda':{'file':'cuda.zip','sha256':'x'}},
+                       'files':[{'file':'model.bin','sha256':'y'}]}   # 試験用の部品
+            bin_dir=setup.root/'speech/whisper/bin';bin_dir.mkdir(parents=True)
+            (bin_dir/'whisper-server.exe').write_bytes(b'exe')
+            module.write_json(setup.root/'installed-components.json',{component['id']:{'revision':'r1','variant':'cpu'}})
+            fetched=[]   # 取得を求められたファイル
+            try:
+                with patch.object(setup,'has_nvidia_gpu',return_value=False),\
+                     patch.object(setup,'get',side_effect=lambda record,relative=None:fetched.append(relative or record['file'])):
+                    self.assertEqual(setup.install_whisper(component),{'variant':'cpu'})
+                self.assertEqual(fetched,['model.bin'])
+            finally:setup.log.close()
+
     def setup_installer(self, base, selected=None, default_model='', configure=False):
         catalog=base/'catalog.json'
         components=[{'id':cid,'free_bytes':0,'files':[],'revision':'test'} for cid in ['index','hy','indra']]

@@ -449,9 +449,13 @@ class Installer:
         use_cuda = bool(self.catalog.get('cuda')) and self.has_nvidia_gpu()
         variant = 'cuda' if use_cuda else 'cpu'
         bin_dir = self.root/'speech/whisper/bin'
-        self.status('whisper.cpp（' + variant + '版）を取得しています')
-        package = self.get(archives[variant], 'downloads/' + archives[variant]['file'])
-        self.extract_whisper_bin(package, bin_dir)
+        previous = self.previous_install(component)   # 同じ版で導入済みなら、その時の導入状態
+        # 導入済みの部品を選び直したとき（検証）は、同じ版・同じ種類の whisper.cpp を再取得しない
+        reuse = previous.get('variant') == variant and (bin_dir/'whisper-server.exe').is_file()
+        if not reuse:
+            self.status('whisper.cpp（' + variant + '版）を取得しています')
+            package = self.get(archives[variant], 'downloads/' + archives[variant]['file'])
+            self.extract_whisper_bin(package, bin_dir)
         if use_cuda:
             # CUDA 版 zip に NVIDIA の DLL が無いときだけ、cuda セクションの cudart zip から同じ bin へ複製する
             needed = ['cudart64_12.dll', 'cublas64_12.dll', 'cublasLt64_12.dll']
@@ -470,6 +474,19 @@ class Installer:
         if not (bin_dir/'whisper-server.exe').is_file():
             raise FileNotFoundError('whisper-server.exeが生成されませんでした')
         return {'variant': variant}
+
+    # 部品が同じ版（revision）で導入済みなら、installed-components.json に残した導入状態を返す
+    # 引数 component: カタログの部品 / 戻り値: 導入状態の辞書（未導入・版違い・読めないときは空の辞書）
+    def previous_install(self, component):
+        state_path = self.root/'installed-components.json'   # 導入状態の記録
+        try:
+            state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
+        except (OSError, ValueError):
+            return {}
+        record = state.get(component['id']) if isinstance(state, dict) else None   # この部品の記録
+        if not isinstance(record, dict) or record.get('revision') != component.get('revision'):
+            return {}
+        return record
 
     # tar.bz2 内の sherpa-onnx-c-api.dll を探し、同じフォルダにある DLL だけを bin へ入れる
     # シンボリックリンク・ハードリンクなど通常ファイル以外の DLL は拒否する
@@ -507,9 +524,15 @@ class Installer:
     def install_speaker(self, component):
         archive = component['speaker_archive']   # sherpa-onnx の配布物
         bin_dir = self.root/'speech/speaker/bin'
-        self.status('話者の聞き分けの部品を取得しています')
-        package = self.get(archive, 'downloads/' + archive['file'])
-        copied = self.extract_speaker_bin(package, bin_dir)
+        previous = self.previous_install(component)   # 同じ版で導入済みなら、その時の導入状態
+        libraries = previous.get('libraries')   # 前回入れた DLL の名前
+        # 導入済みの部品を選び直したとき（検証）は、前回入れた DLL が揃っていれば配布物を再取得しない
+        if isinstance(libraries, list) and libraries and all((bin_dir/name).is_file() for name in libraries):
+            copied = libraries
+        else:
+            self.status('話者の聞き分けの部品を取得しています')
+            package = self.get(archive, 'downloads/' + archive['file'])
+            copied = self.extract_speaker_bin(package, bin_dir)
         self.status('話者埋め込みモデルを取得しています')
         for record in component['files']:
             self.get(record)

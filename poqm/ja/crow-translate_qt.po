@@ -3061,6 +3061,10 @@ msgid "%1 (recommended)"
 msgstr "%1（推奨）"
 
 msgctxt "OptionalComponentsDialog|"
+msgid "%1 (required by Whisper large-v3)"
+msgstr "%1（Whisper large-v3 に必要）"
+
+msgctxt "OptionalComponentsDialog|"
 msgid "Browse..."
 msgstr "参照…"
 
