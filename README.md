@@ -3,6 +3,45 @@
 
 # ![Crow Translate logo](data/icons/app/48-apps-org.kde.CrowTranslate.png) Crow Translate
 
+<a id="simultaneous-interpretation"></a>
+
+## ✨ New: Simultaneous interpretation / 同時通訳 (Windows)
+
+<p align="center">
+  <img src="docs/screenshots/interpreter-windows.png" alt="Simultaneous interpretation window" width="900"/>
+</p>
+
+**Download:** [latest Windows installer](https://github.com/ringo7pie/crow-translate/releases/latest)
+
+Live two-column subtitles for online meetings, videos and conversations, running
+locally on your PC:
+
+- **Your microphone is "you", the meeting audio (speaker loopback) is the other
+  side.** Speech is recognized with [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+  (large-v3-turbo for speed, large-v3 for accuracy) and translated into the other
+  language, side by side.
+- **Speaker identification** labels remote speakers as A, B, … using voice
+  embeddings (sherpa-onnx + 3D-Speaker CAM++).
+- Translation engine and model are configured independently of the main window
+  (Mozhi, local models such as CAT-Translate-3.3B, LocalAI, Codex, Claude Code).
+- Optionally speak the translation into a virtual audio device (e.g. VB-Audio
+  Virtual Cable) so the other side hears it, or read the remote translation aloud.
+- Settings can be changed while listening and the panel can be collapsed; the
+  subtitles follow the newest line while you are at the bottom.
+- If one audio source is unavailable (for example, no microphone), it keeps
+  interpreting with the other one.
+- Open it from the **Simultaneous interpretation** button in the main window or
+  the tray menu. Recognition models and speaker identification are installed from
+  **Manage local AI** after accepting their licenses.
+
+日本語: オンライン会議や動画の音声を、PC 上でリアルタイムに 2 列の字幕へ通訳します。
+マイクを「自分」、会議の音声（スピーカーの再生音）を「相手」として whisper.cpp で認識し、
+もう一方の言語へ翻訳して並べて表示します。相手の話者は声の特徴で A さん・B さん…と聞き分けます。
+訳の読み上げを仮想オーディオデバイスへ送り、相手に聞かせることもできます。
+聞き取り中でも設定を変更でき、設定欄は折りたためます。一番下を表示しているときは最新の字幕へ自動で追従します。
+メイン画面の「同時通訳」ボタンかトレイのメニューから開きます。認識モデルと話者の聞き分けは、
+「ローカルAIの管理」からライセンスに同意して導入します。
+
 ## Unofficial fork / 非公式改変版
 
 This is an unofficial modified version of [Crow Translate](https://invent.kde.org/office/crow-translate),
@@ -90,6 +129,7 @@ Application written in **C++ / Qt6** that allows you to translate and speak text
 
 ## Content
 
+- [Simultaneous interpretation](#simultaneous-interpretation)
 - [Screenshots](#screenshots)
 - [Validation](#validation)
 - [Features](#features)
